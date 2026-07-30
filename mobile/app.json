@@ -48,6 +48,13 @@
         {
           "faceIDPermission": "Zone de test Face ID dans l’onglet Apps."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "enableBackgroundRemoteNotifications": false
+        }
       ]
     ],
     "experiments": {
