@@ -1,11 +1,12 @@
 /**
- * SVG filters Liquid Glass — réfraction SDF + aberration chromatique.
- * Monter une fois près de la racine (main.jsx).
+ * SVG filters Liquid Glass — à monter une fois près de la racine.
  */
+import blobMap from "../assets/liquid-lens-blob.png";
+import pillMap from "../assets/liquid-lens-pill.png";
 
-export default function LiquidGlassFilter({
+export function LiquidGlassFilter({
   id = "liquid-lens",
-  mapSrc = "/liquid-lens-pill.png",
+  mapSrc,
   scale = -42,
   chromaticAberration = true,
   chromaSpread = 3,
@@ -55,7 +56,6 @@ export default function LiquidGlassFilter({
               values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"
               result="dR"
             />
-
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
@@ -68,7 +68,6 @@ export default function LiquidGlassFilter({
               values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"
               result="dG"
             />
-
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
@@ -81,7 +80,6 @@ export default function LiquidGlassFilter({
               values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
               result="dB"
             />
-
             <feBlend in="dR" in2="dG" mode="screen" result="dRG" />
             <feBlend in="dRG" in2="dB" mode="screen" />
           </>
@@ -99,34 +97,27 @@ export default function LiquidGlassFilter({
   );
 }
 
+/** Monte les filtres SDF (à placer une fois dans l’app). */
 export function LiquidGlassFilters() {
   return (
     <>
-      {/* Loupe Apple douce */}
       <LiquidGlassFilter
-        id="liquid-lens-soft"
-        mapSrc="/liquid-lens-blob.png"
+        id="lgn-lens-soft"
+        mapSrc={blobMap}
         scale={-26}
         chromaticAberration={false}
       />
-      {/* Drag : loupe + légère aberration sur les bords */}
       <LiquidGlassFilter
-        id="liquid-lens-soft-strong"
-        mapSrc="/liquid-lens-blob.png"
+        id="lgn-lens-soft-strong"
+        mapSrc={blobMap}
         scale={-36}
         chromaticAberration
         chromaSpread={2.5}
       />
       <LiquidGlassFilter
-        id="liquid-lens-pill"
-        mapSrc="/liquid-lens-pill.png"
+        id="lgn-lens-pill"
+        mapSrc={pillMap}
         scale={-28}
-        chromaticAberration={false}
-      />
-      <LiquidGlassFilter
-        id="liquid-lens-blob"
-        mapSrc="/liquid-lens-blob.png"
-        scale={-40}
         chromaticAberration={false}
       />
     </>

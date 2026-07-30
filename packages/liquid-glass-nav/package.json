@@ -1,0 +1,35 @@
+{
+  "name": "liquid-glass-nav",
+  "version": "1.0.0",
+  "description": "Navbar Liquid Glass style App Store Apple — drag loupe, morph doigt, PWA-ready",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles.css": "./src/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "assets",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "keywords": [
+    "react",
+    "navbar",
+    "tabbar",
+    "liquid-glass",
+    "ios",
+    "apple",
+    "pwa"
+  ],
+  "license": "MIT"
+}
