@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { StyleSheet, View } from "react-native";
 
 export type StickVector = { x: number; y: number };
