@@ -76,10 +76,11 @@
 
 .lgn-bubble {
   position: absolute;
-  top: 0.5rem;
-  bottom: 0.5rem;
+  top: 0.55rem;
+  bottom: 0.55rem;
   left: 0.35rem;
   width: calc((100% - 0.7rem) / var(--lgn-count));
+  /* Capsule ovale (pas un cercle) */
   border-radius: 999px;
   z-index: 0;
   pointer-events: none;
@@ -96,13 +97,14 @@
   backdrop-filter: none;
 }
 
+/* Drag : ovale (étiré en X), un peu plus haute, loupe forte */
 .lgn-bubble.is-dragging {
-  top: -0.28rem;
-  bottom: -0.28rem;
-  background: rgba(255, 255, 255, 0.045);
+  top: -0.14rem;
+  bottom: -0.14rem;
+  background: rgba(255, 255, 255, 0.04);
   box-shadow: var(--lgn-thumb);
-  -webkit-backdrop-filter: url(#lgn-lens-soft-strong) saturate(180%) brightness(1.06);
-  backdrop-filter: url(#lgn-lens-soft-strong) saturate(180%) brightness(1.06);
+  -webkit-backdrop-filter: url(#lgn-lens-soft-strong) saturate(200%) brightness(1.08);
+  backdrop-filter: url(#lgn-lens-soft-strong) saturate(200%) brightness(1.08);
 }
 
 .lgn-bubble.is-dragging::before,

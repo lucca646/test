@@ -160,7 +160,7 @@ export default function LiquidGlassNav({
   };
 
   const transform = pressed
-    ? `translate3d(${bubbleX * 100}%, 0, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`
+    ? `translate3d(${bubbleX * 100}%, 0, 0) scale(${morph.sx * 1.28}, ${morph.sy * 0.92}) skewX(${morph.skew}deg)`
     : `translate3d(${bubbleX * 100}%, 0, 0) scale(1, 1) skewX(0deg)`;
 
   return (
