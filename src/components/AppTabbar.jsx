@@ -75,17 +75,17 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const nearestIndex = (x) => clamp(Math.round(x), 0, TABS.length - 1);
 
-  /** Squash / stretch / skew type goutte Apple selon vélocité */
+  /** Squash / stretch léger — forme seule, sans flou */
   const morphFromVelocity = (vel, clientY, m) => {
-    const v = clamp(vel, -2.8, 2.8);
-    const stretch = clamp(Math.abs(v) * 0.14, 0, 0.42);
+    const v = clamp(vel, -2.2, 2.2);
+    const stretch = clamp(Math.abs(v) * 0.09, 0, 0.22);
     const scaleX = 1 + stretch;
-    const scaleY = 1 - stretch * 0.55;
-    const skew = clamp(v * 4.5, -14, 14);
+    const scaleY = 1 - stretch * 0.45;
+    const skew = clamp(v * 2.8, -8, 8);
     let oy = 0;
     if (m) {
       const midY = m.top + m.height / 2;
-      oy = clamp((clientY - midY) * 0.35, -10, 10);
+      oy = clamp((clientY - midY) * 0.22, -6, 6);
     }
     return { sx: scaleX, sy: scaleY, skew, oy };
   };
@@ -127,11 +127,11 @@ export default function AppTabbar({ activePath, onSelect }) {
       lastX: e.clientX,
       lastT: now,
       vel: 0,
-      morphSnap: { sx: 1.06, sy: 0.96, skew: 0, oy: 0 },
+      morphSnap: { sx: 1.04, sy: 0.98, skew: 0, oy: 0 },
     };
     setPressed(true);
     setBubbleX(x);
-    setMorph({ sx: 1.08, sy: 0.94, skew: 0, oy: 0 });
+    setMorph({ sx: 1.05, sy: 0.97, skew: 0, oy: 0 });
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
 
@@ -186,7 +186,7 @@ export default function AppTabbar({ activePath, onSelect }) {
   return (
     <nav className="dock" aria-label="Navigation">
       <Glass
-        className={`dock-pill${pressed ? " is-pressed" : ""}`}
+        className="dock-pill"
         highlight={false}
         colors={{
           bgIos: "bg-ios-dark-glass",
@@ -226,9 +226,8 @@ export default function AppTabbar({ activePath, onSelect }) {
           );
         })}
 
-        {/* Lentille au-dessus des icônes → réfraction backdrop des glyphs */}
         <span
-          className={`dock-bubble${pressed ? " is-pressed is-dragging" : ""}`}
+          className={`dock-bubble${pressed ? " is-pressed" : ""}`}
           style={{
             transform,
             transition: pressed
