@@ -109,9 +109,8 @@ export default function AppTabbar({ activePath, onSelect }) {
         className={`dock-pill${pressed ? " is-pressed" : ""}`}
         highlight={false}
         colors={{
-          /* Fond géré en CSS (.dock-pill) pour un vrai verre */
-          bgIos: "bg-transparent",
-          shadowIos: "",
+          bgIos: "bg-ios-dark-glass",
+          shadowIos: "shadow-ios-dark-glass",
         }}
         ref={pillRef}
         onPointerDown={onPointerDown}
@@ -120,9 +119,9 @@ export default function AppTabbar({ activePath, onSelect }) {
         onPointerCancel={endPointer}
       >
         <span
-          className={`dock-bubble${pressed ? " is-pressed" : ""}`}
+          className={`dock-bubble shadow-ios-dark-glass-thumb bg-white/10${pressed ? " is-pressed" : ""}`}
           style={{
-            transform: `translate3d(${bubbleX * 100}%, 0, 0)`,
+            transform: `translate3d(${bubbleX * 100}%, 0, 0)${pressed ? " scale(1.08)" : ""}`,
             transition: pressed
               ? "none"
               : "transform 0.38s cubic-bezier(0.22, 1.35, 0.36, 1)",
