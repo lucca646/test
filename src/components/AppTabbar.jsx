@@ -23,6 +23,10 @@ function isActive(activePath, tabPath) {
   return activePath === tabPath || activePath.startsWith(`${clean}/`) || activePath === clean;
 }
 
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
 export default function AppTabbar({ activePath, onSelect }) {
   const pillRef = useRef(null);
   const dragRef = useRef({
@@ -31,7 +35,12 @@ export default function AppTabbar({ activePath, onSelect }) {
     width: 0,
     left: 0,
     index: 0,
+    startX: 0,
+    lastX: 0,
+    lastT: 0,
+    vel: 0,
   });
+  const rafRef = useRef(0);
 
   const activeIndex = useMemo(() => {
     const idx = TABS.findIndex((tab) => isActive(activePath, tab.path));
@@ -40,41 +49,89 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
+  /** Morph liquide : scaleX / scaleY / skewX / offsetY (px) */
+  const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0, oy: 0 });
 
   useEffect(() => {
-    if (!dragRef.current.touching) setBubbleX(activeIndex);
+    if (!dragRef.current.touching) {
+      setBubbleX(activeIndex);
+      setMorph({ sx: 1, sy: 1, skew: 0, oy: 0 });
+    }
   }, [activeIndex]);
+
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
   const measure = () => {
     const el = pillRef.current;
     if (!el) return null;
     const rect = el.getBoundingClientRect();
-    return { width: rect.width, left: rect.left, slot: rect.width / TABS.length };
+    return { width: rect.width, left: rect.left, top: rect.top, height: rect.height, slot: rect.width / TABS.length };
   };
 
   const xFromClient = (clientX, m) => {
     const raw = (clientX - m.left) / m.slot - 0.5;
-    return Math.max(0, Math.min(TABS.length - 1, raw));
+    return clamp(raw, 0, TABS.length - 1);
   };
 
-  const nearestIndex = (x) => Math.max(0, Math.min(TABS.length - 1, Math.round(x)));
+  const nearestIndex = (x) => clamp(Math.round(x), 0, TABS.length - 1);
+
+  /** Squash / stretch / skew type goutte Apple selon vélocité */
+  const morphFromVelocity = (vel, clientY, m) => {
+    const v = clamp(vel, -2.8, 2.8);
+    const stretch = clamp(Math.abs(v) * 0.14, 0, 0.42);
+    const scaleX = 1 + stretch;
+    const scaleY = 1 - stretch * 0.55;
+    const skew = clamp(v * 4.5, -14, 14);
+    let oy = 0;
+    if (m) {
+      const midY = m.top + m.height / 2;
+      oy = clamp((clientY - midY) * 0.35, -10, 10);
+    }
+    return { sx: scaleX, sy: scaleY, skew, oy };
+  };
+
+  const springMorphHome = () => {
+    const start = performance.now();
+    const from = { ...dragRef.current.morphSnap };
+    const tick = (t) => {
+      const p = clamp((t - start) / 420, 0, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      setMorph({
+        sx: from.sx + (1 - from.sx) * e,
+        sy: from.sy + (1 - from.sy) * e,
+        skew: from.skew * (1 - e),
+        oy: from.oy * (1 - e),
+      });
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
 
   const onPointerDown = (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const m = measure();
     if (!m) return;
+    cancelAnimationFrame(rafRef.current);
     const x = xFromClient(e.clientX, m);
+    const now = performance.now();
     dragRef.current = {
       touching: true,
       moved: false,
       width: m.width,
       left: m.left,
+      top: m.top,
+      height: m.height,
       slot: m.slot,
       index: nearestIndex(x),
       startX: e.clientX,
+      lastX: e.clientX,
+      lastT: now,
+      vel: 0,
+      morphSnap: { sx: 1.06, sy: 0.96, skew: 0, oy: 0 },
     };
     setPressed(true);
     setBubbleX(x);
+    setMorph({ sx: 1.08, sy: 0.94, skew: 0, oy: 0 });
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
 
@@ -82,9 +139,27 @@ export default function AppTabbar({ activePath, onSelect }) {
     const d = dragRef.current;
     if (!d.touching) return;
     if (Math.abs(e.clientX - d.startX) > 6) d.moved = true;
-    const x = xFromClient(e.clientX, d);
+
+    const now = performance.now();
+    const dt = Math.max(8, now - d.lastT);
+    const rawVel = (e.clientX - d.lastX) / dt; // px/ms
+    d.vel = d.vel * 0.55 + rawVel * 0.45;
+    d.lastX = e.clientX;
+    d.lastT = now;
+
+    const m = {
+      left: d.left,
+      slot: d.slot,
+      top: d.top,
+      height: d.height,
+    };
+    const x = xFromClient(e.clientX, m);
     d.index = nearestIndex(x);
     setBubbleX(x);
+
+    const nextMorph = morphFromVelocity(d.vel * 16, e.clientY, m);
+    d.morphSnap = nextMorph;
+    setMorph(nextMorph);
   };
 
   const endPointer = (e) => {
@@ -94,6 +169,7 @@ export default function AppTabbar({ activePath, onSelect }) {
     setPressed(false);
     const idx = d.index;
     setBubbleX(idx);
+    springMorphHome();
     const tab = TABS[idx];
     if (tab) onSelect?.(tab.path);
     try {
@@ -102,6 +178,10 @@ export default function AppTabbar({ activePath, onSelect }) {
       /* ignore */
     }
   };
+
+  const transform = pressed
+    ? `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`
+    : `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`;
 
   return (
     <nav className="dock" aria-label="Navigation">
@@ -118,16 +198,6 @@ export default function AppTabbar({ activePath, onSelect }) {
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
       >
-        <span
-          className={`dock-bubble shadow-ios-dark-glass-thumb bg-white/10${pressed ? " is-pressed" : ""}`}
-          style={{
-            transform: `translate3d(${bubbleX * 100}%, 0, 0)${pressed ? " scale(1.08)" : ""}`,
-            transition: pressed
-              ? "none"
-              : "transform 0.38s cubic-bezier(0.22, 1.35, 0.36, 1)",
-          }}
-          aria-hidden
-        />
         {TABS.map((tab, index) => {
           const active = index === activeIndex;
           const Glyph = active ? tab.iconActive : tab.icon;
@@ -138,7 +208,6 @@ export default function AppTabbar({ activePath, onSelect }) {
               className={`dock-item${active ? " is-active" : ""}`}
               aria-current={active ? "page" : undefined}
               onClick={(e) => {
-                // Si on a draggé, le pointerup a déjà navigué
                 if (dragRef.current.moved) {
                   e.preventDefault();
                   return;
@@ -156,6 +225,18 @@ export default function AppTabbar({ activePath, onSelect }) {
             </button>
           );
         })}
+
+        {/* Lentille au-dessus des icônes → réfraction backdrop des glyphs */}
+        <span
+          className={`dock-bubble${pressed ? " is-pressed is-dragging" : ""}`}
+          style={{
+            transform,
+            transition: pressed
+              ? "none"
+              : "transform 0.42s cubic-bezier(0.22, 1.35, 0.36, 1)",
+          }}
+          aria-hidden
+        />
       </Glass>
     </nav>
   );

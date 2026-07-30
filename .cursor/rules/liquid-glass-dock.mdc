@@ -1,0 +1,28 @@
+---
+description: Style Liquid Glass du dock playground (référence Apple / Konsta)
+alwaysApply: true
+---
+
+# Dock Liquid Glass — référence visuelle
+
+## Look validé (ne pas régresser)
+
+La pastille active du dock doit rester alignée sur le **thumb Toggle/Range Konsta iOS 26** :
+
+- Fond : `bg-white/10` / `rgba(255, 255, 255, 0.1)`
+- Ombre : token `shadow-ios-dark-glass-thumb` (`--shadow-ios-dark-glass-thumb` dans `konsta/styles/glass.css`)
+- Barre : `bg-ios-dark-glass` + `shadow-ios-dark-glass`
+
+Ne pas remplacer ce rim par des gradients custom « trop blancs » qui cassent le look Apple.
+
+## Comportement Apple attendu
+
+1. **Déformation au doigt** : squash / stretch / skew selon la vélocité du drag (goutte liquide).
+2. **Réfraction aux bords** : `backdrop-filter: url(#liquid-lens-blob)` + maps SDF (`public/liquid-lens-*.png`) + aberration chromatique (R/G/B scales légèrement décalées).
+3. Au repos : pastille Konsta glass-thumb. En drag : réfraction / magnifying plus marquée (comme App Store iOS 26).
+
+## Fichiers
+
+- `src/components/AppTabbar.jsx` — drag + morph
+- `src/components/liquidGlass/LiquidGlassFilter.jsx` — filtres SVG
+- `src/index.css` — `.dock-pill` / `.dock-bubble`
