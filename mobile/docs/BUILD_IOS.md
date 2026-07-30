@@ -21,3 +21,11 @@ npx eas-cli build --platform ios --profile development-simulator --non-interacti
 ```
 
 Puis installer le build sur iPhone et : `npx expo start --dev-client`
+
+## Statut 2026-07-30
+
+- Mac local : impossible (pas de Xcode)
+- EAS simulator (`development-simulator`) : **OK**
+  - https://expo.dev/accounts/luccar2956s-team/projects/liquid-glass-mobile/builds/202d99e2-9bab-4e23-a114-cfe78bb6ceb6
+- EAS device (`development`) : **bloqué** — credentials Apple manquantes
+  (compte Apple Developer + `eas credentials` en interactif, ou Apple ID pour EAS)
