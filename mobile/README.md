@@ -38,10 +38,14 @@ L’activité apparaît sur le Lock Screen + Dynamic Island.
 ## Expo Go (sans build)
 
 ```bash
-npx expo start --tunnel
+npm run tunnel
+# = EXPO_GO=1 npx expo start --go --tunnel
 ```
 
-Tu gardes la nav native + l’aperçu des modes ; Start affichera que le module natif est absent.
+`EXPO_GO=1` retire `owner` / `projectId` EAS et les plugins natifs le temps du serveur
+(comme au premier playground anonyme). Sans ça, en CI Expo demande un login → erreur 500.
+
+Tu gardes la nav + l’aperçu des modes ; Start affichera que le module natif est absent.
 
 ## Fichiers clés
 

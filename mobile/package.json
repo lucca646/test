@@ -4,8 +4,9 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:go": "EXPO_GO=1 expo start --go",
     "start:dev": "expo start --dev-client",
-    "tunnel": "expo start --tunnel",
+    "tunnel": "EXPO_GO=1 expo start --go --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
