@@ -16,7 +16,7 @@ export default function ArcadePage() {
   const [chip, setChip] = useState("Apple Arcade");
 
   return (
-    <Page>
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
       <Navbar title="Arcade" large transparent className="top-0 sticky" />
 
       <Block className="mt-2">
