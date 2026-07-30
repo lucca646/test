@@ -53,8 +53,9 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
       },
+      /* Désactivé en dev : le SW gardait l’ancienne CSS (barre flottante) */
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
     }),
   ],

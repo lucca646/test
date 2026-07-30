@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Glass } from "@samasante/liquid-glass";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -18,9 +19,61 @@ function matchActive(activeId, itemId) {
   );
 }
 
+/** Repos : verre discret, peu de distorsion */
+const OPTICS_REST = {
+  depth: 0.28,
+  curvature: 0.18,
+  bend: 0.12,
+  bendWidth: 0.12,
+  strength: 0.06,
+  frost: 0,
+  dispersion: 0.04,
+  specular: 0.45,
+  sheen: 0.28,
+  sheenWidth: 2,
+  brightness: 0.05,
+  softEdge: true,
+  clipToShape: true,
+  mapSize: 256,
+  saturate: 1.1,
+  glow: 0.06,
+  glowSpread: 0.18,
+  glowFalloff: 2,
+  sheenAngle: 125,
+  sheenDark: false,
+  sheenFalloff: 2,
+  splay: 0.04,
+};
+
+/** Drag : loupe transparente + distorsion du fond (sans fish-eye agressif) */
+const OPTICS_DRAG = {
+  depth: 0.78,
+  curvature: 0.55,
+  bend: 0.48,
+  bendWidth: 0.15,
+  strength: 0.36,
+  frost: 0,
+  dispersion: 0.22,
+  specular: 0.75,
+  sheen: 0.45,
+  sheenWidth: 2.2,
+  brightness: 0.015,
+  softEdge: true,
+  clipToShape: true,
+  mapSize: 320,
+  saturate: 1.2,
+  glow: 0.12,
+  glowSpread: 0.2,
+  glowFalloff: 2,
+  sheenAngle: 125,
+  sheenDark: false,
+  sheenFalloff: 2,
+  splay: 0.08,
+};
+
 /**
  * Navbar Liquid Glass (App Store style).
- * Pastille CSS (fiable) + loupe SDF au drag.
+ * Pastille CSS positionnée + Glass pour la distorsion du fond.
  */
 export default function LiquidGlassNav({
   items = [],
@@ -54,6 +107,7 @@ export default function LiquidGlassNav({
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
   const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0 });
+  const [lensPx, setLensPx] = useState({ w: 72, h: 42 });
   const [mounted, setMounted] = useState(false);
 
   const nearestIndex = (x) => clamp(Math.round(x), 0, count - 1);
@@ -66,6 +120,35 @@ export default function LiquidGlassNav({
     setBubbleX(activeIndex);
     setMorph({ sx: 1, sy: 1, skew: 0 });
   }, [activeIndex]);
+
+  useLayoutEffect(() => {
+    const el = pillRef.current;
+    if (!el) return;
+
+    const measureLens = () => {
+      const rect = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      const padX = parseFloat(cs.paddingLeft) || 5.6;
+      const padT = parseFloat(cs.paddingTop) || 5.6;
+      const padB = parseFloat(cs.paddingBottom) || 5.6;
+      const slot = (rect.width - padX * 2) / count;
+      const iconZone = Math.max(36, rect.height - padT - padB);
+      /* repos inset 0.5rem ; drag overflow 0.28rem — largeur inchangée */
+      const inset = pressed ? -0.28 * 16 : 0.5 * 16;
+      const h = Math.max(30, iconZone - inset * 2);
+      setLensPx({ w: Math.max(40, slot), h });
+    };
+
+    measureLens();
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureLens) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", measureLens);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measureLens);
+    };
+  }, [count, pressed]);
 
   const measure = () => {
     const el = pillRef.current;
@@ -157,30 +240,49 @@ export default function LiquidGlassNav({
     <nav
       className={`lgn ${className}`.trim()}
       aria-label={ariaLabel}
-      style={{ "--lgn-count": count, "--lgn-active": activeColor }}
+      style={{
+        "--lgn-count": count,
+        "--lgn-active": activeColor,
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        top: "auto",
+        margin: 0,
+        padding: 0,
+      }}
     >
       <div
-        className="lgn-pill"
+        className={`lgn-pill${pressed ? " is-dragging" : ""}`}
         ref={pillRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
       >
-        <span
+        <Glass
           className={`lgn-bubble${pressed ? " is-dragging" : ""}`}
+          width={lensPx.w}
+          height={lensPx.h}
+          radius={999}
+          optics={pressed ? OPTICS_DRAG : OPTICS_REST}
+          behind="transparent"
           style={{
             transform,
             transition: pressed
               ? "none"
-              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background 0.25s ease, box-shadow 0.25s ease",
+              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), top 0.22s ease, bottom 0.22s ease",
+            background: pressed
+              ? "rgba(255,255,255,0.04)"
+              : "rgba(255,255,255,0.1)",
           }}
           aria-hidden
         />
 
         {items.map((tab, index) => {
           const underLens = index === highlightIndex;
-          const glyph = underLens && tab.iconActive != null ? tab.iconActive : tab.icon;
+          const glyph =
+            underLens && tab.iconActive != null ? tab.iconActive : tab.icon;
           return (
             <button
               key={tab.id}
