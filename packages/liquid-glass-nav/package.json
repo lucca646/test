@@ -31,5 +31,8 @@
     "apple",
     "pwa"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@samasante/liquid-glass": "^0.1.1"
+  }
 }

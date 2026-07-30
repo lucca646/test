@@ -48,12 +48,15 @@ export default function App() {
   const ActivePage = PAGES[activePath] || TodayPage;
 
   return (
-    <KonstaApp theme="ios" dark safeAreas className="ios-shell dark">
-      <div className="app-wallpaper" aria-hidden />
-      <main className="tab-stage">
-        <ActivePage key={activePath} />
-      </main>
+    <>
+      <KonstaApp theme="ios" dark safeAreas={false} className="ios-shell dark no-safe-areas-bottom">
+        <div className="app-wallpaper" aria-hidden />
+        <main className="tab-stage">
+          <ActivePage key={activePath} />
+        </main>
+      </KonstaApp>
+      {/* Hors Konsta → fixed viewport, vraiment en bas */}
       <AppTabbar activePath={activePath} onSelect={selectTab} />
-    </KonstaApp>
+    </>
   );
 }

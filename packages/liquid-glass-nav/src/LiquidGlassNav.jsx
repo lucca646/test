@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Glass } from "@samasante/liquid-glass";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -17,16 +19,60 @@ function matchActive(activeId, itemId) {
   );
 }
 
+/** Optics repos — verre discret, proportions stables */
+const OPTICS_REST = {
+  depth: 0.35,
+  curvature: 0.25,
+  bend: 0.2,
+  bendWidth: 0.14,
+  strength: 0.12,
+  frost: 0,
+  dispersion: 0.08,
+  specular: 0.55,
+  sheen: 0.35,
+  sheenWidth: 2,
+  brightness: 0.04,
+  softEdge: true,
+  clipToShape: true,
+  mapSize: 256,
+  saturate: 1.15,
+  glow: 0.1,
+  glowSpread: 0.2,
+  glowFalloff: 2,
+  sheenAngle: 125,
+  sheenDark: false,
+  sheenFalloff: 2,
+  splay: 0.05,
+};
+
+/** Optics drag — distorsion Apple accentuée, mêmes proportions */
+const OPTICS_DRAG = {
+  depth: 0.92,
+  curvature: 0.7,
+  bend: 0.62,
+  bendWidth: 0.16,
+  strength: 0.48,
+  frost: 0,
+  dispersion: 0.32,
+  specular: 0.9,
+  sheen: 0.55,
+  sheenWidth: 2.5,
+  brightness: 0.02,
+  softEdge: true,
+  clipToShape: true,
+  mapSize: 320,
+  saturate: 1.25,
+  glow: 0.18,
+  glowSpread: 0.22,
+  glowFalloff: 2,
+  sheenAngle: 125,
+  sheenDark: false,
+  sheenFalloff: 2,
+  splay: 0.12,
+};
+
 /**
- * Navbar Liquid Glass (App Store style).
- *
- * @param {object} props
- * @param {{ id: string, label: string, icon: import('react').ReactNode, iconActive?: import('react').ReactNode }[]} props.items
- * @param {string} props.activeId
- * @param {(id: string) => void} [props.onChange]
- * @param {string} [props.activeColor="#0a84ff"]
- * @param {string} [props.className]
- * @param {string} [props.ariaLabel="Navigation"]
+ * Navbar Liquid Glass (App Store style) + distorsion @samasante/liquid-glass.
  */
 export default function LiquidGlassNav({
   items = [],
@@ -60,15 +106,40 @@ export default function LiquidGlassNav({
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
   const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0 });
+  const [lensPx, setLensPx] = useState({ w: 64, h: 40 });
+  const [mounted, setMounted] = useState(false);
 
   const nearestIndex = (x) => clamp(Math.round(x), 0, count - 1);
   const highlightIndex = nearestIndex(bubbleX);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (dragRef.current.touching) return;
     setBubbleX(activeIndex);
     setMorph({ sx: 1, sy: 1, skew: 0 });
   }, [activeIndex]);
+
+  useLayoutEffect(() => {
+    const el = pillRef.current;
+    if (!el) return;
+    const measureLens = () => {
+      const rect = el.getBoundingClientRect();
+      const pad = 0.35 * 16;
+      const inset = 0.55 * 16;
+      const slot = (rect.width - pad * 2) / count;
+      const h = Math.max(28, rect.height - inset * 2);
+      setLensPx({ w: Math.max(36, slot), h });
+    };
+    measureLens();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureLens) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", measureLens);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measureLens);
+    };
+  }, [count]);
 
   const measure = () => {
     const el = pillRef.current;
@@ -87,17 +158,13 @@ export default function LiquidGlassNav({
 
   const morphFromFinger = (vel, clientY, m) => {
     const v = clamp(vel, -1.8, 1.8);
-    const stretch = clamp(Math.abs(v) * 0.1, 0, 0.16);
+    const stretch = clamp(Math.abs(v) * 0.08, 0, 0.1);
     const midY = m.top + m.height / 2;
     const yPull = clamp((clientY - midY) / (m.height * 0.9), -1, 1);
-    const sx = 1 + stretch - yPull * 0.04;
-    const sy = 1 - stretch * 0.5 + Math.abs(yPull) * 0.06;
-    const skew = clamp(v * 3.2 + yPull * 1.2, -7, 7);
-    return {
-      sx: clamp(sx, 0.9, 1.18),
-      sy: clamp(sy, 0.9, 1.14),
-      skew,
-    };
+    // Uniforme : mêmes proportions (pas d’étirement X seul)
+    const s = 1 + stretch * 0.35 + Math.abs(yPull) * 0.03;
+    const skew = clamp(v * 2.2, -5, 5);
+    return { sx: clamp(s, 0.96, 1.08), sy: clamp(s, 0.96, 1.08), skew };
   };
 
   const onPointerDown = (e) => {
@@ -121,7 +188,7 @@ export default function LiquidGlassNav({
     };
     setPressed(true);
     setBubbleX(x);
-    setMorph({ sx: 1.04, sy: 1.02, skew: 0 });
+    setMorph({ sx: 1.04, sy: 1.04, skew: 0 });
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
 
@@ -159,11 +226,10 @@ export default function LiquidGlassNav({
     }
   };
 
-  const transform = pressed
-    ? `translate3d(${bubbleX * 100}%, 0, 0) scale(${morph.sx * 1.28}, ${morph.sy * 0.92}) skewX(${morph.skew}deg)`
-    : `translate3d(${bubbleX * 100}%, 0, 0) scale(1, 1) skewX(0deg)`;
+  // Mêmes proportions au drag (scale uniforme léger seulement)
+  const transform = `translate3d(${bubbleX * 100}%, 0, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`;
 
-  return (
+  const nav = (
     <nav
       className={`lgn ${className}`.trim()}
       aria-label={ariaLabel}
@@ -177,13 +243,20 @@ export default function LiquidGlassNav({
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
       >
-        <span
+        <Glass
           className={`lgn-bubble${pressed ? " is-dragging" : ""}`}
+          width={lensPx.w}
+          height={lensPx.h}
+          radius={999}
+          optics={pressed ? OPTICS_DRAG : OPTICS_REST}
           style={{
             transform,
             transition: pressed
               ? "none"
-              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), top 0.28s ease, bottom 0.28s ease, box-shadow 0.28s ease, background 0.28s ease",
+              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1)",
+            background: pressed
+              ? "rgba(255,255,255,0.04)"
+              : "rgba(255,255,255,0.08)",
           }}
           aria-hidden
         />
@@ -215,4 +288,8 @@ export default function LiquidGlassNav({
       </div>
     </nav>
   );
+
+  // Portal sur body → hors Konsta / stacking, vraiment collé au viewport
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(nav, document.body);
 }
