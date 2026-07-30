@@ -54,10 +54,15 @@ type Props = {
  * Playground Dynamic Island :
  * - aperçu UI toujours
  * - boutons Start / Update / Stop → vraie Live Activity (Dev Client)
+ *
+ * Note Apple : Compact / Minimal / Expanded sur l’île réelle sont choisis
+ * par le système (long press, concurrence d’activités). On ne “force” pas
+ * l’animation de morph — on pousse le contenu (Update / changement de mode).
  */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
   const bridge = useMemo(() => getLiveActivityBridge(), []);
   const activityId = useRef<string | null>(null);
+  const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<string>(
     bridge.available
       ? "Prêt — lance une Live Activity sur l’île système."
@@ -78,6 +83,21 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Si une activité tourne, changer de mode pousse tout de suite le nouveau contenu. */
+  useEffect(() => {
+    if (!running || !activityId.current || !bridge.updateActivity) return;
+    try {
+      const { state } = stateForMode(mode);
+      bridge.updateActivity(activityId.current, {
+        ...state,
+        subtitle: `${String(state.subtitle ?? mode)} · ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`,
+      });
+      setStatus(`Île mise à jour → mode « ${mode} » (animation système Apple).`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    }
+  }, [mode, running, bridge]);
 
   const run = (fn: () => void) => {
     setBusy(true);
@@ -104,8 +124,11 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         );
         return;
       }
-      activityId.current = id;
-      setStatus(`Live Activity démarrée · id ${id.slice(0, 8)}…`);
+      activityId.current = String(id);
+      setRunning(true);
+      setStatus(
+        `Live Activity démarrée · ${mode}. Change de mode ou Update pour animer le contenu.`,
+      );
     });
 
   const onUpdate = () =>
@@ -115,23 +138,28 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         return;
       }
       const { state } = stateForMode(mode);
-      // petite variation pour voir l’update
       const next = {
         ...state,
         subtitle: `${state.subtitle ?? ""} · maj ${new Date().toLocaleTimeString("fr-FR")}`,
         progressBar:
-          "progress" in (state.progressBar ?? {})
+          state.progressBar &&
+          typeof state.progressBar === "object" &&
+          "progress" in state.progressBar
             ? {
                 progress: Math.min(
                   0.95,
                   ((state.progressBar as { progress?: number }).progress ??
-                    0.4) + 0.1,
+                    0.4) + 0.12,
                 ),
               }
-            : state.progressBar,
+            : state.progressBar &&
+                typeof state.progressBar === "object" &&
+                "date" in state.progressBar
+              ? { date: Date.now() + 3 * 60 * 1000 }
+              : state.progressBar,
       };
       bridge.updateActivity(activityId.current, next);
-      setStatus(`Activity mise à jour (${mode}).`);
+      setStatus(`Contenu poussé (${mode}) — morph géré par iOS.`);
     });
 
   const onStop = () =>
@@ -147,23 +175,51 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         subtitle: "Live Activity arrêtée",
       });
       activityId.current = null;
+      setRunning(false);
       setStatus("Live Activity arrêtée.");
     });
+
+  const layoutModes = ISLAND_MODES.filter((m) =>
+    ["compact", "minimal", "expanded"].includes(m.id),
+  );
+  const contentModes = ISLAND_MODES.filter((m) =>
+    ["timer", "music", "progress"].includes(m.id),
+  );
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.sectionTitle}>Dynamic Island</Text>
       <Text style={styles.sectionHint}>
-        Modes → aperçu. Puis Start pour pousser une vraie Live Activity sur
-        l’île (Dev Client / build native uniquement).
+        Start → vraie Live Activity. Ensuite change Timer / Music / Progress
+        (ou Update) pour modifier le contenu. Les morphs Compact↔Expanded sont
+        gérés par iOS (long press sur l’île), pas par des curseurs custom.
       </Text>
 
       <View style={styles.previewStage}>
         <IslandPreview mode={mode} />
       </View>
 
+      <Text style={styles.groupLabel}>Aperçu UI (pas forcé sur l’île)</Text>
       <View style={styles.chips}>
-        {ISLAND_MODES.map((m) => {
+        {layoutModes.map((m) => {
+          const on = m.id === mode;
+          return (
+            <Pressable
+              key={m.id}
+              onPress={() => onChange(m.id)}
+              style={[styles.chip, on && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                {m.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={styles.groupLabel}>Contenu Live Activity (poussé natif)</Text>
+      <View style={styles.chips}>
+        {contentModes.map((m) => {
           const on = m.id === mode;
           return (
             <Pressable
@@ -181,6 +237,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
 
       <Text style={styles.modeHint}>
         {ISLAND_MODES.find((m) => m.id === mode)?.hint}
+        {running ? " · activité native en cours" : ""}
       </Text>
 
       <View style={styles.actions}>
@@ -338,6 +395,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+  groupLabel: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginTop: 4,
   },
   chip: {
     paddingHorizontal: 12,
