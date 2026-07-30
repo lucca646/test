@@ -12,7 +12,10 @@
       "bundleIdentifier": "eu.coraia.liquidglass.dev",
       "infoPlist": {
         "NSSupportsLiveActivities": true,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Zone de test caméra / flash dans l’onglet Apps.",
+        "NSFaceIDUsageDescription": "Zone de test Face ID dans l’onglet Apps.",
+        "NSMicrophoneUsageDescription": "Optionnel pour tests caméra vidéo."
       }
     },
     "android": {
@@ -31,7 +34,21 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
-      "expo-live-activity"
+      "expo-live-activity",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Zone de test caméra / flash dans l’onglet Apps.",
+          "microphonePermission": "Optionnel pour tests caméra vidéo.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Zone de test Face ID dans l’onglet Apps."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

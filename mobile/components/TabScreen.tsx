@@ -9,6 +9,8 @@ type Props = {
   body: string;
   tint: [string, string];
   children?: ReactNode;
+  /** Masque la carte “Barre officielle Apple” en bas */
+  hideFooter?: boolean;
 };
 
 /** Contenu d’onglet — la nav est la UITabBar native (layout parent). */
@@ -18,6 +20,7 @@ export default function TabScreen({
   body,
   tint,
   children,
+  hideFooter = false,
 }: Props) {
   return (
     <View style={styles.root}>
@@ -38,14 +41,16 @@ export default function TabScreen({
 
         {children}
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Barre officielle Apple</Text>
-          <Text style={styles.cardBody}>
-            Cette navigation utilise NativeTabs (expo-router) → UITabBarController
-            / UITabBar sur iOS. SF Symbols, blur système, comportement natif
-            (scroll, minimize, haptics selon l’OS).
-          </Text>
-        </View>
+        {!hideFooter ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Barre officielle Apple</Text>
+            <Text style={styles.cardBody}>
+              Cette navigation utilise NativeTabs (expo-router) → UITabBarController
+              / UITabBar sur iOS. SF Symbols, blur système, comportement natif
+              (scroll, minimize, haptics selon l’OS).
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
