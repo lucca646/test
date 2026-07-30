@@ -1,25 +1,29 @@
 # test — Apple-like Liquid Glass
 
-Playground **iOS 26** reconstruit de zéro avec la stack de la vidéo :
+Deux playgrounds dans ce repo :
 
-| Outil | Rôle |
-|-------|------|
-| [Konsta UI](https://konstaui.com/) | Thème iOS 26 + composant `Glass` (Liquid Glass) |
-| [Framework7](https://framework7.io) | Routing + transitions (Fade / Cover / Parallax / Push) |
-| [Despia](https://despia.com) | Publish one-click (lien dans Réglages) |
+| Dossier | Stack | Test |
+|---------|-------|------|
+| `/` (racine) | React web + Konsta + Vite **PWA** | navigateur / tunnel Cloudflare |
+| [`mobile/`](./mobile) | **Expo** (React Native) | **Expo Go** — sans App Store |
 
-## Lancer
+## Web (PWA)
 
 ```bash
 npm install
 npm run dev
 ```
 
-Ouvre en viewport mobile (≈390×844). Fond coloré volontaire : le verre a besoin de contraste.
+## Mobile (Expo · recommandé pour sentir le natif)
 
-## Pages
+```bash
+cd mobile
+npm install
+npx expo start --tunnel
+```
 
-- **Aujourd'hui** — boutons, Glass, segmented, liste
-- **Arcade** — chips, cards, transitions Cover
-- **Recherche** — Searchbar + résultats
-- **Réglages** — toggles, range, liens stack / Despia
+Installe **Expo Go** sur ton iPhone, scanne le QR. Détails : [`mobile/README.md`](./mobile/README.md).
+
+## Look dock validé
+
+Pastille inset au repos, plus grande au drag, loupe soft (web) / blur natif (Expo), bleu `#0a84ff`.
