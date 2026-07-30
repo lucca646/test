@@ -8,7 +8,9 @@ export default function LiquidGlassFilter({
   mapSrc = "/liquid-lens-pill.png",
   scale = -42,
   chromaticAberration = true,
+  chromaSpread = 3,
 }) {
+  const c = chromaSpread;
   return (
     <svg
       aria-hidden="true"
@@ -44,7 +46,7 @@ export default function LiquidGlassFilter({
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
-              scale={scale - 4}
+              scale={scale - c}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -70,7 +72,7 @@ export default function LiquidGlassFilter({
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
-              scale={scale + 4}
+              scale={scale + c}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -100,18 +102,20 @@ export default function LiquidGlassFilter({
 export function LiquidGlassFilters() {
   return (
     <>
-      {/* Loupe Apple douce — pas d’aberration chromatique */}
+      {/* Loupe Apple douce */}
       <LiquidGlassFilter
         id="liquid-lens-soft"
         mapSrc="/liquid-lens-blob.png"
         scale={-26}
         chromaticAberration={false}
       />
+      {/* Drag : loupe + légère aberration sur les bords */}
       <LiquidGlassFilter
         id="liquid-lens-soft-strong"
         mapSrc="/liquid-lens-blob.png"
-        scale={-34}
-        chromaticAberration={false}
+        scale={-36}
+        chromaticAberration
+        chromaSpread={2.5}
       />
       <LiquidGlassFilter
         id="liquid-lens-pill"

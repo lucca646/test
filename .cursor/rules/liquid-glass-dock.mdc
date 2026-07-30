@@ -1,20 +1,35 @@
 ---
-description: Style Liquid Glass du dock playground (référence App Store Apple)
+description: Style Liquid Glass du dock playground (référence App Store Apple) — LOOK VALIDÉ
 alwaysApply: true
 ---
 
-# Dock = App Store Apple
+# Dock Liquid Glass — LOOK VALIDÉ (ne pas régresser)
+
+Validé par l’utilisateur (v14+) : « Parfait, garde ça en mémoire ».
 
 ## Structure
 
-5 onglets : Aujourd’hui · Jeux · Apps · Arcade · Recherche
+5 onglets App Store : Aujourd’hui · Jeux · Apps · Arcade · Recherche
 
-## Look
+## Au repos
 
-- Barre frost sombre mat (`blur` classique)
-- Lentille **plus petite** que la barre (inset CSS), Y bloqué, X only
-- Au changement : inset réduit (`.is-enlarged`) — pas de scale qui déborde
-- Verre lentille : rim fin discret (pas Konsta thumb ultra-blanc)
-- Loupe douce : `url(#liquid-lens-soft)` scale ~-26, **sans** aberration chromatique
+- Lentille **plus petite** que la barre (inset ~0.5rem)
+- Verre mat discret (rim fin, fond `rgba(255,255,255,0.08)`)
+- **Pas** de loupe / morph / grossissement
 - Bleu `#0a84ff` = onglet sous la lentille
-- Icônes fixes (pas de clone)
+- Icônes fixes ; mouvement **X only** (pas de translateY)
+
+## Pendant le drag seulement (`.is-dragging`)
+
+- Lentille **un peu plus grande** que la barre (`top/bottom: -0.28rem`)
+- Plus **transparente** (`rgba(255,255,255,0.045)`)
+- Rim Konsta `--shadow-ios-dark-glass-thumb`
+- Petite **loupe** : `url(#liquid-lens-soft-strong)` sans gros blur
+- **Morph léger** doigt : squash/stretch/skew selon vélocité + position Y
+- Déformation **légère sur les bords** de la loupe (rim optique / chromatic soft)
+
+## Interdits
+
+- Ne pas remettre les franges agressives / fish-eye fort
+- Ne pas morpher la forme de la barre (pilule)
+- Ne pas cacher / cloner les icônes
