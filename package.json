@@ -10,13 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@samasante/liquid-glass": "^0.1.1",
     "framework7": "^9.1.2",
     "framework7-icons": "^5.0.5",
     "framework7-react": "^9.1.2",
     "konsta": "^5.3.0",
     "liquid-glass-nav": "file:packages/liquid-glass-nav",
-    "liquid-glass-react": "^1.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

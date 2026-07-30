@@ -53,7 +53,6 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
       },
-      /* Désactivé en dev : le SW gardait l’ancienne CSS (barre flottante) */
       devOptions: {
         enabled: false,
       },
@@ -61,17 +60,6 @@ export default defineConfig({
   ],
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: {
-      react: path.resolve(rootDir, "node_modules/react"),
-      "react-dom": path.resolve(rootDir, "node_modules/react-dom"),
-      "@samasante/liquid-glass": path.resolve(
-        rootDir,
-        "node_modules/@samasante/liquid-glass",
-      ),
-    },
-  },
-  optimizeDeps: {
-    include: ["@samasante/liquid-glass"],
   },
   server: {
     host: "127.0.0.1",

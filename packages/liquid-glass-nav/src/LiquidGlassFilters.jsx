@@ -107,13 +107,12 @@ export function LiquidGlassFilters() {
         scale={-26}
         chromaticAberration={false}
       />
-      {/* Drag : map pill (ovale) + loupe plus forte */}
       <LiquidGlassFilter
         id="lgn-lens-soft-strong"
-        mapSrc={pillMap}
-        scale={-58}
+        mapSrc={blobMap}
+        scale={-36}
         chromaticAberration
-        chromaSpread={3.5}
+        chromaSpread={2.5}
       />
       <LiquidGlassFilter
         id="lgn-lens-pill"
