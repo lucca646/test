@@ -19,7 +19,8 @@
   z-index: 50;
   display: flex;
   justify-content: center;
-  padding: 0 0.85rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  /* Collée en bas (safe-area iPhone uniquement) */
+  padding: 0 0.5rem env(safe-area-inset-bottom, 0px);
   pointer-events: none;
 }
 
