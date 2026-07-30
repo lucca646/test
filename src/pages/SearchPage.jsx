@@ -33,7 +33,7 @@ export default function SearchPage() {
   }, [q]);
 
   return (
-    <Page>
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
       <Navbar title="Recherche" large transparent className="top-0 sticky" />
 
       <Block className="mt-2">

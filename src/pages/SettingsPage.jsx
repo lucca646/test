@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const [blur, setBlur] = useState(70);
 
   return (
-    <Page>
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
       <Navbar title="Réglages" large transparent className="top-0 sticky" />
 
       <BlockTitle className="mt-4">Apparence</BlockTitle>

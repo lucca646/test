@@ -17,7 +17,7 @@ export default function TodayPage() {
   const [period, setPeriod] = useState("week");
 
   return (
-    <Page>
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
       <Navbar title="Aujourd'hui" large transparent className="top-0 sticky" />
 
       <Block className="space-y-3 mt-2">
