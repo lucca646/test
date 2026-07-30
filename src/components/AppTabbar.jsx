@@ -17,6 +17,8 @@ const TABS = [
   { path: "/settings/", label: "Réglages", icon: GearAlt, iconActive: GearAltFill },
 ];
 
+const BLUE = "#0a84ff";
+
 function isActive(activePath, tabPath) {
   if (tabPath === "/") return activePath === "/" || activePath === "";
   const clean = tabPath.replace(/\/$/, "");
@@ -29,6 +31,7 @@ function clamp(n, min, max) {
 
 export default function AppTabbar({ activePath, onSelect }) {
   const pillRef = useRef(null);
+  const growTimer = useRef(0);
   const dragRef = useRef({
     touching: false,
     moved: false,
@@ -49,23 +52,47 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
-  /** Morph liquide : scaleX / scaleY / skewX / offsetY (px) */
+  /** Lentille plus grande pendant drag / changement d’onglet */
+  const [enlarged, setEnlarged] = useState(false);
   const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0, oy: 0 });
+
+  /** Bleu = onglet sous la lentille (pas seulement la route) */
+  const highlightIndex = nearestIndexSafe(bubbleX);
 
   useEffect(() => {
     if (!dragRef.current.touching) {
       setBubbleX(activeIndex);
       setMorph({ sx: 1, sy: 1, skew: 0, oy: 0 });
+      // Grossit brièvement au changement d’onglet (Apple)
+      bumpEnlarge(320);
     }
   }, [activeIndex]);
 
-  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(rafRef.current);
+      clearTimeout(growTimer.current);
+    },
+    [],
+  );
+
+  function bumpEnlarge(ms) {
+    clearTimeout(growTimer.current);
+    setEnlarged(true);
+    growTimer.current = window.setTimeout(() => setEnlarged(false), ms);
+  }
 
   const measure = () => {
     const el = pillRef.current;
     if (!el) return null;
     const rect = el.getBoundingClientRect();
-    return { width: rect.width, left: rect.left, top: rect.top, height: rect.height, slot: rect.width / TABS.length };
+    return {
+      width: rect.width,
+      left: rect.left,
+      top: rect.top,
+      height: rect.height,
+      slot: rect.width / TABS.length,
+    };
   };
 
   const xFromClient = (clientX, m) => {
@@ -73,9 +100,6 @@ export default function AppTabbar({ activePath, onSelect }) {
     return clamp(raw, 0, TABS.length - 1);
   };
 
-  const nearestIndex = (x) => clamp(Math.round(x), 0, TABS.length - 1);
-
-  /** Squash / stretch léger — forme seule, sans flou */
   const morphFromVelocity = (vel, clientY, m) => {
     const v = clamp(vel, -2.2, 2.2);
     const stretch = clamp(Math.abs(v) * 0.09, 0, 0.22);
@@ -92,7 +116,7 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const springMorphHome = () => {
     const start = performance.now();
-    const from = { ...dragRef.current.morphSnap };
+    const from = { ...(dragRef.current.morphSnap || { sx: 1, sy: 1, skew: 0, oy: 0 }) };
     const tick = (t) => {
       const p = clamp((t - start) / 420, 0, 1);
       const e = 1 - Math.pow(1 - p, 3);
@@ -112,6 +136,7 @@ export default function AppTabbar({ activePath, onSelect }) {
     const m = measure();
     if (!m) return;
     cancelAnimationFrame(rafRef.current);
+    clearTimeout(growTimer.current);
     const x = xFromClient(e.clientX, m);
     const now = performance.now();
     dragRef.current = {
@@ -122,7 +147,7 @@ export default function AppTabbar({ activePath, onSelect }) {
       top: m.top,
       height: m.height,
       slot: m.slot,
-      index: nearestIndex(x),
+      index: nearestIndexSafe(x),
       startX: e.clientX,
       lastX: e.clientX,
       lastT: now,
@@ -130,8 +155,9 @@ export default function AppTabbar({ activePath, onSelect }) {
       morphSnap: { sx: 1.04, sy: 0.98, skew: 0, oy: 0 },
     };
     setPressed(true);
+    setEnlarged(true);
     setBubbleX(x);
-    setMorph({ sx: 1.05, sy: 0.97, skew: 0, oy: 0 });
+    setMorph({ sx: 1.04, sy: 0.97, skew: 0, oy: 0 });
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
 
@@ -142,19 +168,14 @@ export default function AppTabbar({ activePath, onSelect }) {
 
     const now = performance.now();
     const dt = Math.max(8, now - d.lastT);
-    const rawVel = (e.clientX - d.lastX) / dt; // px/ms
+    const rawVel = (e.clientX - d.lastX) / dt;
     d.vel = d.vel * 0.55 + rawVel * 0.45;
     d.lastX = e.clientX;
     d.lastT = now;
 
-    const m = {
-      left: d.left,
-      slot: d.slot,
-      top: d.top,
-      height: d.height,
-    };
+    const m = { left: d.left, slot: d.slot, top: d.top, height: d.height };
     const x = xFromClient(e.clientX, m);
-    d.index = nearestIndex(x);
+    d.index = nearestIndexSafe(x);
     setBubbleX(x);
 
     const nextMorph = morphFromVelocity(d.vel * 16, e.clientY, m);
@@ -170,6 +191,7 @@ export default function AppTabbar({ activePath, onSelect }) {
     const idx = d.index;
     setBubbleX(idx);
     springMorphHome();
+    bumpEnlarge(380);
     const tab = TABS[idx];
     if (tab) onSelect?.(tab.path);
     try {
@@ -179,9 +201,12 @@ export default function AppTabbar({ activePath, onSelect }) {
     }
   };
 
-  const transform = pressed
-    ? `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`
-    : `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`;
+  // Repos : petit ; drag / changement : plus grand (Apple)
+  const lensScale = pressed || enlarged ? 1.15 : 0.78;
+  const transform = `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx * lensScale}, ${morph.sy * lensScale}) skewX(${morph.skew}deg)`;
+
+  const lensTab = TABS[highlightIndex] || TABS[0];
+  const LensGlyph = lensTab.iconActive;
 
   return (
     <nav className="dock" aria-label="Navigation">
@@ -199,35 +224,40 @@ export default function AppTabbar({ activePath, onSelect }) {
         onPointerCancel={endPointer}
       >
         {TABS.map((tab, index) => {
-          const active = index === activeIndex;
-          const Glyph = active ? tab.iconActive : tab.icon;
+          const underLens = index === highlightIndex;
+          const Glyph = underLens ? tab.iconActive : tab.icon;
           return (
             <button
               key={tab.path}
               type="button"
-              className={`dock-item${active ? " is-active" : ""}`}
-              aria-current={active ? "page" : undefined}
+              className={`dock-item${underLens ? " is-active" : ""}`}
+              aria-current={index === activeIndex ? "page" : undefined}
+              style={underLens ? { color: BLUE } : undefined}
               onClick={(e) => {
                 if (dragRef.current.moved) {
                   e.preventDefault();
                   return;
                 }
                 onSelect?.(tab.path);
+                setBubbleX(index);
+                bumpEnlarge(380);
               }}
             >
-              <span className="dock-icon">
+              <span className="dock-icon" style={{ opacity: underLens ? 0 : 1 }}>
                 <Icon
-                  ios={<Glyph className="w-7 h-7" />}
-                  material={<Glyph className="w-6 h-6" />}
+                  ios={<Glyph className="w-7 h-7" style={{ color: "inherit", fill: "currentColor" }} />}
+                  material={<Glyph className="w-6 h-6" style={{ color: "inherit", fill: "currentColor" }} />}
                 />
               </span>
-              <span className="dock-label">{tab.label}</span>
+              <span className="dock-label" style={{ opacity: underLens ? 0 : 1 }}>
+                {tab.label}
+              </span>
             </button>
           );
         })}
 
         <span
-          className={`dock-bubble${pressed ? " is-pressed" : ""}`}
+          className={`dock-bubble${pressed || enlarged ? " is-enlarged" : ""}`}
           style={{
             transform,
             transition: pressed
@@ -235,8 +265,20 @@ export default function AppTabbar({ activePath, onSelect }) {
               : "transform 0.42s cubic-bezier(0.22, 1.35, 0.36, 1)",
           }}
           aria-hidden
-        />
+        >
+          {/* Contenu loupe : icône grossie + filter SVG (marche Safari via filter, pas backdrop) */}
+          <span className="dock-bubble-lens">
+            <span className="dock-bubble-lens-inner">
+              <LensGlyph className="dock-bubble-glyph" />
+              <span className="dock-bubble-caption">{lensTab.label}</span>
+            </span>
+          </span>
+        </span>
       </Glass>
     </nav>
   );
+}
+
+function nearestIndexSafe(x) {
+  return clamp(Math.round(x), 0, TABS.length - 1);
 }
