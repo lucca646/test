@@ -5,7 +5,7 @@ export default function AppsTab() {
   return (
     <TabScreen
       title="Apps"
-      body="Zone de test : boutons, slider, tableau, recherche, Face ID, caméra, flash…"
+      body="Zone de test : Face ID, caméra/flash, notifications, UI…"
       tint={["#34d399", "#059669"]}
       hideFooter
     >

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
+import Slider from "@react-native-community/slider";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import {
   getLiveActivityBridge,
   stateForMode,
@@ -50,18 +58,30 @@ type Props = {
   onChange: (mode: IslandMode) => void;
 };
 
+type AnimPreset = "spring" | "ease" | "snappy";
+
+const PRESET_META: Record<
+  AnimPreset,
+  { label: string; hint: string }
+> = {
+  spring: { label: "Spring", hint: "Ressort iOS-like (aperçu in-app)." },
+  ease: { label: "Ease", hint: "Courbe douce timing (aperçu in-app)." },
+  snappy: { label: "Snappy", hint: "Morph rapide, peu d’overshoot." },
+};
+
 /**
  * Playground Dynamic Island :
- * - aperçu UI toujours
- * - boutons Start / Update / Stop → vraie Live Activity (Dev Client)
+ * - aperçu UI animé (durée / ressort modifiables ici)
+ * - Start / Update / Stop → vraie Live Activity (Dev Client)
  *
- * Note Apple : Compact / Minimal / Expanded sur l’île réelle sont choisis
- * par le système (long press, concurrence d’activités). On ne “force” pas
- * l’animation de morph — on pousse le contenu (Update / changement de mode).
+ * Limite Apple : les morphs Compact↔Expanded↔Minimal sur l’île réelle
+ * sont 100 % système. On ne peut pas injecter durée/easing custom.
+ * On anime l’aperçu in-app + on pousse le contenu natif (Update).
  */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
   const bridge = useMemo(() => getLiveActivityBridge(), []);
   const activityId = useRef<string | null>(null);
+  const updateTick = useRef(0);
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<string>(
     bridge.available
@@ -69,6 +89,10 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       : bridge.reason ?? "Indisponible",
   );
   const [busy, setBusy] = useState(false);
+  const [durationMs, setDurationMs] = useState(420);
+  const [damping, setDamping] = useState(16);
+  const [preset, setPreset] = useState<AnimPreset>("spring");
+  const [previewTick, setPreviewTick] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -84,16 +108,22 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Si une activité tourne, changer de mode pousse tout de suite le nouveau contenu. */
+  /** Si une activité tourne, changer de mode contenu pousse le nouveau state. */
   useEffect(() => {
     if (!running || !activityId.current || !bridge.updateActivity) return;
+    if (["compact", "minimal", "expanded"].includes(mode)) {
+      setStatus(
+        `Aperçu « ${mode} » — morph réel = long press sur l’île (iOS).`,
+      );
+      return;
+    }
     try {
       const { state } = stateForMode(mode);
       bridge.updateActivity(activityId.current, {
         ...state,
         subtitle: `${String(state.subtitle ?? mode)} · ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`,
       });
-      setStatus(`Île mise à jour → mode « ${mode} » (animation système Apple).`);
+      setStatus(`Île mise à jour → « ${mode} » (transition contenu Apple).`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     }
@@ -116,7 +146,13 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         setStatus(bridge.reason ?? "startActivity indisponible");
         return;
       }
-      const { state, config } = stateForMode(mode);
+      const contentMode: IslandMode = ["compact", "minimal", "expanded"].includes(
+        mode,
+      )
+        ? "timer"
+        : mode;
+      if (contentMode !== mode) onChange(contentMode);
+      const { state, config } = stateForMode(contentMode);
       const id = bridge.startActivity(state, config);
       if (!id) {
         setStatus(
@@ -125,9 +161,10 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         return;
       }
       activityId.current = String(id);
+      updateTick.current = 0;
       setRunning(true);
       setStatus(
-        `Live Activity démarrée · ${mode}. Change de mode ou Update pour animer le contenu.`,
+        `Live Activity démarrée · ${contentMode}. Change Timer/Music/Progress ou Update.`,
       );
     });
 
@@ -137,29 +174,40 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         setStatus("Aucune activité active — Start d’abord.");
         return;
       }
+      updateTick.current += 1;
+      const n = updateTick.current;
       const { state } = stateForMode(mode);
+      const progressBase =
+        state.progressBar &&
+        typeof state.progressBar === "object" &&
+        "progress" in state.progressBar
+          ? ((state.progressBar as { progress?: number }).progress ?? 0.35)
+          : 0.35;
+      const nextProgress = Math.min(0.95, progressBase + n * 0.14);
+
+      const titles =
+        mode === "music"
+          ? ["Liquid Glass", "COR·ALT Live", "Island Drop", "Morph Test"]
+          : mode === "progress"
+            ? ["Livraison en cours", "Colis en route", "Presque là", "Dernier km"]
+            : ["Timer Liquid Glass", "Focus 25′", "Pause courte", "Sprint final"];
+
       const next = {
         ...state,
-        subtitle: `${state.subtitle ?? ""} · maj ${new Date().toLocaleTimeString("fr-FR")}`,
+        title: titles[n % titles.length],
+        subtitle: `Update #${n} · ${new Date().toLocaleTimeString("fr-FR")}`,
         progressBar:
           state.progressBar &&
           typeof state.progressBar === "object" &&
-          "progress" in state.progressBar
-            ? {
-                progress: Math.min(
-                  0.95,
-                  ((state.progressBar as { progress?: number }).progress ??
-                    0.4) + 0.12,
-                ),
-              }
-            : state.progressBar &&
-                typeof state.progressBar === "object" &&
-                "date" in state.progressBar
-              ? { date: Date.now() + 3 * 60 * 1000 }
-              : state.progressBar,
+          "date" in state.progressBar
+            ? { date: Date.now() + Math.max(60_000, (5 - (n % 5)) * 60_000) }
+            : { progress: nextProgress },
       };
       bridge.updateActivity(activityId.current, next);
-      setStatus(`Contenu poussé (${mode}) — morph géré par iOS.`);
+      setStatus(
+        `Contenu #${n} poussé — iOS anime le texte/barre (pas le morph).`,
+      );
+      setPreviewTick((t) => t + 1);
     });
 
   const onStop = () =>
@@ -190,16 +238,70 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     <View style={styles.wrap}>
       <Text style={styles.sectionTitle}>Dynamic Island</Text>
       <Text style={styles.sectionHint}>
-        Start → vraie Live Activity. Ensuite change Timer / Music / Progress
-        (ou Update) pour modifier le contenu. Les morphs Compact↔Expanded sont
-        gérés par iOS (long press sur l’île), pas par des curseurs custom.
+        Les morphs Compact ↔ Expanded sur l’île réelle sont gérés par Apple
+        (long press) — durée / easing non modifiables. Ci-dessous : anime
+        l’aperçu in-app, puis Start / Update pour le contenu natif.
       </Text>
 
       <View style={styles.previewStage}>
-        <IslandPreview mode={mode} />
+        <IslandPreview
+          mode={mode}
+          durationMs={durationMs}
+          damping={damping}
+          preset={preset}
+          pulseKey={previewTick}
+        />
       </View>
 
-      <Text style={styles.groupLabel}>Aperçu UI (pas forcé sur l’île)</Text>
+      <Text style={styles.groupLabel}>Animations aperçu (in-app)</Text>
+      <View style={styles.chips}>
+        {(Object.keys(PRESET_META) as AnimPreset[]).map((id) => {
+          const on = id === preset;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => setPreset(id)}
+              style={[styles.chip, on && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                {PRESET_META[id].label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={styles.sliderLabel}>
+        Durée · {Math.round(durationMs)} ms
+      </Text>
+      <Slider
+        style={styles.slider}
+        minimumValue={120}
+        maximumValue={1200}
+        step={20}
+        value={durationMs}
+        onValueChange={setDurationMs}
+        minimumTrackTintColor="#0a84ff"
+        maximumTrackTintColor="rgba(255,255,255,0.2)"
+        thumbTintColor="#fff"
+      />
+      <Text style={styles.sliderLabel}>
+        Ressort · damping {damping.toFixed(0)}
+      </Text>
+      <Slider
+        style={styles.slider}
+        minimumValue={6}
+        maximumValue={36}
+        step={1}
+        value={damping}
+        onValueChange={setDamping}
+        minimumTrackTintColor="#0a84ff"
+        maximumTrackTintColor="rgba(255,255,255,0.2)"
+        thumbTintColor="#fff"
+        disabled={preset === "ease"}
+      />
+      <Text style={styles.modeHint}>{PRESET_META[preset].hint}</Text>
+
+      <Text style={styles.groupLabel}>Forme aperçu (pas forcé sur l’île)</Text>
       <View style={styles.chips}>
         {layoutModes.map((m) => {
           const on = m.id === mode;
@@ -295,41 +397,126 @@ function ActionButton({
   );
 }
 
-function IslandPreview({ mode }: { mode: IslandMode }) {
+function layoutForMode(mode: IslandMode) {
+  switch (mode) {
+    case "minimal":
+      return { width: 36, height: 36, radius: 18, pad: 0 };
+    case "compact":
+    case "timer":
+      return { width: 126, height: 36, radius: 18, pad: 12 };
+    case "music":
+    case "progress":
+    case "expanded":
+    default:
+      return { width: 300, height: 88, radius: 24, pad: 14 };
+  }
+}
+
+function IslandPreview({
+  mode,
+  durationMs,
+  damping,
+  preset,
+  pulseKey,
+}: {
+  mode: IslandMode;
+  durationMs: number;
+  damping: number;
+  preset: AnimPreset;
+  pulseKey: number;
+}) {
+  const target = layoutForMode(mode);
+  const width = useSharedValue(target.width);
+  const height = useSharedValue(target.height);
+  const radius = useSharedValue(target.radius);
+  const pad = useSharedValue(target.pad);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    const next = layoutForMode(mode);
+    if (preset === "spring") {
+      const cfg = {
+        damping,
+        stiffness: 180,
+        mass: 0.85,
+        overshootClamping: false,
+      };
+      width.value = withSpring(next.width, cfg);
+      height.value = withSpring(next.height, cfg);
+      radius.value = withSpring(next.radius, cfg);
+      pad.value = withSpring(next.pad, cfg);
+    } else if (preset === "snappy") {
+      const cfg = {
+        damping: Math.max(damping, 22),
+        stiffness: 420,
+        mass: 0.55,
+        overshootClamping: true,
+      };
+      width.value = withSpring(next.width, cfg);
+      height.value = withSpring(next.height, cfg);
+      radius.value = withSpring(next.radius, cfg);
+      pad.value = withSpring(next.pad, cfg);
+    } else {
+      const cfg = {
+        duration: durationMs,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      };
+      width.value = withTiming(next.width, cfg);
+      height.value = withTiming(next.height, cfg);
+      radius.value = withTiming(next.radius, cfg);
+      pad.value = withTiming(next.pad, cfg);
+    }
+  }, [mode, durationMs, damping, preset, width, height, radius, pad]);
+
+  useEffect(() => {
+    if (pulseKey === 0) return;
+    pulse.value = withTiming(1.06, { duration: 90 }, () => {
+      pulse.value = withSpring(1, { damping: 12, stiffness: 220 });
+    });
+  }, [pulseKey, pulse]);
+
+  const boxStyle = useAnimatedStyle(() => ({
+    width: width.value,
+    height: height.value,
+    borderRadius: radius.value,
+    padding: pad.value,
+    transform: [{ scale: pulse.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.previewShell, boxStyle]}>
+      <BlurView intensity={48} tint="dark" style={StyleSheet.absoluteFill} />
+      <PreviewInner mode={mode} />
+    </Animated.View>
+  );
+}
+
+function PreviewInner({ mode }: { mode: IslandMode }) {
   if (mode === "minimal") {
     return (
-      <View style={styles.minimal}>
+      <View style={styles.innerCenter}>
         <View style={styles.miniDot} />
       </View>
     );
   }
 
-  if (mode === "compact") {
+  if (mode === "compact" || mode === "timer") {
     return (
-      <View style={styles.compact}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-        <Text style={styles.compactLead}>LG</Text>
+      <View style={styles.innerRow}>
+        <Text style={styles.compactLead}>
+          {mode === "timer" ? "TIM" : "LG"}
+        </Text>
         <View style={{ flex: 1 }} />
-        <Text style={styles.compactTrail}>2:14</Text>
-      </View>
-    );
-  }
-
-  if (mode === "timer") {
-    return (
-      <View style={styles.compact}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-        <Text style={styles.compactLead}>TIM</Text>
-        <View style={{ flex: 1 }} />
-        <Text style={styles.compactTrail}>04:59</Text>
+        <Text style={styles.compactTrail}>
+          {mode === "timer" ? "04:59" : "2:14"}
+        </Text>
       </View>
     );
   }
 
   if (mode === "music") {
     return (
-      <View style={styles.expanded}>
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={styles.innerCol}>
         <View style={styles.expRow}>
           <View style={styles.art} />
           <View style={{ flex: 1, gap: 2 }}>
@@ -344,8 +531,7 @@ function IslandPreview({ mode }: { mode: IslandMode }) {
 
   if (mode === "progress") {
     return (
-      <View style={styles.expanded}>
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={styles.innerCol}>
         <Text style={styles.expTitle}>Livraison</Text>
         <Text style={styles.expSub}>Arrivée estimée · 12 min</Text>
         <View style={styles.progressTrack}>
@@ -356,8 +542,7 @@ function IslandPreview({ mode }: { mode: IslandMode }) {
   }
 
   return (
-    <View style={styles.expanded}>
-      <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+    <View style={styles.innerCol}>
       <View style={styles.expRow}>
         <View style={styles.liveDot} />
         <View style={{ flex: 1 }}>
@@ -386,10 +571,17 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   previewStage: {
-    minHeight: 88,
+    minHeight: 110,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
+  },
+  previewShell: {
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    maxWidth: "100%",
   },
   chips: {
     flexDirection: "row",
@@ -422,6 +614,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chipTextOn: { color: "#fff" },
+  sliderLabel: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  slider: { width: "100%", height: 32 },
   modeHint: {
     color: "rgba(255,255,255,0.55)",
     fontSize: 12,
@@ -463,16 +661,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  minimal: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#000",
+  innerCenter: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
   },
+  innerRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  innerCol: { flex: 1, gap: 8, justifyContent: "center" },
   miniDot: {
     width: 10,
     height: 10,
@@ -485,18 +684,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#30d158",
   },
-  compact: {
-    width: 126,
-    height: 36,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "#000",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
   compactLead: {
     color: "#fff",
     fontSize: 12,
@@ -507,17 +694,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontVariant: ["tabular-nums"],
     fontWeight: "600",
-  },
-  expanded: {
-    width: "92%",
-    maxWidth: 340,
-    borderRadius: 24,
-    overflow: "hidden",
-    backgroundColor: "#000",
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
   },
   expRow: {
     flexDirection: "row",
