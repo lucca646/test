@@ -1,5 +1,6 @@
-import { Page, Navbar } from "framework7-react";
 import {
+  Page,
+  Navbar,
   Block,
   BlockTitle,
   Button,
@@ -22,8 +23,8 @@ export default function TodayPage() {
   const [focus, setFocus] = useState(true);
 
   return (
-    <Page name="today" className="page-glass">
-      <Navbar title="Aujourd'hui" large transparent />
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
+      <Navbar title="Aujourd'hui" large transparent className="top-0 sticky" />
 
       <Block className="space-y-3 mt-2">
         <div className="hero-card hero-blue">

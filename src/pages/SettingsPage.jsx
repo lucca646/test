@@ -1,5 +1,6 @@
-import { Page, Navbar } from "framework7-react";
 import {
+  Page,
+  Navbar,
   Block,
   BlockTitle,
   List,
@@ -24,8 +25,8 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState("dark");
 
   return (
-    <Page name="settings" className="page-glass">
-      <Navbar title="Réglages" large transparent />
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
+      <Navbar title="Réglages" large transparent className="top-0 sticky" />
 
       <Block className="mt-2">
         <div className="hero-card hero-slate">
@@ -131,7 +132,7 @@ export default function SettingsPage() {
         />
         <ListItem
           title="Framework7"
-          subtitle="Routing pages"
+          subtitle="Thème iOS shell"
           after="v9"
           link="https://framework7.io"
           target="_blank"

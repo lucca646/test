@@ -52,6 +52,23 @@ body {
   min-height: 100%;
 }
 
+.tab-stage {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: 100dvh;
+  overflow: auto;
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+}
+
+/* Konsta Page en mode plein écran scrollable (sans F7 router) */
+.tab-stage .k-page {
+  position: relative !important;
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
+
 /* Pages F7 transparentes pour laisser voir le wallpaper */
 .page.page-glass,
 .page.page-glass .page-content,

@@ -1,5 +1,6 @@
-import { Page, Navbar } from "framework7-react";
 import {
+  Page,
+  Navbar,
   Block,
   BlockTitle,
   List,
@@ -41,8 +42,8 @@ export default function SearchPage() {
   }, [q, scope]);
 
   return (
-    <Page name="search" className="page-glass">
-      <Navbar title="Recherche" large transparent />
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
+      <Navbar title="Recherche" large transparent className="top-0 sticky" />
 
       <Block className="mt-2 space-y-3">
         <div className="hero-card hero-purple">

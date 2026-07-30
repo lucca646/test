@@ -1,42 +1,47 @@
-import { useEffect, useState, useCallback } from "react";
-import { App as F7App, View, f7, f7ready } from "framework7-react";
+import { useState, useCallback } from "react";
+import { App as F7App } from "framework7-react";
 import { KonstaProvider } from "konsta/react";
-import { routes } from "./routes.js";
 import AppTabbar from "./components/AppTabbar.jsx";
+import TodayPage from "./pages/TodayPage.jsx";
+import ArcadePage from "./pages/ArcadePage.jsx";
+import SearchPage from "./pages/SearchPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
+
+const PAGES = {
+  "/": TodayPage,
+  "/arcade/": ArcadePage,
+  "/search/": SearchPage,
+  "/settings/": SettingsPage,
+};
 
 const f7params = {
   name: "Liquid Glass",
   theme: "ios",
   darkMode: true,
-  routes,
-  view: {
-    iosSwipeBack: true,
-    browserHistory: true,
-    browserHistoryRoot: "/",
-  },
+  // Pas de router F7 pour les tabs — rendu React direct (fiable)
+  routes: [],
 };
 
-export default function App() {
-  const [activePath, setActivePath] = useState(window.location.pathname || "/");
+function normalizePath(path) {
+  if (!path || path === "") return "/";
+  if (path === "/arcade") return "/arcade/";
+  if (path === "/search") return "/search/";
+  if (path === "/settings") return "/settings/";
+  return PAGES[path] ? path : "/";
+}
 
-  useEffect(() => {
-    f7ready(() => {
-      f7.on("routeChange", (route) => {
-        if (route?.path) setActivePath(route.path);
-      });
-      setActivePath(f7.views.main?.router?.currentRoute?.path || "/");
-    });
-  }, []);
+export default function App() {
+  const [activePath, setActivePath] = useState(() =>
+    normalizePath(window.location.pathname),
+  );
 
   const selectTab = useCallback((path) => {
-    // Optimistic : bulle + bleu instantanés, avant la fin de la route F7
-    setActivePath(path);
-    f7.views.main.router.navigate(path, {
-      animate: false,
-      clearPreviousHistory: false,
-      ignoreCache: false,
-    });
+    const next = normalizePath(path);
+    setActivePath(next);
+    window.history.replaceState({}, "", next === "/" ? "/" : next);
   }, []);
+
+  const ActivePage = PAGES[activePath] || TodayPage;
 
   return (
     <>
@@ -44,14 +49,9 @@ export default function App() {
       <KonstaProvider theme="ios" dark>
         <div className="ios-shell k-ios dark">
           <F7App {...f7params} className="k-ios dark safe-areas">
-            <View
-              main
-              url="/"
-              browserHistory
-              browserHistoryRoot="/"
-              iosDynamicNavbar={false}
-              className="safe-areas"
-            />
+            <div className="tab-stage">
+              <ActivePage key={activePath} />
+            </div>
             <AppTabbar activePath={activePath} onSelect={selectTab} />
           </F7App>
         </div>

@@ -1,5 +1,6 @@
-import { Page, Navbar } from "framework7-react";
 import {
+  Page,
+  Navbar,
   Block,
   BlockTitle,
   Card,
@@ -24,14 +25,14 @@ export default function ArcadePage() {
   const [cloudSave, setCloudSave] = useState(true);
 
   return (
-    <Page name="arcade" className="page-glass">
-      <Navbar title="Arcade" large transparent />
+    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
+      <Navbar title="Arcade" large transparent className="top-0 sticky" />
 
       <Block className="mt-2 space-y-3">
         <div className="hero-card hero-mint">
           <p className="hero-kicker">Page 2 · Arcade</p>
           <h2>Game Center</h2>
-          <p>Chips, volume slider et cards — contenu différent.</p>
+          <p>Chips, volume slider et cards.</p>
         </div>
         <div className="hero-card hero-orange">
           <h2>Neon Circuit</h2>
@@ -104,7 +105,7 @@ export default function ArcadePage() {
             </div>
           }
         >
-          Session cloud {cloudSave ? "activée" : "désactivée"} · {difficulty}.
+          Cloud {cloudSave ? "on" : "off"} · {difficulty}
         </Card>
       </Block>
 
