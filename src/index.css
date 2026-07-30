@@ -98,10 +98,10 @@ body {
 }
 
 /*
- * Dock = Konsta glass-thumb + loupe Apple.
- * - Bleu = onglet sous la lentille
- * - Lentille petite au repos, plus grande au drag / changement
- * - Déformation via filter:url() sur le clone (Safari OK) + backdrop Chromium
+ * Dock Apple-like (sobre) :
+ * - Icônes fixes (pas de clone / opacity)
+ * - Lentille Y bloquée, scale X-only
+ * - Verre Konsta thumb discret au repos (pas de filter SDF agressif)
  */
 .dock-pill {
   pointer-events: auto;
@@ -110,9 +110,9 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   width: min(100%, 26rem);
   height: 4.25rem;
-  padding: 0.35rem;
+  padding: 0.4rem;
   border-radius: 999px !important;
-  overflow: visible;
+  overflow: hidden;
   touch-action: none;
   user-select: none;
   border: 0 !important;
@@ -131,13 +131,13 @@ body {
   justify-content: center;
   gap: 0.12rem;
   margin: 0;
-  padding: 0.2rem;
+  padding: 0.15rem;
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.18s ease;
+  transition: color 0.15s ease;
   pointer-events: none;
 }
 
@@ -151,110 +151,54 @@ body {
   fill: currentColor !important;
 }
 
-/* Pastille : plus petite que la barre (scale JS 0.72) ; rim Konsta */
+/* Lentille : inset fixe (hauteur bloquée), verre Konsta normal */
 .dock-bubble {
   position: absolute;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  left: 0.35rem;
-  width: calc((100% - 0.7rem) / 4);
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: 0.4rem;
+  width: calc((100% - 0.8rem) / 4);
   border-radius: 999px;
-  z-index: 3;
+  z-index: 0;
   pointer-events: none;
   will-change: transform;
   transform-origin: center center;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border: 0;
+  /* Verre Apple / Konsta — rim discret, pas de SDF ni franges */
   box-shadow: var(--shadow-ios-dark-glass-thumb);
-  /* Chromium : loupe backdrop sans blur */
-  -webkit-backdrop-filter: url(#liquid-lens-blob);
-  backdrop-filter: url(#liquid-lens-blob);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .dock-bubble.is-enlarged {
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    var(--shadow-ios-dark-glass-thumb),
-    0 0 24px 4px color-mix(in oklab, #0a84ff 28%, transparent);
-  -webkit-backdrop-filter: url(#liquid-lens-blob-strong);
-  backdrop-filter: url(#liquid-lens-blob-strong);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: var(--shadow-ios-dark-glass-thumb);
 }
 
-/* Clone loupe — filter SVG déforme l’icône (Safari + Chrome) */
-.dock-bubble-lens {
-  position: relative;
-  z-index: 1;
+.dock-icon {
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 100%;
-  color: #0a84ff;
-  /* Pas de blur : déformation nette */
-  filter: url(#liquid-lens-blob);
-  -webkit-filter: url(#liquid-lens-blob);
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
-.dock-bubble.is-enlarged .dock-bubble-lens {
-  filter: url(#liquid-lens-blob-strong);
-  -webkit-filter: url(#liquid-lens-blob-strong);
-}
-
-.dock-bubble-lens-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.1rem;
-  /* Grossissement type loupe */
-  transform: scale(1.22);
-  transform-origin: center center;
-}
-
-.dock-bubble-glyph {
+.dock-icon svg {
   width: 1.75rem;
   height: 1.75rem;
   display: block;
-  color: #0a84ff;
+  color: inherit;
   fill: currentColor;
 }
 
-.dock-bubble-caption {
+.dock-label {
   font-size: 0.68rem;
   font-weight: 650;
   letter-spacing: -0.01em;
   white-space: nowrap;
-  color: #0a84ff;
-  max-width: 4.5rem;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Franges chromatiques (bords lentille) — visibles partout */
-.dock-bubble::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 2;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-  background:
-    radial-gradient(90% 55% at 30% 8%, rgba(255, 255, 255, 0.7) 0%, transparent 42%),
-    radial-gradient(70% 45% at 80% 88%, rgba(80, 220, 255, 0.45) 0%, transparent 50%),
-    radial-gradient(60% 40% at 15% 85%, rgba(255, 90, 200, 0.35) 0%, transparent 48%);
-  opacity: 0.85;
-  mix-blend-mode: screen;
-}
-
-@supports not (backdrop-filter: url(#liquid-lens-blob)) {
-  .dock-bubble,
-  .dock-bubble.is-enlarged {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
 }
 
 .dock-icon {

@@ -5,15 +5,12 @@ alwaysApply: true
 
 # Dock Liquid Glass — référence visuelle
 
-## Look validé
+## Look validé (sobre)
 
-- Pastille : rim Konsta `--shadow-ios-dark-glass-thumb`
-- **Bleu `#0a84ff`** = onglet **sous la lentille** (`highlightIndex`), pas seulement la route
-- Lentille **plus petite** que la barre au repos (`scale ~0.78`), **plus grande** au drag / changement (`~1.15`)
-- Déformation : clone icône dans la lentille + `filter: url(#liquid-lens-blob)` (Safari) ; `backdrop-filter: url()` en plus sur Chromium — **sans** `blur()` sur la pastille
-- Pilule : forme fixe
-
-## Interdits
-
-- Ne pas colorer seulement via `activePath` (désync lentille / bleu)
-- Ne pas utiliser `blur()` + loupe sur la pastille
+- Pastille : **uniquement** rim Konsta `--shadow-ios-dark-glass-thumb` + `rgba(255,255,255,0.12)`
+- **Pas** de `filter` / `backdrop-filter: url(#…)` / franges chromatiques sur la pastille
+- Icônes **fixes** (jamais opacity 0, jamais clone loupe)
+- Lentille : mouvement **X seulement** (pas de translateY / skew / oy)
+- Au repos : scale ~0.82 ; au changement : ~1.08 — hauteur CSS inset fixe
+- Bleu `#0a84ff` = onglet sous la lentille
+- Pilule : frost Konsta normal, forme fixe, `overflow: hidden`

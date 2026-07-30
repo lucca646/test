@@ -29,21 +29,21 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function nearestIndex(x) {
+  return clamp(Math.round(x), 0, TABS.length - 1);
+}
+
 export default function AppTabbar({ activePath, onSelect }) {
   const pillRef = useRef(null);
   const growTimer = useRef(0);
   const dragRef = useRef({
     touching: false,
     moved: false,
-    width: 0,
     left: 0,
+    slot: 0,
     index: 0,
     startX: 0,
-    lastX: 0,
-    lastT: 0,
-    vel: 0,
   });
-  const rafRef = useRef(0);
 
   const activeIndex = useMemo(() => {
     const idx = TABS.findIndex((tab) => isActive(activePath, tab.path));
@@ -52,29 +52,17 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
-  /** Lentille plus grande pendant drag / changement d’onglet */
   const [enlarged, setEnlarged] = useState(false);
-  const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0, oy: 0 });
 
-  /** Bleu = onglet sous la lentille (pas seulement la route) */
-  const highlightIndex = nearestIndexSafe(bubbleX);
+  const highlightIndex = nearestIndex(bubbleX);
 
   useEffect(() => {
-    if (!dragRef.current.touching) {
-      setBubbleX(activeIndex);
-      setMorph({ sx: 1, sy: 1, skew: 0, oy: 0 });
-      // Grossit brièvement au changement d’onglet (Apple)
-      bumpEnlarge(320);
-    }
+    if (dragRef.current.touching) return;
+    setBubbleX(activeIndex);
+    bumpEnlarge(280);
   }, [activeIndex]);
 
-  useEffect(
-    () => () => {
-      cancelAnimationFrame(rafRef.current);
-      clearTimeout(growTimer.current);
-    },
-    [],
-  );
+  useEffect(() => () => clearTimeout(growTimer.current), []);
 
   function bumpEnlarge(ms) {
     clearTimeout(growTimer.current);
@@ -86,78 +74,29 @@ export default function AppTabbar({ activePath, onSelect }) {
     const el = pillRef.current;
     if (!el) return null;
     const rect = el.getBoundingClientRect();
-    return {
-      width: rect.width,
-      left: rect.left,
-      top: rect.top,
-      height: rect.height,
-      slot: rect.width / TABS.length,
-    };
+    return { left: rect.left, slot: rect.width / TABS.length };
   };
 
-  const xFromClient = (clientX, m) => {
-    const raw = (clientX - m.left) / m.slot - 0.5;
-    return clamp(raw, 0, TABS.length - 1);
-  };
-
-  const morphFromVelocity = (vel, clientY, m) => {
-    const v = clamp(vel, -2.2, 2.2);
-    const stretch = clamp(Math.abs(v) * 0.09, 0, 0.22);
-    const scaleX = 1 + stretch;
-    const scaleY = 1 - stretch * 0.45;
-    const skew = clamp(v * 2.8, -8, 8);
-    let oy = 0;
-    if (m) {
-      const midY = m.top + m.height / 2;
-      oy = clamp((clientY - midY) * 0.22, -6, 6);
-    }
-    return { sx: scaleX, sy: scaleY, skew, oy };
-  };
-
-  const springMorphHome = () => {
-    const start = performance.now();
-    const from = { ...(dragRef.current.morphSnap || { sx: 1, sy: 1, skew: 0, oy: 0 }) };
-    const tick = (t) => {
-      const p = clamp((t - start) / 420, 0, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setMorph({
-        sx: from.sx + (1 - from.sx) * e,
-        sy: from.sy + (1 - from.sy) * e,
-        skew: from.skew * (1 - e),
-        oy: from.oy * (1 - e),
-      });
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-  };
+  const xFromClient = (clientX, m) =>
+    clamp((clientX - m.left) / m.slot - 0.5, 0, TABS.length - 1);
 
   const onPointerDown = (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const m = measure();
     if (!m) return;
-    cancelAnimationFrame(rafRef.current);
     clearTimeout(growTimer.current);
     const x = xFromClient(e.clientX, m);
-    const now = performance.now();
     dragRef.current = {
       touching: true,
       moved: false,
-      width: m.width,
       left: m.left,
-      top: m.top,
-      height: m.height,
       slot: m.slot,
-      index: nearestIndexSafe(x),
+      index: nearestIndex(x),
       startX: e.clientX,
-      lastX: e.clientX,
-      lastT: now,
-      vel: 0,
-      morphSnap: { sx: 1.04, sy: 0.98, skew: 0, oy: 0 },
     };
     setPressed(true);
     setEnlarged(true);
     setBubbleX(x);
-    setMorph({ sx: 1.04, sy: 0.97, skew: 0, oy: 0 });
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
 
@@ -165,22 +104,9 @@ export default function AppTabbar({ activePath, onSelect }) {
     const d = dragRef.current;
     if (!d.touching) return;
     if (Math.abs(e.clientX - d.startX) > 6) d.moved = true;
-
-    const now = performance.now();
-    const dt = Math.max(8, now - d.lastT);
-    const rawVel = (e.clientX - d.lastX) / dt;
-    d.vel = d.vel * 0.55 + rawVel * 0.45;
-    d.lastX = e.clientX;
-    d.lastT = now;
-
-    const m = { left: d.left, slot: d.slot, top: d.top, height: d.height };
-    const x = xFromClient(e.clientX, m);
-    d.index = nearestIndexSafe(x);
+    const x = xFromClient(e.clientX, { left: d.left, slot: d.slot });
+    d.index = nearestIndex(x);
     setBubbleX(x);
-
-    const nextMorph = morphFromVelocity(d.vel * 16, e.clientY, m);
-    d.morphSnap = nextMorph;
-    setMorph(nextMorph);
   };
 
   const endPointer = (e) => {
@@ -190,8 +116,7 @@ export default function AppTabbar({ activePath, onSelect }) {
     setPressed(false);
     const idx = d.index;
     setBubbleX(idx);
-    springMorphHome();
-    bumpEnlarge(380);
+    bumpEnlarge(300);
     const tab = TABS[idx];
     if (tab) onSelect?.(tab.path);
     try {
@@ -201,12 +126,9 @@ export default function AppTabbar({ activePath, onSelect }) {
     }
   };
 
-  // Repos : petit ; drag / changement : plus grand (Apple)
-  const lensScale = pressed || enlarged ? 1.15 : 0.78;
-  const transform = `translate3d(${bubbleX * 100}%, ${morph.oy}px, 0) scale(${morph.sx * lensScale}, ${morph.sy * lensScale}) skewX(${morph.skew}deg)`;
-
-  const lensTab = TABS[highlightIndex] || TABS[0];
-  const LensGlyph = lensTab.iconActive;
+  // Uniquement X + scale — Y verrouillé (pas de translateY / skew)
+  const lensScale = pressed || enlarged ? 1.08 : 0.82;
+  const transform = `translate3d(${bubbleX * 100}%, 0, 0) scale(${lensScale})`;
 
   return (
     <nav className="dock" aria-label="Navigation">
@@ -223,6 +145,17 @@ export default function AppTabbar({ activePath, onSelect }) {
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
       >
+        <span
+          className={`dock-bubble${pressed || enlarged ? " is-enlarged" : ""}`}
+          style={{
+            transform,
+            transition: pressed
+              ? "none"
+              : "transform 0.38s cubic-bezier(0.22, 1.2, 0.36, 1)",
+          }}
+          aria-hidden
+        />
+
         {TABS.map((tab, index) => {
           const underLens = index === highlightIndex;
           const Glyph = underLens ? tab.iconActive : tab.icon;
@@ -240,45 +173,20 @@ export default function AppTabbar({ activePath, onSelect }) {
                 }
                 onSelect?.(tab.path);
                 setBubbleX(index);
-                bumpEnlarge(380);
+                bumpEnlarge(300);
               }}
             >
-              <span className="dock-icon" style={{ opacity: underLens ? 0 : 1 }}>
+              <span className="dock-icon">
                 <Icon
-                  ios={<Glyph className="w-7 h-7" style={{ color: "inherit", fill: "currentColor" }} />}
-                  material={<Glyph className="w-6 h-6" style={{ color: "inherit", fill: "currentColor" }} />}
+                  ios={<Glyph className="w-7 h-7" />}
+                  material={<Glyph className="w-6 h-6" />}
                 />
               </span>
-              <span className="dock-label" style={{ opacity: underLens ? 0 : 1 }}>
-                {tab.label}
-              </span>
+              <span className="dock-label">{tab.label}</span>
             </button>
           );
         })}
-
-        <span
-          className={`dock-bubble${pressed || enlarged ? " is-enlarged" : ""}`}
-          style={{
-            transform,
-            transition: pressed
-              ? "none"
-              : "transform 0.42s cubic-bezier(0.22, 1.35, 0.36, 1)",
-          }}
-          aria-hidden
-        >
-          {/* Contenu loupe : icône grossie + filter SVG (marche Safari via filter, pas backdrop) */}
-          <span className="dock-bubble-lens">
-            <span className="dock-bubble-lens-inner">
-              <LensGlyph className="dock-bubble-glyph" />
-              <span className="dock-bubble-caption">{lensTab.label}</span>
-            </span>
-          </span>
-        </span>
       </Glass>
     </nav>
   );
-}
-
-function nearestIndexSafe(x) {
-  return clamp(Math.round(x), 0, TABS.length - 1);
 }
