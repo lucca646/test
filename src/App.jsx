@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { App as KonstaApp } from "konsta/react";
 import AppTabbar from "./components/AppTabbar.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
@@ -26,6 +26,11 @@ export default function App() {
     normalizePath(window.location.pathname),
   );
 
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+  }, []);
+
   const selectTab = useCallback((path) => {
     const next = normalizePath(path);
     setActivePath(next);
@@ -35,7 +40,7 @@ export default function App() {
   const ActivePage = PAGES[activePath] || TodayPage;
 
   return (
-    <KonstaApp theme="ios" dark safeAreas className="ios-shell">
+    <KonstaApp theme="ios" dark safeAreas className="ios-shell dark">
       <div className="app-wallpaper" aria-hidden />
       <main className="tab-stage">
         <ActivePage key={activePath} />
