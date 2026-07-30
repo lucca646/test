@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "eu.coraia.liquidglass.dev",
       "infoPlist": {
-        "NSSupportsLiveActivities": true
+        "NSSupportsLiveActivities": true,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -34,6 +35,26 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "luccar2956s-team",
+    "extra": {
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "LiveActivity",
+                  "bundleIdentifier": "eu.coraia.liquidglass.dev.LiveActivity",
+                  "entitlements": {}
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "cfec5576-6c42-4ead-b311-2e85c207cb33"
+      }
     }
   }
 }
