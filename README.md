@@ -1,6 +1,12 @@
-# test — Liquid Glass playground
+# test — Apple-like Liquid Glass
 
-Playground UI complet pour tester l’effet **Liquid Glass** avec plusieurs libs Git/npm.
+Playground **iOS 26** reconstruit de zéro avec la stack de la vidéo :
+
+| Outil | Rôle |
+|-------|------|
+| [Konsta UI](https://konstaui.com/) | Thème iOS 26 + composant `Glass` (Liquid Glass) |
+| [Framework7](https://framework7.io) | Routing + transitions (Fade / Cover / Parallax / Push) |
+| [Despia](https://despia.com) | Publish one-click (lien dans Réglages) |
 
 ## Lancer
 
@@ -9,38 +15,11 @@ npm install
 npm run dev
 ```
 
-Ouvre dans **Chrome / Edge** pour la réfraction live.
+Ouvre en viewport mobile (≈390×844). Fond coloré volontaire : le verre a besoin de contraste.
 
-## Libs branchées
+## Pages
 
-| Package | Repo | Rôle dans le playground |
-|---------|------|-------------------------|
-| [`liquid-glass-react`](https://github.com/rdev/liquid-glass-react) | rdev | Boutons, segmented, liste, chips, cards (élasticité) |
-| [`@samasante/liquid-glass`](https://github.com/samasante/liquid-glass) | samasante | Bouton, toggle, slider lentille (headless / optics) |
-| [`@dpawlikowski/liquid-glass`](https://github.com/dpawlikowski/liquid-glass) | dpawlikowski | Bouton CSS, cards, log (presets subtle/vivid/vision) |
-| SDF maison | local | Dock flottant + goutte (`public/liquid-lens-*.png`) |
-
-## Sections UI
-
-- Boutons (primary / polar / prominent / icon)
-- Segmented control + toggle
-- Liste / menu
-- Chips / filtres
-- Inputs / search
-- Cards (3 libs)
-- Slider lentille
-- Dock mobile Liquid Glass
-- Event log + liens repos
-
-## Régénérer les maps SDF
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install numpy pillow
-.venv/bin/python scripts/generate-displacement-map.py \
-  --width 720 --height 72 --radius 36 --rim 28 \
-  --output public/liquid-lens-pill.png
-.venv/bin/python scripts/generate-displacement-map.py \
-  --width 128 --height 128 --radius 64 --rim 48 \
-  --output public/liquid-lens-blob.png
-```
+- **Aujourd'hui** — boutons, Glass, segmented, liste
+- **Arcade** — chips, cards, transitions Cover
+- **Recherche** — Searchbar + résultats
+- **Réglages** — toggles, range, liens stack / Despia
