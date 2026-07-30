@@ -1,14 +1,13 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
+import {
+  getLiveActivityBridge,
+  stateForMode,
+  type IslandMode,
+} from "../lib/liveActivity";
 
-export type IslandMode =
-  | "compact"
-  | "minimal"
-  | "expanded"
-  | "timer"
-  | "music"
-  | "progress";
-
+export type { IslandMode };
 export const ISLAND_MODES: {
   id: IslandMode;
   label: string;
@@ -32,12 +31,12 @@ export const ISLAND_MODES: {
   {
     id: "timer",
     label: "Timer",
-    hint: "Compte à rebours style Live Activity (Lock Screen + île).",
+    hint: "Compte à rebours Live Activity (Lock Screen + Dynamic Island).",
   },
   {
     id: "music",
     label: "Now Playing",
-    hint: "Lecture : artwork compact + contrôles en expanded.",
+    hint: "Lecture : titre + progression (template ActivityKit).",
   },
   {
     id: "progress",
@@ -52,16 +51,111 @@ type Props = {
 };
 
 /**
- * Aperçu visuel des présentations Dynamic Island.
- * En Expo Go = simulation UI. Live Activity réelle = EAS / prebuild + ActivityKit.
+ * Playground Dynamic Island :
+ * - aperçu UI toujours
+ * - boutons Start / Update / Stop → vraie Live Activity (Dev Client)
  */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
+  const bridge = useMemo(() => getLiveActivityBridge(), []);
+  const activityId = useRef<string | null>(null);
+  const [status, setStatus] = useState<string>(
+    bridge.available
+      ? "Prêt — lance une Live Activity sur l’île système."
+      : bridge.reason ?? "Indisponible",
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (activityId.current && bridge.stopActivity) {
+        try {
+          const { state } = stateForMode(mode);
+          bridge.stopActivity(activityId.current, state);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const run = (fn: () => void) => {
+    setBusy(true);
+    try {
+      fn();
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onStart = () =>
+    run(() => {
+      if (!bridge.startActivity) {
+        setStatus(bridge.reason ?? "startActivity indisponible");
+        return;
+      }
+      const { state, config } = stateForMode(mode);
+      const id = bridge.startActivity(state, config);
+      if (!id) {
+        setStatus(
+          "Échec startActivity (iOS < 16.2, permissions, ou Expo Go).",
+        );
+        return;
+      }
+      activityId.current = id;
+      setStatus(`Live Activity démarrée · id ${id.slice(0, 8)}…`);
+    });
+
+  const onUpdate = () =>
+    run(() => {
+      if (!bridge.updateActivity || !activityId.current) {
+        setStatus("Aucune activité active — Start d’abord.");
+        return;
+      }
+      const { state } = stateForMode(mode);
+      // petite variation pour voir l’update
+      const next = {
+        ...state,
+        subtitle: `${state.subtitle ?? ""} · maj ${new Date().toLocaleTimeString("fr-FR")}`,
+        progressBar:
+          "progress" in (state.progressBar ?? {})
+            ? {
+                progress: Math.min(
+                  0.95,
+                  ((state.progressBar as { progress?: number }).progress ??
+                    0.4) + 0.1,
+                ),
+              }
+            : state.progressBar,
+      };
+      bridge.updateActivity(activityId.current, next);
+      setStatus(`Activity mise à jour (${mode}).`);
+    });
+
+  const onStop = () =>
+    run(() => {
+      if (!bridge.stopActivity || !activityId.current) {
+        setStatus("Rien à arrêter.");
+        return;
+      }
+      const { state } = stateForMode(mode);
+      bridge.stopActivity(activityId.current, {
+        ...state,
+        title: "Terminé",
+        subtitle: "Live Activity arrêtée",
+      });
+      activityId.current = null;
+      setStatus("Live Activity arrêtée.");
+    });
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.sectionTitle}>Dynamic Island</Text>
       <Text style={styles.sectionHint}>
-        Choisis une présentation. Aperçu ci-dessous — la vraie île système
-        demande une Live Activity (build native, pas Expo Go).
+        Modes → aperçu. Puis Start pour pousser une vraie Live Activity sur
+        l’île (Dev Client / build native uniquement).
       </Text>
 
       <View style={styles.previewStage}>
@@ -88,7 +182,59 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       <Text style={styles.modeHint}>
         {ISLAND_MODES.find((m) => m.id === mode)?.hint}
       </Text>
+
+      <View style={styles.actions}>
+        <ActionButton
+          label="Start"
+          onPress={onStart}
+          disabled={busy}
+          primary
+        />
+        <ActionButton label="Update" onPress={onUpdate} disabled={busy} />
+        <ActionButton label="Stop" onPress={onStop} disabled={busy} danger />
+      </View>
+
+      <View
+        style={[
+          styles.statusBox,
+          bridge.available ? styles.statusOk : styles.statusWarn,
+        ]}
+      >
+        <Text style={styles.statusLabel}>
+          {bridge.available ? "Native · prêt" : "Expo Go / non natif"}
+        </Text>
+        <Text style={styles.statusText}>{status}</Text>
+      </View>
     </View>
+  );
+}
+
+function ActionButton({
+  label,
+  onPress,
+  disabled,
+  primary,
+  danger,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.actionBtn,
+        primary && styles.actionPrimary,
+        danger && styles.actionDanger,
+        disabled && { opacity: 0.45 },
+      ]}
+    >
+      <Text style={styles.actionText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -152,7 +298,6 @@ function IslandPreview({ mode }: { mode: IslandMode }) {
     );
   }
 
-  // expanded
   return (
     <View style={styles.expanded}>
       <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
@@ -217,6 +362,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  actions: { flexDirection: "row", gap: 8, marginTop: 4 },
+  actionBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  actionPrimary: { backgroundColor: "#0a84ff" },
+  actionDanger: { backgroundColor: "rgba(255,69,58,0.85)" },
+  actionText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  statusBox: {
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  statusOk: {
+    backgroundColor: "rgba(48,209,88,0.12)",
+    borderColor: "rgba(48,209,88,0.35)",
+  },
+  statusWarn: {
+    backgroundColor: "rgba(255,159,10,0.12)",
+    borderColor: "rgba(255,159,10,0.35)",
+  },
+  statusLabel: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  statusText: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
+    lineHeight: 17,
+  },
   minimal: {
     width: 36,
     height: 36,
@@ -278,11 +459,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  expLead: { color: "#30d158", fontSize: 14 },
   expTrail: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "600" },
   expTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   expSub: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
-  expCtrl: { color: "#fff", fontSize: 16 },
+  expCtrl: { color: "#fff", fontSize: 16, fontWeight: "700" },
   expBottom: {
     paddingTop: 4,
     borderTopWidth: StyleSheet.hairlineWidth,

@@ -1,38 +1,54 @@
-# mobile/ — Expo SDK 54 · **UITabBar native Apple**
+# mobile/ — Expo SDK 54 · UITabBar native + Live Activities
 
-La barre d’onglets est la **vraie** `UITabBar` / `UITabBarController` iOS
-via [`expo-router` NativeTabs](https://docs.expo.dev/router/advanced/native-tabs/).
+## Ce qu’il y a
 
-Ce n’est plus le dock custom React Native.
+- **UITabBar** Apple via `expo-router` `NativeTabs`
+- **Dynamic Island / Live Activities** via `expo-live-activity` (ActivityKit)
 
-## Lancer (Expo Go, sans App Store)
+## Important
+
+| Environnement | UITabBar | Dynamic Island réelle |
+|---|---|---|
+| **Expo Go** | oui | non (aperçu UI seulement) |
+| **Dev Client** (`eas build`) | oui | **oui** |
+
+## Dev Client (île système)
+
+Sur une machine avec compte Apple :
 
 ```bash
 cd mobile
-npm install
+npm install --legacy-peer-deps
+npx expo prebuild --platform ios --clean
+# Build interne installable (pas App Store) :
+npx eas-cli build --profile development --platform ios
+```
+
+Ou simulateur :
+
+```bash
+npx eas-cli build --profile development-simulator --platform ios
+# puis
+npx expo start --dev-client
+```
+
+Sur **Aujourd’hui** : choisis un mode → **Start** / **Update** / **Stop**.
+L’activité apparaît sur le Lock Screen + Dynamic Island.
+
+## Expo Go (sans build)
+
+```bash
 npx expo start --tunnel
 ```
 
-Ouvre le lien `exp://…` dans **Expo Go**.
+Tu gardes la nav native + l’aperçu des modes ; Start affichera que le module natif est absent.
 
-## Structure
+## Fichiers clés
 
 ```
-app/
-  _layout.tsx   ← NativeTabs (UITabBar)
-  index.tsx     ← Aujourd'hui
-  games.tsx
-  apps.tsx
-  arcade.tsx
-  search.tsx
-components/
-  TabScreen.tsx
-  LiquidGlassDock.tsx   ← ancien dock custom (conservé, non branché)
+app/_layout.tsx                         ← NativeTabs
+components/DynamicIslandPlayground.tsx  ← modes + Start/Update/Stop
+lib/liveActivity.ts                     ← bridge ActivityKit
+assets/liveActivity/                    ← images < 4KB
+eas.json                                ← profils development
 ```
-
-## Dynamic Island
-
-Sur **Aujourd’hui** : switch Compact / Minimal / Expanded / Timer / Now Playing / Progress.
-
-> Aperçu UI en Expo Go. Une **vraie** Dynamic Island (Live Activity / ActivityKit)
-> nécessite un development build (`eas build` / `npx expo prebuild`), pas Expo Go.
