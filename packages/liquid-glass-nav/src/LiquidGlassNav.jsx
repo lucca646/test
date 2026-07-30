@@ -247,7 +247,7 @@ export default function LiquidGlassNav({
           className={`lgn-bubble${pressed ? " is-dragging" : ""}`}
           width={lensPx.w}
           height={lensPx.h}
-          radius={999}
+          radius={Math.min(lensPx.w, lensPx.h) / 2}
           optics={pressed ? OPTICS_DRAG : OPTICS_REST}
           style={{
             transform,

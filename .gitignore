@@ -25,3 +25,4 @@ dist-ssr
 
 dev-dist/
 dist/
+packages/*/node_modules/
