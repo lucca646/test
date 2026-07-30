@@ -1,6 +1,5 @@
+import { Page, Navbar } from "framework7-react";
 import {
-  Page,
-  Navbar,
   Block,
   BlockTitle,
   List,
@@ -42,14 +41,14 @@ export default function SearchPage() {
   }, [q, scope]);
 
   return (
-    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
-      <Navbar title="Recherche" large transparent className="top-0 sticky" />
+    <Page name="search" className="page-glass">
+      <Navbar title="Recherche" large transparent />
 
       <Block className="mt-2 space-y-3">
         <div className="hero-card hero-purple">
           <p className="hero-kicker">Page 3 · Search</p>
           <h2>Explorer</h2>
-          <p>Searchbar + filtres + slider de rayon — page distincte.</p>
+          <p>Searchbar + filtres + slider de rayon.</p>
         </div>
 
         <Searchbar
@@ -106,16 +105,14 @@ export default function SearchPage() {
         </Glass>
       </Block>
 
-      <BlockTitle>
-        Résultats · {results.length}
-      </BlockTitle>
+      <BlockTitle>Résultats · {results.length}</BlockTitle>
       <List strongIos outlineIos>
         {results.map((item) => (
           <ListItem
             key={item.title}
             title={item.title}
             after={<Chip className="!m-0">{item.tag}</Chip>}
-            link="#"
+            link
           />
         ))}
       </List>

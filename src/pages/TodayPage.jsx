@@ -1,6 +1,5 @@
+import { Page, Navbar } from "framework7-react";
 import {
-  Page,
-  Navbar,
   Block,
   BlockTitle,
   Button,
@@ -23,8 +22,8 @@ export default function TodayPage() {
   const [focus, setFocus] = useState(true);
 
   return (
-    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
-      <Navbar title="Aujourd'hui" large transparent className="top-0 sticky" />
+    <Page name="today" className="page-glass">
+      <Navbar title="Aujourd'hui" large transparent />
 
       <Block className="space-y-3 mt-2">
         <div className="hero-card hero-blue">
@@ -96,8 +95,8 @@ export default function TodayPage() {
           title="Mode Focus"
           after={<Toggle checked={focus} onChange={() => setFocus((v) => !v)} />}
         />
-        <ListItem title="Favoris" after={<Badge>12</Badge>} link="#" />
-        <ListItem title="Nouveautés" after="3" link="#" />
+        <ListItem title="Favoris" after={<Badge>12</Badge>} link />
+        <ListItem title="Nouveautés" after="3" link />
       </List>
     </Page>
   );

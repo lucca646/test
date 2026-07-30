@@ -1,6 +1,5 @@
+import { Page, Navbar } from "framework7-react";
 import {
-  Page,
-  Navbar,
   Block,
   BlockTitle,
   List,
@@ -25,14 +24,14 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState("dark");
 
   return (
-    <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
-      <Navbar title="Réglages" large transparent className="top-0 sticky" />
+    <Page name="settings" className="page-glass">
+      <Navbar title="Réglages" large transparent />
 
       <Block className="mt-2">
         <div className="hero-card hero-slate">
           <p className="hero-kicker">Page 4 · Settings</p>
           <h2>Préférences</h2>
-          <p>Toggles, steppers et sliders Apple pour tester le glass.</p>
+          <p>Toggles, steppers et sliders Apple.</p>
         </div>
       </Block>
 
@@ -132,7 +131,7 @@ export default function SettingsPage() {
         />
         <ListItem
           title="Framework7"
-          subtitle="Routing (tabs instantanés)"
+          subtitle="Routing pages"
           after="v9"
           link="https://framework7.io"
           target="_blank"
@@ -140,7 +139,7 @@ export default function SettingsPage() {
         />
         <ListItem
           title="Despia"
-          subtitle="One-click publish mobile"
+          subtitle="One-click publish"
           link="https://despia.com"
           target="_blank"
           external

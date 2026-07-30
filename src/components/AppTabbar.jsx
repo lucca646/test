@@ -10,30 +10,10 @@ import {
 } from "framework7-icons/react/framework7-icons-react.esm.js";
 
 const TABS = [
-  {
-    path: "/",
-    label: "Aujourd'hui",
-    icon: Today,
-    iconActive: TodayFill,
-  },
-  {
-    path: "/arcade/",
-    label: "Arcade",
-    icon: Gamecontroller,
-    iconActive: GamecontrollerFill,
-  },
-  {
-    path: "/search/",
-    label: "Recherche",
-    icon: Search,
-    iconActive: Search,
-  },
-  {
-    path: "/settings/",
-    label: "Réglages",
-    icon: GearAlt,
-    iconActive: GearAltFill,
-  },
+  { path: "/", label: "Aujourd'hui", icon: Today, iconActive: TodayFill },
+  { path: "/arcade/", label: "Arcade", icon: Gamecontroller, iconActive: GamecontrollerFill },
+  { path: "/search/", label: "Recherche", icon: Search, iconActive: Search },
+  { path: "/settings/", label: "Réglages", icon: GearAlt, iconActive: GearAltFill },
 ];
 
 function isActive(activePath, tabPath) {
@@ -43,9 +23,15 @@ function isActive(activePath, tabPath) {
 }
 
 export default function AppTabbar({ activePath, onSelect }) {
+  const activeIndex = Math.max(
+    0,
+    TABS.findIndex((tab) => isActive(activePath, tab.path)),
+  );
+
   return (
     <Tabbar labels icons className="left-0 bottom-0 fixed z-50">
-      <ToolbarPane>
+      {/* key force le recalcul de la bulle highlight Konsta */}
+      <ToolbarPane key={`pane-${activeIndex}`}>
         {TABS.map((tab) => {
           const active = isActive(activePath, tab.path);
           const Glyph = active ? tab.iconActive : tab.icon;
@@ -62,7 +48,8 @@ export default function AppTabbar({ activePath, onSelect }) {
               }
               onClick={(e) => {
                 e.preventDefault();
-                if (!active) onSelect?.(tab.path);
+                e.stopPropagation();
+                onSelect?.(tab.path);
               }}
             />
           );

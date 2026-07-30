@@ -34,29 +34,37 @@ body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55% 45% at 15% 12%, rgba(56, 120, 255, 0.72), transparent 65%),
-    radial-gradient(50% 42% at 88% 18%, rgba(255, 120, 60, 0.58), transparent 62%),
-    radial-gradient(45% 40% at 70% 78%, rgba(52, 211, 153, 0.35), transparent 65%),
-    radial-gradient(40% 35% at 20% 82%, rgba(236, 72, 153, 0.28), transparent 60%),
-    linear-gradient(180deg, #0a0a12 0%, #000 100%);
+    radial-gradient(55% 45% at 15% 12%, rgba(56, 120, 255, 0.85), transparent 65%),
+    radial-gradient(50% 42% at 88% 18%, rgba(255, 120, 60, 0.7), transparent 62%),
+    radial-gradient(45% 40% at 70% 78%, rgba(52, 211, 153, 0.45), transparent 65%),
+    radial-gradient(40% 35% at 20% 82%, rgba(236, 72, 153, 0.4), transparent 60%),
+    linear-gradient(180deg, #14141f 0%, #050508 100%);
 }
 
-.ios-shell {
+.ios-shell,
+.framework7-root,
+#app,
+.view,
+.views {
   position: relative;
   z-index: 1;
+  height: 100%;
   min-height: 100%;
 }
 
-/* Laisser le wallpaper transparaitre sous le Liquid Glass */
-.framework7-root,
-.view,
-.views,
-.page,
-.page-content,
-.ios .page,
-.ios .page-content {
+/* Pages F7 transparentes pour laisser voir le wallpaper */
+.page.page-glass,
+.page.page-glass .page-content,
+.ios .page.page-glass,
+.ios .page.page-glass .page-content,
+.md .page.page-glass,
+.md .page.page-glass .page-content {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+.page.page-glass .page-content {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
 }
 
 .navbar,
@@ -67,13 +75,11 @@ body {
   --f7-bars-bg-color: transparent;
   --f7-bars-bg-image: none;
   --f7-bars-border-color: transparent;
+  --f7-navbar-text-color: #fff;
+  --f7-navbar-link-color: #fff;
 }
 
-.page-content {
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
-}
-
-/* Icônes tabbar : taille fixe, pas de overflow texte */
+/* Icônes tabbar */
 .k-ios .tabbar a i,
 .k-ios .tabbar a svg {
   display: block;
