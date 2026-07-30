@@ -47,9 +47,16 @@ body {
   min-height: 100%;
 }
 
-/* Framework7 page transitions feel */
-.page {
+/* Laisser le wallpaper transparaitre sous le Liquid Glass */
+.framework7-root,
+.view,
+.views,
+.page,
+.page-content,
+.ios .page,
+.ios .page-content {
   background: transparent !important;
+  background-color: transparent !important;
 }
 
 .navbar,
@@ -64,6 +71,20 @@ body {
 
 .page-content {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+/* Icônes tabbar : taille fixe, pas de overflow texte */
+.k-ios .tabbar a i,
+.k-ios .tabbar a svg {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+}
+
+.k-ios .tabbar a {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hero-card {
