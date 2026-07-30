@@ -1,10 +1,12 @@
 # Plugins web (miroir de l’app native)
 
-Playground Vite + React qui reprend le shell iOS (onglets, Dynamic Island HTML/CSS).
+Playground Vite + React — **même base de pages**, rendu selon la plateforme
+(iOS / Android / Web) via le sélecteur en haut (`?platform=ios|android|web`).
 
 ```bash
 npm run dev
 # → http://127.0.0.1:5177
+# → http://127.0.0.1:5177/?platform=android
 ```
 
 ## Plugin `liquid-glass-nav`
