@@ -194,7 +194,7 @@ export default function DeviceLab() {
     ensureAndroidChannel().catch(() => undefined);
   }, [refreshBio, refreshNotif]);
 
-  const runBio = useCallback(async () => {
+  const runBio = useCallback(async (biometricsOnly: boolean) => {
     setBioBusy(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -202,43 +202,83 @@ export default function DeviceLab() {
       const enrolled = has
         ? await LocalAuthentication.isEnrolledAsync()
         : false;
+      const types = has
+        ? await LocalAuthentication.supportedAuthenticationTypesAsync()
+        : [];
+      const hasFace = types.includes(
+        FAKESECRET_o1p2q3r4s5t6u7v8w9x0,
+      );
+      const hasTouch = types.includes(
+        LocalAuthentication.AuthenticationType.FINGERPRINT,
+      );
+
       if (!has) {
         Alert.alert(
           "Face ID",
-          "Aucun capteur biométrique. Sur simulateur, active Features → Face ID.",
+          "Aucun capteur biométrique. Sur simulateur : Features → Face ID → Enrolled.",
         );
         return;
       }
       if (!enrolled) {
         Alert.alert(
           "Face ID non configuré",
-          "Va dans Réglages iPhone → Face ID et code, puis réessaie.",
+          "Réglages iPhone → Face ID et code, puis réessaie.",
           [
             { text: "OK", style: "cancel" },
-            {
-              text: "Ouvrir Réglages",
-              onPress: () => Linking.openSettings(),
-            },
+            { text: "Ouvrir Réglages", onPress: () => Linking.openSettings() },
           ],
         );
         return;
       }
+
+      // biometricsOnly=true → LAPolicyDeviceOwnerAuthenticationWithBiometrics
+      // (Face ID réel, pas le code). Sinon iOS propose souvent le code directement.
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Test Face ID / Touch ID — Liquid Glass",
+        promptMessage: hasFace
+          ? "Scan Face ID — Liquid Glass"
+          : hasTouch
+            ? "Touch ID — Liquid Glass"
+            : "Biométrie — Liquid Glass",
         cancelLabel: "Annuler",
-        fallbackLabel: "Code appareil",
-        disableDeviceFallback: false,
+        disableDeviceFallback: biometricsOnly,
+        // Masque le bouton « Saisir le code » sur iOS
+        fallbackLabel: biometricsOnly ? "" : "Utiliser le code",
       });
+
       if (result.success) {
-        setBioMsg("Authentifié ✓");
-        Alert.alert("Face ID", "Succès — biométrie OK.");
+        const mode = biometricsOnly ? "Face ID / Touch ID" : "bio ou code";
+        setBioMsg(`Authentifié ✓ (${mode})`);
+        Alert.alert("Succès", `Authentification OK (${mode}).`);
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
       } else {
         const why = result.error || "annulé";
         setBioMsg(`Échec : ${why}`);
-        Alert.alert("Face ID", `Échec / annulé\n${why}`);
+        if (why === "user_fallback") {
+          Alert.alert(
+            "Code demandé",
+            "Tu as choisi le fallback code. Utilise « Face ID seul » pour forcer la biométrie.",
+          );
+        } else if (why === "not_available" || why === "passcode_not_set") {
+          Alert.alert(
+            "Face ID indisponible",
+            "Vérifie Réglages → Face ID et code → Autoriser pour Expo Go.",
+            [
+              { text: "OK", style: "cancel" },
+              { text: "Réglages", onPress: () => Linking.openSettings() },
+            ],
+          );
+        } else {
+          Alert.alert(
+            "Face ID",
+            `Échec / annulé : ${why}\n\nAstuce : Réglages → Face ID et code → coche Expo Go.`,
+            [
+              { text: "OK", style: "cancel" },
+              { text: "Réglages", onPress: () => Linking.openSettings() },
+            ],
+          );
+        }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur biométrie";
@@ -387,10 +427,20 @@ export default function DeviceLab() {
       {/* Device features d’abord — plus visibles */}
       <Section title="Face ID / Touch ID">
         <Text style={styles.meta}>{bioMsg}</Text>
+        <Text style={styles.hint}>
+          Si iOS demande le code : Réglages → Face ID et code → autorise Expo Go.
+          « Face ID seul » force la biométrie (pas de fallback code).
+        </Text>
         <View style={styles.rowWrap}>
           <Btn
-            label={bioBusy ? "…" : "Tester Face ID"}
-            onPress={runBio}
+            label={bioBusy ? "…" : "Face ID seul"}
+            onPress={() => runBio(true)}
+            disabled={bioBusy}
+          />
+          <Btn
+            label="Bio ou code"
+            tone="soft"
+            onPress={() => runBio(false)}
             disabled={bioBusy}
           />
           <Btn label="Rescan" tone="soft" onPress={refreshBio} />
@@ -576,7 +626,13 @@ export default function DeviceLab() {
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${slider * 100}%` }]} />
         </View>
-        <ActivityIndicator color="#34d399" style={{ marginTop: 10 }} />
+        <Text style={styles.hint}>
+          Barre de progression (lecture seule) = même valeur que le slider.
+        </Text>
+        <View style={styles.loaderRow}>
+          <ActivityIndicator color="#34d399" />
+          <Text style={styles.hint}>ActivityIndicator (loader)</Text>
+        </View>
       </Section>
 
       {/* Caméra plein écran — hors ScrollView pour un preview fiable */}
@@ -760,6 +816,12 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#34d399",
     borderRadius: 999,
+  },
+  loaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
   },
   camRoot: {
     flex: 1,
