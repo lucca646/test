@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Glass } from "@samasante/liquid-glass";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -19,60 +18,9 @@ function matchActive(activeId, itemId) {
   );
 }
 
-/** Optics repos — verre discret, proportions stables */
-const OPTICS_REST = {
-  depth: 0.35,
-  curvature: 0.25,
-  bend: 0.2,
-  bendWidth: 0.14,
-  strength: 0.12,
-  frost: 0,
-  dispersion: 0.08,
-  specular: 0.55,
-  sheen: 0.35,
-  sheenWidth: 2,
-  brightness: 0.04,
-  softEdge: true,
-  clipToShape: true,
-  mapSize: 256,
-  saturate: 1.15,
-  glow: 0.1,
-  glowSpread: 0.2,
-  glowFalloff: 2,
-  sheenAngle: 125,
-  sheenDark: false,
-  sheenFalloff: 2,
-  splay: 0.05,
-};
-
-/** Optics drag — distorsion Apple accentuée, mêmes proportions */
-const OPTICS_DRAG = {
-  depth: 0.92,
-  curvature: 0.7,
-  bend: 0.62,
-  bendWidth: 0.16,
-  strength: 0.48,
-  frost: 0,
-  dispersion: 0.32,
-  specular: 0.9,
-  sheen: 0.55,
-  sheenWidth: 2.5,
-  brightness: 0.02,
-  softEdge: true,
-  clipToShape: true,
-  mapSize: 320,
-  saturate: 1.25,
-  glow: 0.18,
-  glowSpread: 0.22,
-  glowFalloff: 2,
-  sheenAngle: 125,
-  sheenDark: false,
-  sheenFalloff: 2,
-  splay: 0.12,
-};
-
 /**
- * Navbar Liquid Glass (App Store style) + distorsion @samasante/liquid-glass.
+ * Navbar Liquid Glass (App Store style).
+ * Pastille CSS (fiable) + loupe SDF au drag.
  */
 export default function LiquidGlassNav({
   items = [],
@@ -106,7 +54,6 @@ export default function LiquidGlassNav({
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
   const [morph, setMorph] = useState({ sx: 1, sy: 1, skew: 0 });
-  const [lensPx, setLensPx] = useState({ w: 64, h: 40 });
   const [mounted, setMounted] = useState(false);
 
   const nearestIndex = (x) => clamp(Math.round(x), 0, count - 1);
@@ -119,27 +66,6 @@ export default function LiquidGlassNav({
     setBubbleX(activeIndex);
     setMorph({ sx: 1, sy: 1, skew: 0 });
   }, [activeIndex]);
-
-  useLayoutEffect(() => {
-    const el = pillRef.current;
-    if (!el) return;
-    const measureLens = () => {
-      const rect = el.getBoundingClientRect();
-      const pad = 0.35 * 16;
-      const inset = 0.55 * 16;
-      const slot = (rect.width - pad * 2) / count;
-      const h = Math.max(28, rect.height - inset * 2);
-      setLensPx({ w: Math.max(36, slot), h });
-    };
-    measureLens();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureLens) : null;
-    ro?.observe(el);
-    window.addEventListener("resize", measureLens);
-    return () => {
-      ro?.disconnect();
-      window.removeEventListener("resize", measureLens);
-    };
-  }, [count]);
 
   const measure = () => {
     const el = pillRef.current;
@@ -161,7 +87,6 @@ export default function LiquidGlassNav({
     const stretch = clamp(Math.abs(v) * 0.08, 0, 0.1);
     const midY = m.top + m.height / 2;
     const yPull = clamp((clientY - midY) / (m.height * 0.9), -1, 1);
-    // Uniforme : mêmes proportions (pas d’étirement X seul)
     const s = 1 + stretch * 0.35 + Math.abs(yPull) * 0.03;
     const skew = clamp(v * 2.2, -5, 5);
     return { sx: clamp(s, 0.96, 1.08), sy: clamp(s, 0.96, 1.08), skew };
@@ -226,7 +151,6 @@ export default function LiquidGlassNav({
     }
   };
 
-  // Mêmes proportions au drag (scale uniforme léger seulement)
   const transform = `translate3d(${bubbleX * 100}%, 0, 0) scale(${morph.sx}, ${morph.sy}) skewX(${morph.skew}deg)`;
 
   const nav = (
@@ -243,20 +167,13 @@ export default function LiquidGlassNav({
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
       >
-        <Glass
+        <span
           className={`lgn-bubble${pressed ? " is-dragging" : ""}`}
-          width={lensPx.w}
-          height={lensPx.h}
-          radius={Math.min(lensPx.w, lensPx.h) / 2}
-          optics={pressed ? OPTICS_DRAG : OPTICS_REST}
           style={{
             transform,
             transition: pressed
               ? "none"
-              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1)",
-            background: pressed
-              ? "rgba(255,255,255,0.04)"
-              : "rgba(255,255,255,0.08)",
+              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), background 0.25s ease, box-shadow 0.25s ease",
           }}
           aria-hidden
         />
@@ -289,7 +206,6 @@ export default function LiquidGlassNav({
     </nav>
   );
 
-  // Portal sur body → hors Konsta / stacking, vraiment collé au viewport
   if (!mounted || typeof document === "undefined") return null;
   return createPortal(nav, document.body);
 }

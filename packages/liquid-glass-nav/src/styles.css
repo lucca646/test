@@ -1,8 +1,16 @@
-/* liquid-glass-nav — dock App Store, barre collée en bas */
+/* liquid-glass-nav — barre collée en bas + pastille visible */
 
 .lgn {
   --lgn-count: 5;
   --lgn-active: #0a84ff;
+  --lgn-thumb:
+    inset 3px 3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset -3px -3px 0px -3.5px rgba(255, 255, 255, 1),
+    inset -0.5px -0.5px 0px rgba(255, 255, 255, 0.5),
+    inset 0.5px 0.5px 0px rgba(255, 255, 255, 0.1),
+    inset -3px 3px 0px -3.5px rgba(255, 255, 255, 0.25),
+    inset 0px -5px 0px -3.5px rgba(255, 255, 255, 0.25),
+    inset 0px -5px 5px rgba(255, 255, 255, 0.25);
 
   position: fixed !important;
   left: 0 !important;
@@ -12,11 +20,10 @@
   z-index: 9999;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  /* Pas de marge fantôme — uniquement le home indicator iOS */
+  align-items: stretch;
   margin: 0 !important;
-  padding: 0 0.4rem 0 !important;
-  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  /* Fond jusqu’au bord bas de l’écran */
+  padding: 0 !important;
   pointer-events: none;
   transform: none !important;
 }
@@ -26,21 +33,24 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(var(--lgn-count), minmax(0, 1fr));
-  width: min(100%, 34rem);
-  height: 3.75rem;
-  margin: 0 0 0.15rem !important;
-  padding: 0.3rem;
-  border-radius: 999px;
+  width: 100%;
+  max-width: 100%;
+  /* Hauteur icônes + safe-area (home indicator) dans le padding */
+  min-height: 3.5rem;
+  margin: 0 !important;
+  padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  /* Collée bas : coins hauts arrondis seulement */
+  border-radius: 1.35rem 1.35rem 0 0;
   overflow: visible;
   touch-action: none;
   user-select: none;
   border: 0;
-  background: rgba(40, 40, 42, 0.55);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
+  background: rgba(28, 28, 30, 0.72);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  backdrop-filter: blur(32px) saturate(180%);
   box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.22),
-    0 10px 28px rgba(0, 0, 0, 0.28);
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.28),
+    0 -8px 28px rgba(0, 0, 0, 0.25);
 }
 
 .lgn-item {
@@ -52,7 +62,8 @@
   justify-content: center;
   gap: 0.08rem;
   margin: 0;
-  padding: 0.1rem;
+  padding: 0.15rem 0.1rem;
+  min-height: 2.85rem;
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.92);
@@ -72,23 +83,77 @@
   fill: currentColor !important;
 }
 
-/* Pastille : positionnée en CSS ; taille via Glass width/height (mêmes proportions) */
+/* Pastille ovale — toujours visible, mêmes proportions */
 .lgn-bubble {
-  position: absolute !important;
-  top: 0.5rem !important;
-  bottom: 0.5rem !important;
-  left: 0.3rem !important;
-  z-index: 0 !important;
-  pointer-events: none !important;
+  position: absolute;
+  top: 0.35rem;
+  /* Au-dessus du padding safe-area : hauteur = zone icônes */
+  height: 2.85rem;
+  left: 0.35rem;
+  width: calc((100% - 0.7rem) / var(--lgn-count));
+  border-radius: 999px;
+  z-index: 0;
+  pointer-events: none;
   will-change: transform;
   transform-origin: center center;
-  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  box-shadow:
+    inset 1.5px 1.5px 0 -1.5px rgba(255, 255, 255, 0.55),
+    inset -1.5px -1.5px 0 -1.5px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 5px rgba(255, 255, 255, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .lgn-bubble.is-dragging {
-  /* Même inset → mêmes proportions ; seul l’optique change */
-  top: 0.5rem !important;
-  bottom: 0.5rem !important;
+  /* Mêmes top/height/width → mêmes proportions */
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: var(--lgn-thumb);
+  -webkit-backdrop-filter: url(#lgn-lens-soft-strong) saturate(200%) brightness(1.08);
+  backdrop-filter: url(#lgn-lens-soft-strong) saturate(200%) brightness(1.08);
+}
+
+.lgn-bubble.is-dragging::before,
+.lgn-bubble.is-dragging::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lgn-bubble.is-dragging::before {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: radial-gradient(
+    120% 90% at 50% 50%,
+    transparent 52%,
+    rgba(255, 255, 255, 0.14) 72%,
+    transparent 88%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+}
+
+.lgn-bubble.is-dragging::after {
+  background:
+    radial-gradient(90% 60% at 20% 8%, rgba(120, 220, 255, 0.3) 0%, transparent 40%),
+    radial-gradient(80% 55% at 82% 92%, rgba(255, 140, 200, 0.24) 0%, transparent 42%),
+    radial-gradient(70% 50% at 50% 100%, rgba(160, 255, 210, 0.2) 0%, transparent 45%);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+}
+
+@supports not (backdrop-filter: url(#lgn-lens-soft-strong)) {
+  .lgn-bubble.is-dragging {
+    -webkit-backdrop-filter: saturate(180%) brightness(1.08);
+    backdrop-filter: saturate(180%) brightness(1.08);
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .lgn-icon {
