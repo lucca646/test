@@ -3,21 +3,26 @@ import { Icon, Glass } from "konsta/react";
 import {
   Today,
   TodayFill,
+  Rocket,
+  RocketFill,
+  Layers,
+  LayersFill,
   Gamecontroller,
   GamecontrollerFill,
   Search,
-  GearAlt,
-  GearAltFill,
 } from "framework7-icons/react/framework7-icons-react.esm.js";
 
+/** 5 onglets = App Store Apple */
 const TABS = [
   { path: "/", label: "Aujourd'hui", icon: Today, iconActive: TodayFill },
+  { path: "/games/", label: "Jeux", icon: Rocket, iconActive: RocketFill },
+  { path: "/apps/", label: "Apps", icon: Layers, iconActive: LayersFill },
   { path: "/arcade/", label: "Arcade", icon: Gamecontroller, iconActive: GamecontrollerFill },
   { path: "/search/", label: "Recherche", icon: Search, iconActive: Search },
-  { path: "/settings/", label: "Réglages", icon: GearAlt, iconActive: GearAltFill },
 ];
 
 const BLUE = "#0a84ff";
+const TAB_COUNT = TABS.length;
 
 function isActive(activePath, tabPath) {
   if (tabPath === "/") return activePath === "/" || activePath === "";
@@ -30,7 +35,7 @@ function clamp(n, min, max) {
 }
 
 function nearestIndex(x) {
-  return clamp(Math.round(x), 0, TABS.length - 1);
+  return clamp(Math.round(x), 0, TAB_COUNT - 1);
 }
 
 export default function AppTabbar({ activePath, onSelect }) {
@@ -59,7 +64,7 @@ export default function AppTabbar({ activePath, onSelect }) {
   useEffect(() => {
     if (dragRef.current.touching) return;
     setBubbleX(activeIndex);
-    bumpEnlarge(280);
+    bumpEnlarge(260);
   }, [activeIndex]);
 
   useEffect(() => () => clearTimeout(growTimer.current), []);
@@ -74,11 +79,11 @@ export default function AppTabbar({ activePath, onSelect }) {
     const el = pillRef.current;
     if (!el) return null;
     const rect = el.getBoundingClientRect();
-    return { left: rect.left, slot: rect.width / TABS.length };
+    return { left: rect.left, slot: rect.width / TAB_COUNT };
   };
 
   const xFromClient = (clientX, m) =>
-    clamp((clientX - m.left) / m.slot - 0.5, 0, TABS.length - 1);
+    clamp((clientX - m.left) / m.slot - 0.5, 0, TAB_COUNT - 1);
 
   const onPointerDown = (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -116,7 +121,7 @@ export default function AppTabbar({ activePath, onSelect }) {
     setPressed(false);
     const idx = d.index;
     setBubbleX(idx);
-    bumpEnlarge(300);
+    bumpEnlarge(280);
     const tab = TABS[idx];
     if (tab) onSelect?.(tab.path);
     try {
@@ -126,9 +131,8 @@ export default function AppTabbar({ activePath, onSelect }) {
     }
   };
 
-  // Uniquement X + scale — Y verrouillé (pas de translateY / skew)
-  const lensScale = pressed || enlarged ? 1.08 : 0.82;
-  const transform = `translate3d(${bubbleX * 100}%, 0, 0) scale(${lensScale})`;
+  // X only — hauteur gérée en CSS (inset), pas de scale qui déborde
+  const transform = `translate3d(${bubbleX * 100}%, 0, 0)`;
 
   return (
     <nav className="dock" aria-label="Navigation">
@@ -151,7 +155,7 @@ export default function AppTabbar({ activePath, onSelect }) {
             transform,
             transition: pressed
               ? "none"
-              : "transform 0.38s cubic-bezier(0.22, 1.2, 0.36, 1)",
+              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), top 0.28s ease, bottom 0.28s ease",
           }}
           aria-hidden
         />
@@ -173,12 +177,12 @@ export default function AppTabbar({ activePath, onSelect }) {
                 }
                 onSelect?.(tab.path);
                 setBubbleX(index);
-                bumpEnlarge(300);
+                bumpEnlarge(280);
               }}
             >
               <span className="dock-icon">
                 <Icon
-                  ios={<Glyph className="w-7 h-7" />}
+                  ios={<Glyph className="w-6 h-6" />}
                   material={<Glyph className="w-6 h-6" />}
                 />
               </span>

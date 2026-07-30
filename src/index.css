@@ -98,28 +98,28 @@ body {
 }
 
 /*
- * Dock Apple-like (sobre) :
- * - Icônes fixes (pas de clone / opacity)
- * - Lentille Y bloquée, scale X-only
- * - Verre Konsta thumb discret au repos (pas de filter SDF agressif)
+ * Dock = App Store Apple (5 onglets)
+ * Lentille plus petite, Y bloqué, verre mat discret, loupe douce (Chromium)
  */
 .dock-pill {
   pointer-events: auto;
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  width: min(100%, 26rem);
-  height: 4.25rem;
-  padding: 0.4rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(100%, 34rem);
+  height: 4rem;
+  padding: 0.35rem;
   border-radius: 999px !important;
   overflow: hidden;
   touch-action: none;
   user-select: none;
   border: 0 !important;
-  background: var(--color-ios-dark-glass) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  box-shadow: var(--shadow-ios-dark-glass) !important;
+  background: rgba(40, 40, 42, 0.55) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
+  backdrop-filter: blur(28px) saturate(160%) !important;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.28) !important;
 }
 
 .dock-item {
@@ -129,12 +129,12 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.12rem;
+  gap: 0.08rem;
   margin: 0;
-  padding: 0.15rem;
+  padding: 0.1rem;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.92);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.15s ease;
@@ -151,75 +151,66 @@ body {
   fill: currentColor !important;
 }
 
-/* Lentille : inset fixe (hauteur bloquée), verre Konsta normal */
+/* Lentille Apple : plus petite que la barre, sombre, rim fin */
 .dock-bubble {
   position: absolute;
-  top: 0.4rem;
-  bottom: 0.4rem;
-  left: 0.4rem;
-  width: calc((100% - 0.8rem) / 4);
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.35rem;
+  width: calc((100% - 0.7rem) / 5);
   border-radius: 999px;
   z-index: 0;
   pointer-events: none;
   will-change: transform;
   transform-origin: center center;
-  background: rgba(255, 255, 255, 0.12);
+  /* Plus sombre / mat qu’un halo blanc */
+  background: rgba(255, 255, 255, 0.08);
   border: 0;
-  /* Verre Apple / Konsta — rim discret, pas de SDF ni franges */
-  box-shadow: var(--shadow-ios-dark-glass-thumb);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  box-shadow:
+    inset 1.5px 1.5px 0 -1.5px rgba(255, 255, 255, 0.5),
+    inset -1.5px -1.5px 0 -1.5px rgba(255, 255, 255, 0.22),
+    inset 0 -2px 5px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  /* Loupe douce Chromium — sans blur, scale faible */
+  -webkit-backdrop-filter: url(#liquid-lens-soft);
+  backdrop-filter: url(#liquid-lens-soft);
 }
 
 .dock-bubble.is-enlarged {
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: var(--shadow-ios-dark-glass-thumb);
+  top: 0.32rem;
+  bottom: 0.32rem;
+  background: rgba(255, 255, 255, 0.11);
+  -webkit-backdrop-filter: url(#liquid-lens-soft-strong);
+  backdrop-filter: url(#liquid-lens-soft-strong);
+}
+
+@supports not (backdrop-filter: url(#liquid-lens-soft)) {
+  .dock-bubble,
+  .dock-bubble.is-enlarged {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .dock-icon {
   display: grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.55rem;
+  height: 1.55rem;
 }
 
 .dock-icon svg {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.55rem;
+  height: 1.55rem;
   display: block;
   color: inherit;
   fill: currentColor;
 }
 
 .dock-label {
-  font-size: 0.68rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dock-icon {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-}
-
-.dock-icon svg {
-  width: 1.75rem;
-  height: 1.75rem;
-  display: block;
-  color: inherit;
-  fill: currentColor;
-}
-
-.dock-label {
-  font-size: 0.68rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   max-width: 100%;
   overflow: hidden;

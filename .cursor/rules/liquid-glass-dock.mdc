@@ -1,16 +1,20 @@
 ---
-description: Style Liquid Glass du dock playground (référence Apple / Konsta)
+description: Style Liquid Glass du dock playground (référence App Store Apple)
 alwaysApply: true
 ---
 
-# Dock Liquid Glass — référence visuelle
+# Dock = App Store Apple
 
-## Look validé (sobre)
+## Structure
 
-- Pastille : **uniquement** rim Konsta `--shadow-ios-dark-glass-thumb` + `rgba(255,255,255,0.12)`
-- **Pas** de `filter` / `backdrop-filter: url(#…)` / franges chromatiques sur la pastille
-- Icônes **fixes** (jamais opacity 0, jamais clone loupe)
-- Lentille : mouvement **X seulement** (pas de translateY / skew / oy)
-- Au repos : scale ~0.82 ; au changement : ~1.08 — hauteur CSS inset fixe
+5 onglets : Aujourd’hui · Jeux · Apps · Arcade · Recherche
+
+## Look
+
+- Barre frost sombre mat (`blur` classique)
+- Lentille **plus petite** que la barre (inset CSS), Y bloqué, X only
+- Au changement : inset réduit (`.is-enlarged`) — pas de scale qui déborde
+- Verre lentille : rim fin discret (pas Konsta thumb ultra-blanc)
+- Loupe douce : `url(#liquid-lens-soft)` scale ~-26, **sans** aberration chromatique
 - Bleu `#0a84ff` = onglet sous la lentille
-- Pilule : frost Konsta normal, forme fixe, `overflow: hidden`
+- Icônes fixes (pas de clone)

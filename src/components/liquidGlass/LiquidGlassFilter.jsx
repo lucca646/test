@@ -100,23 +100,30 @@ export default function LiquidGlassFilter({
 export function LiquidGlassFilters() {
   return (
     <>
+      {/* Loupe Apple douce — pas d’aberration chromatique */}
+      <LiquidGlassFilter
+        id="liquid-lens-soft"
+        mapSrc="/liquid-lens-blob.png"
+        scale={-26}
+        chromaticAberration={false}
+      />
+      <LiquidGlassFilter
+        id="liquid-lens-soft-strong"
+        mapSrc="/liquid-lens-blob.png"
+        scale={-34}
+        chromaticAberration={false}
+      />
       <LiquidGlassFilter
         id="liquid-lens-pill"
         mapSrc="/liquid-lens-pill.png"
-        scale={-36}
-        chromaticAberration
+        scale={-28}
+        chromaticAberration={false}
       />
       <LiquidGlassFilter
         id="liquid-lens-blob"
         mapSrc="/liquid-lens-blob.png"
-        scale={-52}
-        chromaticAberration
-      />
-      <LiquidGlassFilter
-        id="liquid-lens-blob-strong"
-        mapSrc="/liquid-lens-blob.png"
-        scale={-68}
-        chromaticAberration
+        scale={-40}
+        chromaticAberration={false}
       />
     </>
   );

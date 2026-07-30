@@ -2,22 +2,30 @@ import { useState, useCallback, useEffect } from "react";
 import { App as KonstaApp } from "konsta/react";
 import AppTabbar from "./components/AppTabbar.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
+import GamesPage from "./pages/GamesPage.jsx";
+import AppsPage from "./pages/AppsPage.jsx";
 import ArcadePage from "./pages/ArcadePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
 
 const PAGES = {
   "/": TodayPage,
+  "/games/": GamesPage,
+  "/apps/": AppsPage,
   "/arcade/": ArcadePage,
   "/search/": SearchPage,
-  "/settings/": SettingsPage,
 };
 
 function normalizePath(path) {
   if (!path || path === "") return "/";
-  if (path === "/arcade") return "/arcade/";
-  if (path === "/search") return "/search/";
-  if (path === "/settings") return "/settings/";
+  const map = {
+    "/games": "/games/",
+    "/apps": "/apps/",
+    "/arcade": "/arcade/",
+    "/search": "/search/",
+    "/settings": "/search/",
+    "/settings/": "/search/",
+  };
+  if (map[path]) return map[path];
   return PAGES[path] ? path : "/";
 }
 
