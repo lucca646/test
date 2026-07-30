@@ -110,7 +110,7 @@ body {
   height: 4rem;
   padding: 0.35rem;
   border-radius: 999px !important;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   user-select: none;
   border: 0 !important;
@@ -151,7 +151,7 @@ body {
   fill: currentColor !important;
 }
 
-/* Lentille Apple : plus petite que la barre, sombre, rim fin */
+/* Lentille Apple : plus petite que la barre au repos */
 .dock-bubble {
   position: absolute;
   top: 0.5rem;
@@ -163,7 +163,6 @@ body {
   pointer-events: none;
   will-change: transform;
   transform-origin: center center;
-  /* Plus sombre / mat qu’un halo blanc */
   background: rgba(255, 255, 255, 0.08);
   border: 0;
   box-shadow:
@@ -171,24 +170,27 @@ body {
     inset -1.5px -1.5px 0 -1.5px rgba(255, 255, 255, 0.22),
     inset 0 -2px 5px rgba(255, 255, 255, 0.06),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
-  /* Loupe douce Chromium — sans blur, scale faible */
-  -webkit-backdrop-filter: url(#liquid-lens-soft);
-  backdrop-filter: url(#liquid-lens-soft);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-.dock-bubble.is-enlarged {
-  top: 0.32rem;
-  bottom: 0.32rem;
-  background: rgba(255, 255, 255, 0.11);
-  -webkit-backdrop-filter: url(#liquid-lens-soft-strong);
-  backdrop-filter: url(#liquid-lens-soft-strong);
+/* Drag only : un peu plus grande que la barre + vrai verre */
+.dock-bubble.is-dragging {
+  top: -0.28rem;
+  bottom: -0.28rem;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--shadow-ios-dark-glass-thumb);
+  -webkit-backdrop-filter: blur(18px) saturate(200%);
+  backdrop-filter: blur(18px) saturate(200%);
+  /* Loupe douce en plus du frost (Chromium) */
+  -webkit-backdrop-filter: blur(10px) url(#liquid-lens-soft-strong) saturate(200%);
+  backdrop-filter: blur(10px) url(#liquid-lens-soft-strong) saturate(200%);
 }
 
-@supports not (backdrop-filter: url(#liquid-lens-soft)) {
-  .dock-bubble,
-  .dock-bubble.is-enlarged {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+@supports not (backdrop-filter: url(#liquid-lens-soft-strong)) {
+  .dock-bubble.is-dragging {
+    -webkit-backdrop-filter: blur(18px) saturate(200%);
+    backdrop-filter: blur(18px) saturate(200%);
   }
 }
 

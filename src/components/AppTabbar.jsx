@@ -40,7 +40,6 @@ function nearestIndex(x) {
 
 export default function AppTabbar({ activePath, onSelect }) {
   const pillRef = useRef(null);
-  const growTimer = useRef(0);
   const dragRef = useRef({
     touching: false,
     moved: false,
@@ -57,23 +56,13 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   const [bubbleX, setBubbleX] = useState(activeIndex);
   const [pressed, setPressed] = useState(false);
-  const [enlarged, setEnlarged] = useState(false);
 
   const highlightIndex = nearestIndex(bubbleX);
 
   useEffect(() => {
     if (dragRef.current.touching) return;
     setBubbleX(activeIndex);
-    bumpEnlarge(260);
   }, [activeIndex]);
-
-  useEffect(() => () => clearTimeout(growTimer.current), []);
-
-  function bumpEnlarge(ms) {
-    clearTimeout(growTimer.current);
-    setEnlarged(true);
-    growTimer.current = window.setTimeout(() => setEnlarged(false), ms);
-  }
 
   const measure = () => {
     const el = pillRef.current;
@@ -89,7 +78,6 @@ export default function AppTabbar({ activePath, onSelect }) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const m = measure();
     if (!m) return;
-    clearTimeout(growTimer.current);
     const x = xFromClient(e.clientX, m);
     dragRef.current = {
       touching: true,
@@ -100,7 +88,6 @@ export default function AppTabbar({ activePath, onSelect }) {
       startX: e.clientX,
     };
     setPressed(true);
-    setEnlarged(true);
     setBubbleX(x);
     pillRef.current?.setPointerCapture?.(e.pointerId);
   };
@@ -121,7 +108,6 @@ export default function AppTabbar({ activePath, onSelect }) {
     setPressed(false);
     const idx = d.index;
     setBubbleX(idx);
-    bumpEnlarge(280);
     const tab = TABS[idx];
     if (tab) onSelect?.(tab.path);
     try {
@@ -131,7 +117,6 @@ export default function AppTabbar({ activePath, onSelect }) {
     }
   };
 
-  // X only — hauteur gérée en CSS (inset), pas de scale qui déborde
   const transform = `translate3d(${bubbleX * 100}%, 0, 0)`;
 
   return (
@@ -150,12 +135,12 @@ export default function AppTabbar({ activePath, onSelect }) {
         onPointerCancel={endPointer}
       >
         <span
-          className={`dock-bubble${pressed || enlarged ? " is-enlarged" : ""}`}
+          className={`dock-bubble${pressed ? " is-dragging" : ""}`}
           style={{
             transform,
             transition: pressed
               ? "none"
-              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), top 0.28s ease, bottom 0.28s ease",
+              : "transform 0.36s cubic-bezier(0.22, 1.15, 0.36, 1), top 0.28s ease, bottom 0.28s ease, box-shadow 0.28s ease, background 0.28s ease, backdrop-filter 0.28s ease",
           }}
           aria-hidden
         />
@@ -177,7 +162,6 @@ export default function AppTabbar({ activePath, onSelect }) {
                 }
                 onSelect?.(tab.path);
                 setBubbleX(index);
-                bumpEnlarge(280);
               }}
             >
               <span className="dock-icon">
