@@ -109,8 +109,9 @@ export default function AppTabbar({ activePath, onSelect }) {
         className={`dock-pill${pressed ? " is-pressed" : ""}`}
         highlight={false}
         colors={{
-          bgIos: "bg-white/18 dark:bg-white/[0.12]",
-          shadowIos: "shadow-ios-dark-glass",
+          /* Fond géré en CSS (.dock-pill) pour un vrai verre */
+          bgIos: "bg-transparent",
+          shadowIos: "",
         }}
         ref={pillRef}
         onPointerDown={onPointerDown}
