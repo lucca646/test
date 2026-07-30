@@ -10,11 +10,17 @@ import {
   Badge,
   Segmented,
   SegmentedButton,
+  Range,
+  Stepper,
+  Toggle,
 } from "konsta/react";
 import { useState } from "react";
 
 export default function TodayPage() {
   const [period, setPeriod] = useState("week");
+  const [brightness, setBrightness] = useState(72);
+  const [count, setCount] = useState(3);
+  const [focus, setFocus] = useState(true);
 
   return (
     <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
@@ -22,33 +28,50 @@ export default function TodayPage() {
 
       <Block className="space-y-3 mt-2">
         <div className="hero-card hero-blue">
-          <h2>Horizon</h2>
-          <p>Fond coloré pour faire lire le Liquid Glass iOS 26.</p>
-        </div>
-        <div className="hero-card hero-orange">
-          <h2>Arcade</h2>
-          <p>Transitions Framework7 · Cover / Fade / Parallax.</p>
+          <p className="hero-kicker">Page 1 · Today</p>
+          <h2>Bonjour</h2>
+          <p>Résumé du jour — boutons, slider et stepper iOS.</p>
         </div>
       </Block>
 
-      <BlockTitle>Actions</BlockTitle>
+      <BlockTitle>Raccourcis</BlockTitle>
       <Block className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <Button rounded>Continuer</Button>
           <Button rounded tonal>
-            Explorer
+            Planifier
           </Button>
           <Button rounded outline>
             Plus tard
           </Button>
+          <Button rounded clear>
+            Ignorer
+          </Button>
         </div>
 
-        <Glass className="rounded-2xl p-4">
-          <p className="text-[15px] font-semibold m-0 mb-1">Surface Glass</p>
-          <p className="text-[13px] opacity-70 m-0">
-            Composant <code>Glass</code> Konsta UI — même matériau que Navbar /
-            Tabbar.
-          </p>
+        <Glass className="rounded-2xl p-4 space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[15px] font-semibold">Luminosité</span>
+              <span className="text-[13px] opacity-60">{brightness}%</span>
+            </div>
+            <Range
+              value={brightness}
+              min={0}
+              max={100}
+              step={1}
+              onInput={(e) => setBrightness(Number(e.target.value))}
+              onChange={(e) => setBrightness(Number(e.target.value))}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[15px] font-semibold">Rappels</span>
+            <Stepper
+              value={count}
+              onPlus={() => setCount((v) => Math.min(v + 1, 12))}
+              onMinus={() => setCount((v) => Math.max(v - 1, 0))}
+            />
+          </div>
         </Glass>
       </Block>
 
@@ -67,11 +90,14 @@ export default function TodayPage() {
         </Segmented>
       </Block>
 
-      <BlockTitle>Liste</BlockTitle>
+      <BlockTitle>Focus</BlockTitle>
       <List strongIos outlineIos>
-        <ListItem title="Favoris" after={<Badge>12</Badge>} link="#" media="★" />
-        <ListItem title="Nouveautés" after="3" link="#" media="✦" />
-        <ListItem title="Collections" link="#" media="◎" />
+        <ListItem
+          title="Mode Focus"
+          after={<Toggle checked={focus} onChange={() => setFocus((v) => !v)} />}
+        />
+        <ListItem title="Favoris" after={<Badge>12</Badge>} link="#" />
+        <ListItem title="Nouveautés" after="3" link="#" />
       </List>
     </Page>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { App as F7App, View, f7, f7ready } from "framework7-react";
 import { KonstaProvider } from "konsta/react";
 import { routes } from "./routes.js";
@@ -21,13 +21,20 @@ export default function App() {
 
   useEffect(() => {
     f7ready(() => {
-      const sync = (page) => {
-        const path = page?.route?.path || window.location.pathname || "/";
-        setActivePath(path);
-      };
-      f7.on("routeChange", (route) => setActivePath(route.path || "/"));
-      f7.on("pageInit", sync);
+      f7.on("routeChange", (route) => {
+        if (route?.path) setActivePath(route.path);
+      });
       setActivePath(f7.views.main?.router?.currentRoute?.path || "/");
+    });
+  }, []);
+
+  const selectTab = useCallback((path) => {
+    // Optimistic : bulle + bleu instantanés, avant la fin de la route F7
+    setActivePath(path);
+    f7.views.main.router.navigate(path, {
+      animate: false,
+      clearPreviousHistory: false,
+      ignoreCache: false,
     });
   }, []);
 
@@ -45,7 +52,7 @@ export default function App() {
               iosDynamicNavbar={false}
               className="safe-areas"
             />
-            <AppTabbar activePath={activePath} />
+            <AppTabbar activePath={activePath} onSelect={selectTab} />
           </F7App>
         </div>
       </KonstaProvider>

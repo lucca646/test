@@ -1,5 +1,4 @@
 import { Tabbar, TabbarLink, ToolbarPane, Icon } from "konsta/react";
-import { f7 } from "framework7-react";
 import {
   Today,
   TodayFill,
@@ -16,28 +15,24 @@ const TABS = [
     label: "Aujourd'hui",
     icon: Today,
     iconActive: TodayFill,
-    transition: "f7-fade",
   },
   {
     path: "/arcade/",
     label: "Arcade",
     icon: Gamecontroller,
     iconActive: GamecontrollerFill,
-    transition: "f7-cover",
   },
   {
     path: "/search/",
     label: "Recherche",
     icon: Search,
     iconActive: Search,
-    transition: "f7-parallax",
   },
   {
     path: "/settings/",
     label: "Réglages",
     icon: GearAlt,
     iconActive: GearAltFill,
-    transition: "f7-push",
   },
 ];
 
@@ -47,7 +42,7 @@ function isActive(activePath, tabPath) {
   return activePath === tabPath || activePath.startsWith(`${clean}/`) || activePath === clean;
 }
 
-export default function AppTabbar({ activePath }) {
+export default function AppTabbar({ activePath, onSelect }) {
   return (
     <Tabbar labels icons className="left-0 bottom-0 fixed z-50">
       <ToolbarPane>
@@ -65,11 +60,9 @@ export default function AppTabbar({ activePath }) {
                   material={<Glyph className="w-6 h-6" />}
                 />
               }
-              onClick={() => {
-                f7.views.main.router.navigate(tab.path, {
-                  animate: true,
-                  transition: tab.transition,
-                });
+              onClick={(e) => {
+                e.preventDefault();
+                if (!active) onSelect?.(tab.path);
               }}
             />
           );
