@@ -16,7 +16,7 @@ const GAMES: {
   {
     id: "pilot",
     title: "Asteroid Pilot",
-    blurb: "Joystick pour piloter, bouton FEU pour tirer. Esquive les rochers.",
+    blurb: "Stick à droite + FEU à gauche (multi-touch). Esquive et tire.",
     tint: "#fb923c",
   },
   {

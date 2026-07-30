@@ -7,7 +7,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import VirtualJoystick, { type StickVector } from "./VirtualJoystick";
+import DualControls from "./DualControls";
+import type { StickVector } from "./VirtualJoystick";
 
 type Props = {
   title: string;
@@ -19,12 +20,11 @@ type Props = {
   onRestart: () => void;
   onStick: (v: StickVector) => void;
   children: ReactNode;
-  /** Bouton d’action optionnel (tir, etc.) */
   actionLabel?: string;
   onAction?: () => void;
 };
 
-/** Cadre plein écran : terrain + HUD + joystick. */
+/** Cadre plein écran : terrain + HUD + contrôles multi-touch. */
 export default function GameArena({
   title,
   tint,
@@ -74,29 +74,19 @@ export default function GameArena({
         ) : null}
       </View>
 
-      <View
-        style={[
-          styles.controls,
-          { paddingBottom: Math.max(insets.bottom, 12) + 8 },
-        ]}
-      >
-        <VirtualJoystick tint={tint} onChange={onStick} />
-        {actionLabel && onAction ? (
-          <Pressable
-            onPress={onAction}
-            style={[styles.action, { backgroundColor: tint }]}
-          >
-            <Text style={styles.actionText}>{actionLabel}</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.actionSpacer} />
-        )}
+      <View style={{ paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
+        <DualControls
+          tint={tint}
+          onStick={onStick}
+          actionLabel={actionLabel}
+          onAction={onAction}
+        />
       </View>
     </View>
   );
 }
 
-/** Boucle ~60fps via rAF polyfill RN (setInterval 16ms). */
+/** Boucle ~60fps. */
 export function useGameLoop(running: boolean, tick: (dt: number) => void) {
   const tickRef = useRef(tick);
   tickRef.current = tick;
@@ -172,20 +162,4 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   overlayBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-  controls: {
-    marginTop: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  action: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-  actionSpacer: { width: 88, height: 88 },
 });
