@@ -5,7 +5,7 @@ Deux playgrounds dans ce repo :
 | Dossier | Stack | Test |
 |---------|-------|------|
 | `/` (racine) | React web + Konsta + Vite **PWA** | navigateur / tunnel Cloudflare |
-| [`mobile/`](./mobile) | **Expo** (React Native) | **Expo Go** — sans App Store |
+| [`mobile/`](./mobile) | **Expo** · **UITabBar native** iOS | **Expo Go** — sans App Store |
 
 ## Web (PWA)
 

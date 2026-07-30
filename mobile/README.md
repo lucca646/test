@@ -1,16 +1,11 @@
-# mobile/ — Expo SDK 54 (React Native) · Liquid Glass
+# mobile/ — Expo SDK 54 · **UITabBar native Apple**
 
-Playground **sans App Store** : tu testes sur ton iPhone avec **Expo Go**.
+La barre d’onglets est la **vraie** `UITabBar` / `UITabBarController` iOS
+via [`expo-router` NativeTabs](https://docs.expo.dev/router/advanced/native-tabs/).
 
-> Projet en **SDK 54** (compatible Expo Go du store). Si tu vois encore
-> « incompatible », mets à jour Expo Go, ou dis-moi la version affichée dans Expo Go → Profile.
+Ce n’est plus le dock custom React Native.
 
-## Prérequis
-
-1. App **Expo Go** à jour (App Store)
-2. Node 20+
-
-## Lancer
+## Lancer (Expo Go, sans App Store)
 
 ```bash
 cd mobile
@@ -18,23 +13,26 @@ npm install
 npx expo start --tunnel
 ```
 
-- Scanne le QR avec l’**appareil photo** iOS ou depuis Expo Go
-- Lien type : `exp://….exp.direct`
-
-## Ce qui est porté
-
-Dock style App Store (5 onglets) aligné sur le look validé PWA :
-
-- pastille plus petite au repos
-- plus grande + transparente au drag
-- mouvement X only + morph léger
-- blur natif (`expo-blur`)
+Ouvre le lien `exp://…` dans **Expo Go**.
 
 ## Structure
 
 ```
-mobile/
-  App.tsx
-  components/LiquidGlassDock.tsx
-  babel.config.js
+app/
+  _layout.tsx   ← NativeTabs (UITabBar)
+  index.tsx     ← Aujourd'hui
+  games.tsx
+  apps.tsx
+  arcade.tsx
+  search.tsx
+components/
+  TabScreen.tsx
+  LiquidGlassDock.tsx   ← ancien dock custom (conservé, non branché)
 ```
+
+## Notes
+
+- Icônes iOS = **SF Symbols** système
+- Blur = matériau système (`blurEffect`)
+- API NativeTabs encore en alpha (SDK 54+)
+- L’ancien dock custom reste dans `components/LiquidGlassDock.tsx` pour comparer
