@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-import { App as F7App } from "framework7-react";
-import { KonstaProvider } from "konsta/react";
+import { App as KonstaApp } from "konsta/react";
 import AppTabbar from "./components/AppTabbar.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
 import ArcadePage from "./pages/ArcadePage.jsx";
@@ -12,14 +11,6 @@ const PAGES = {
   "/arcade/": ArcadePage,
   "/search/": SearchPage,
   "/settings/": SettingsPage,
-};
-
-const f7params = {
-  name: "Liquid Glass",
-  theme: "ios",
-  darkMode: true,
-  // Pas de router F7 pour les tabs — rendu React direct (fiable)
-  routes: [],
 };
 
 function normalizePath(path) {
@@ -44,18 +35,12 @@ export default function App() {
   const ActivePage = PAGES[activePath] || TodayPage;
 
   return (
-    <>
+    <KonstaApp theme="ios" dark safeAreas className="ios-shell">
       <div className="app-wallpaper" aria-hidden />
-      <KonstaProvider theme="ios" dark>
-        <div className="ios-shell k-ios dark">
-          <F7App {...f7params} className="k-ios dark safe-areas">
-            <div className="tab-stage">
-              <ActivePage key={activePath} />
-            </div>
-            <AppTabbar activePath={activePath} onSelect={selectTab} />
-          </F7App>
-        </div>
-      </KonstaProvider>
-    </>
+      <main className="tab-stage">
+        <ActivePage key={activePath} />
+      </main>
+      <AppTabbar activePath={activePath} onSelect={selectTab} />
+    </KonstaApp>
   );
 }

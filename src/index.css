@@ -22,92 +22,133 @@ body {
     "Segoe UI",
     system-ui,
     sans-serif;
-  background: #000;
+  background: #050508;
   color: #fff;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Wallpaper derrière le verre — nécessaire pour lire le Liquid Glass */
+.ios-shell {
+  position: relative;
+  min-height: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
 .app-wallpaper {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55% 45% at 15% 12%, rgba(56, 120, 255, 0.85), transparent 65%),
-    radial-gradient(50% 42% at 88% 18%, rgba(255, 120, 60, 0.7), transparent 62%),
-    radial-gradient(45% 40% at 70% 78%, rgba(52, 211, 153, 0.45), transparent 65%),
-    radial-gradient(40% 35% at 20% 82%, rgba(236, 72, 153, 0.4), transparent 60%),
-    linear-gradient(180deg, #14141f 0%, #050508 100%);
-}
-
-.ios-shell,
-.framework7-root,
-#app,
-.view,
-.views {
-  position: relative;
-  z-index: 1;
-  height: 100%;
-  min-height: 100%;
+    radial-gradient(55% 45% at 15% 12%, rgba(56, 120, 255, 0.9), transparent 65%),
+    radial-gradient(50% 42% at 88% 18%, rgba(255, 120, 60, 0.75), transparent 62%),
+    radial-gradient(45% 40% at 70% 78%, rgba(52, 211, 153, 0.5), transparent 65%),
+    radial-gradient(40% 35% at 20% 82%, rgba(236, 72, 153, 0.45), transparent 60%),
+    linear-gradient(180deg, #161625 0%, #050508 100%);
 }
 
 .tab-stage {
   position: relative;
   z-index: 1;
-  height: 100%;
-  min-height: 100dvh;
+  height: 100dvh;
   overflow: auto;
-  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(6.25rem + env(safe-area-inset-bottom));
 }
 
-/* Konsta Page en mode plein écran scrollable (sans F7 router) */
 .tab-stage .k-page {
   position: relative !important;
+  left: auto !important;
+  top: auto !important;
   height: auto !important;
   min-height: 100%;
   overflow: visible !important;
-}
-
-/* Pages F7 transparentes pour laisser voir le wallpaper */
-.page.page-glass,
-.page.page-glass .page-content,
-.ios .page.page-glass,
-.ios .page.page-glass .page-content,
-.md .page.page-glass,
-.md .page.page-glass .page-content {
   background: transparent !important;
-  background-color: transparent !important;
 }
 
-.page.page-glass .page-content {
-  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+/* ── Dock Liquid Glass custom (bulle 100% sync) ── */
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 0 0.85rem calc(0.85rem + env(safe-area-inset-bottom));
+  pointer-events: none;
 }
 
-.navbar,
-.toolbar,
-.tabbar {
-  --f7-navbar-bg-color: transparent;
-  --f7-toolbar-bg-color: transparent;
-  --f7-bars-bg-color: transparent;
-  --f7-bars-bg-image: none;
-  --f7-bars-border-color: transparent;
-  --f7-navbar-text-color: #fff;
-  --f7-navbar-link-color: #fff;
+.dock-pill {
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(100%, 26rem);
+  height: 4.15rem;
+  padding: 0.3rem;
+  border-radius: 999px !important;
+  overflow: hidden;
 }
 
-/* Icônes tabbar */
-.k-ios .tabbar a i,
-.k-ios .tabbar a svg {
-  display: block;
+.dock-bubble {
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0.3rem;
+  width: calc((100% - 0.6rem) / 4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 16px rgba(0, 0, 0, 0.18);
+  transition: transform 0.28s cubic-bezier(0.22, 1.2, 0.36, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dock-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  margin: 0;
+  padding: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-item.is-active {
+  color: #5ac8ff;
+}
+
+.dock-icon {
+  display: grid;
+  place-items: center;
   width: 1.75rem;
   height: 1.75rem;
-  flex-shrink: 0;
 }
 
-.k-ios .tabbar a {
-  min-width: 0;
+.dock-icon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: block;
+}
+
+.dock-label {
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  max-width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hero-card {
@@ -118,20 +159,20 @@ body {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
-.hero-card h2 {
-  margin: 0 0 0.35rem;
-  font-size: 1.45rem;
-  font-weight: 720;
-  letter-spacing: -0.03em;
-}
-
 .hero-kicker {
   margin: 0 0 0.45rem;
   font-size: 0.72rem;
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.8;
+  opacity: 0.85;
+}
+
+.hero-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+  font-weight: 720;
+  letter-spacing: -0.03em;
 }
 
 .hero-card p {
@@ -161,12 +202,8 @@ body {
   background: linear-gradient(145deg, #94a3b8, #475569 45%, #0f172a);
 }
 
-.section-label {
-  margin: 1.25rem 0 0.55rem;
-  padding: 0 0.25rem;
-  font-size: 0.78rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+@media (prefers-reduced-motion: reduce) {
+  .dock-bubble {
+    transition: none;
+  }
 }

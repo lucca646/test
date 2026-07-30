@@ -1,4 +1,5 @@
-import { Tabbar, TabbarLink, ToolbarPane, Icon } from "konsta/react";
+import { useMemo } from "react";
+import { Icon, Glass } from "konsta/react";
 import {
   Today,
   TodayFill,
@@ -23,38 +24,41 @@ function isActive(activePath, tabPath) {
 }
 
 export default function AppTabbar({ activePath, onSelect }) {
-  const activeIndex = Math.max(
-    0,
-    TABS.findIndex((tab) => isActive(activePath, tab.path)),
-  );
+  const activeIndex = useMemo(() => {
+    const idx = TABS.findIndex((tab) => isActive(activePath, tab.path));
+    return idx < 0 ? 0 : idx;
+  }, [activePath]);
 
   return (
-    <Tabbar labels icons className="left-0 bottom-0 fixed z-50">
-      {/* key force le recalcul de la bulle highlight Konsta */}
-      <ToolbarPane key={`pane-${activeIndex}`}>
-        {TABS.map((tab) => {
-          const active = isActive(activePath, tab.path);
+    <nav className="dock" aria-label="Navigation">
+      <Glass className="dock-pill">
+        <span
+          className="dock-bubble"
+          style={{ transform: `translateX(${activeIndex * 100}%)` }}
+          aria-hidden
+        />
+        {TABS.map((tab, index) => {
+          const active = index === activeIndex;
           const Glyph = active ? tab.iconActive : tab.icon;
           return (
-            <TabbarLink
+            <button
               key={tab.path}
-              active={active}
-              label={tab.label}
-              icon={
+              type="button"
+              className={`dock-item${active ? " is-active" : ""}`}
+              aria-current={active ? "page" : undefined}
+              onClick={() => onSelect?.(tab.path)}
+            >
+              <span className="dock-icon">
                 <Icon
                   ios={<Glyph className="w-7 h-7" />}
                   material={<Glyph className="w-6 h-6" />}
                 />
-              }
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onSelect?.(tab.path);
-              }}
-            />
+              </span>
+              <span className="dock-label">{tab.label}</span>
+            </button>
           );
         })}
-      </ToolbarPane>
-    </Tabbar>
+      </Glass>
+    </nav>
   );
 }
