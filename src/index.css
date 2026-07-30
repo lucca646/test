@@ -203,6 +203,8 @@ body {
   width: 1.75rem;
   height: 1.75rem;
   display: block;
+  color: inherit;
+  fill: currentColor;
 }
 
 .dock-label {
