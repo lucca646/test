@@ -7,12 +7,13 @@ alwaysApply: true
 
 ## Look validé
 
-- Pastille : rim Konsta `--shadow-ios-dark-glass-thumb` + fond `rgba(255,255,255,0.08)`
-- Pilule : forme **fixe** (pas de morph / scale). Frost `blur(24px)` OK sur la barre seule.
-- **Loupe** = `backdrop-filter: url(#liquid-lens-blob)` **sans** `blur()` — déforme l’intérieur, reste net/transparent
-- Icône + label sélectionnés : bleu iOS `#0a84ff`
+- Pastille : rim Konsta `--shadow-ios-dark-glass-thumb`
+- **Bleu `#0a84ff`** = onglet **sous la lentille** (`highlightIndex`), pas seulement la route
+- Lentille **plus petite** que la barre au repos (`scale ~0.78`), **plus grande** au drag / changement (`~1.15`)
+- Déformation : clone icône dans la lentille + `filter: url(#liquid-lens-blob)` (Safari) ; `backdrop-filter: url()` en plus sur Chromium — **sans** `blur()` sur la pastille
+- Pilule : forme fixe
 
 ## Interdits
 
-- Ne pas combiner `blur()` + `url(#lens)` sur la pastille (effet laiteux)
-- Ne pas morpher la forme de `.dock-pill`
+- Ne pas colorer seulement via `activePath` (désync lentille / bleu)
+- Ne pas utiliser `blur()` + loupe sur la pastille
