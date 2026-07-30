@@ -1,13 +1,6 @@
 # test — Liquid Glass playground
 
-Repo de test isolé pour expérimenter l’effet **Liquid Glass** (iOS 26) hors de COR·ALT.
-
-## Stack
-
-- Vite + React
-- Maps SDF (`public/liquid-lens-*.png`)
-- Filtres SVG `feDisplacementMap` + aberration chromatique
-- Dock flottant + lentille animée
+Playground UI complet pour tester l’effet **Liquid Glass** avec plusieurs libs Git/npm.
 
 ## Lancer
 
@@ -16,10 +9,30 @@ npm install
 npm run dev
 ```
 
-Ouvre dans **Chrome / Edge** pour la réfraction live (`backdrop-filter: url(#…)`).  
-Safari / Firefox : frost + specular + franges CSS (fallback).
+Ouvre dans **Chrome / Edge** pour la réfraction live.
 
-## Régénérer les maps
+## Libs branchées
+
+| Package | Repo | Rôle dans le playground |
+|---------|------|-------------------------|
+| [`liquid-glass-react`](https://github.com/rdev/liquid-glass-react) | rdev | Boutons, segmented, liste, chips, cards (élasticité) |
+| [`@samasante/liquid-glass`](https://github.com/samasante/liquid-glass) | samasante | Bouton, toggle, slider lentille (headless / optics) |
+| [`@dpawlikowski/liquid-glass`](https://github.com/dpawlikowski/liquid-glass) | dpawlikowski | Bouton CSS, cards, log (presets subtle/vivid/vision) |
+| SDF maison | local | Dock flottant + goutte (`public/liquid-lens-*.png`) |
+
+## Sections UI
+
+- Boutons (primary / polar / prominent / icon)
+- Segmented control + toggle
+- Liste / menu
+- Chips / filtres
+- Inputs / search
+- Cards (3 libs)
+- Slider lentille
+- Dock mobile Liquid Glass
+- Event log + liens repos
+
+## Régénérer les maps SDF
 
 ```bash
 python3 -m venv .venv

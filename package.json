@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dpawlikowski/liquid-glass": "^0.3.0",
+    "@samasante/liquid-glass": "^0.1.1",
+    "liquid-glass-react": "^1.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

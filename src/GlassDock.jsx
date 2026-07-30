@@ -48,10 +48,10 @@ export default function GlassDock({ activeId, onChange }) {
       style={{ "--lg-lens-x": `${lensX}px` }}
     >
       <div
-        className={`glass-lens liquid-glass liquid-glass--blob${visible ? " is-visible" : ""}`}
+        className={`glass-lens sdf-glass sdf-glass--blob${visible ? " is-visible" : ""}`}
         aria-hidden="true"
       />
-      <div ref={pillRef} className="glass-pill liquid-glass">
+      <div ref={pillRef} className="glass-pill sdf-glass">
         {TABS.map((tab) => (
           <button
             key={tab.id}
