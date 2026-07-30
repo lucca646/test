@@ -343,16 +343,15 @@ export default function DeviceLab() {
               : "Notification locale immédiate — zone de test Apps.",
             sound: true,
             data: { source: "device-lab" },
-            ...(Platform.OS === "android" ? { channelId: "lab" } : {}),
+            ...(Platform.OS === "android" ? { channelId: "lab" } : null),
           },
-          trigger: delaySec
-            ? {
-                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: delaySec,
-                // @ts-expect-error channelId android
-                channelId: Platform.OS === "android" ? "lab" : undefined,
-              }
-            : null,
+          trigger:
+            delaySec > 0
+              ? {
+                  type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                  seconds: delaySec,
+                }
+              : null,
         });
         setNotifMsg(
           delaySec
