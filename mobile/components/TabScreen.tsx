@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -7,6 +8,7 @@ type Props = {
   title: string;
   body: string;
   tint: [string, string];
+  children?: ReactNode;
 };
 
 /** Contenu d’onglet — la nav est la UITabBar native (layout parent). */
@@ -15,6 +17,7 @@ export default function TabScreen({
   title,
   body,
   tint,
+  children,
 }: Props) {
   return (
     <View style={styles.root}>
@@ -32,6 +35,8 @@ export default function TabScreen({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.body}>{body}</Text>
         </LinearGradient>
+
+        {children}
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Barre officielle Apple</Text>

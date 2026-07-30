@@ -30,9 +30,9 @@ components/
   LiquidGlassDock.tsx   ← ancien dock custom (conservé, non branché)
 ```
 
-## Notes
+## Dynamic Island
 
-- Icônes iOS = **SF Symbols** système
-- Blur = matériau système (`blurEffect`)
-- API NativeTabs encore en alpha (SDK 54+)
-- L’ancien dock custom reste dans `components/LiquidGlassDock.tsx` pour comparer
+Sur **Aujourd’hui** : switch Compact / Minimal / Expanded / Timer / Now Playing / Progress.
+
+> Aperçu UI en Expo Go. Une **vraie** Dynamic Island (Live Activity / ActivityKit)
+> nécessite un development build (`eas build` / `npx expo prebuild`), pas Expo Go.

@@ -1,9 +1,5 @@
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
-import type { SFSymbol } from "sf-symbols-typescript";
-
-/** SF Symbols récents pas encore dans les types TS */
-const sf = (name: string) => name as SFSymbol;
 
 /**
  * Vraie barre d’onglets Apple : UITabBar / UITabBarController
@@ -29,7 +25,8 @@ export default function RootLayout() {
 
       <NativeTabs.Trigger name="games">
         <Label>Jeux</Label>
-        <Icon sf={{ default: sf("rocket"), selected: sf("rocket.fill") }} />
+        {/* rocket absent sur beaucoup d’iOS → flame */}
+        <Icon sf={{ default: "flame", selected: "flame.fill" }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="apps">
