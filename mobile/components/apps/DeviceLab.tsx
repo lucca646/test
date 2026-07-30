@@ -148,28 +148,16 @@ export default function DeviceLab() {
       const types = has
         ? await LocalAuthentication.supportedAuthenticationTypesAsync()
         : [];
-      const level = await LocalAuthentication.getEnrolledLevelAsync();
+      // Valeurs numériques stables (évite AuthenticationType.* manquant selon runtime Expo Go)
       const labels = types.map((t) =>
-        t === FAKESECRET_o1p2q3r4s5t6u7v8w9x0
-          ? "Face ID"
-          : t === LocalAuthentication.AuthenticationType.FINGERPRINT
-            ? "Touch ID"
-            : "Iris",
+        t === 2 ? "Face ID" : t === 1 ? "Touch ID" : "Iris",
       );
-      const levelLabel =
-        level === LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG
-          ? "fort"
-          : level === LocalAuthentication.SecurityLevel.BIOMETRIC_WEAK
-            ? "faible"
-            : level === LocalAuthentication.SecurityLevel.SECRET
-              ? "code appareil"
-              : "aucun";
       setBioMsg(
         !has
-          ? "Pas de capteur biométrique (simulateur ?)"
+          ? "Pas de biométrie sur cet appareil"
           : !enrolled
-            ? `Capteur OK (${labels.join(", ") || "bio"}) mais rien d’enregistré dans Réglages → Face ID.`
-            : `Prêt : ${labels.join(", ") || "biométrie"} · niveau ${levelLabel}`,
+            ? "Matériel OK, aucune empreinte / Face ID enregistré"
+            : `Dispo : ${labels.join(", ") || "biométrie"}`,
       );
     } catch (e) {
       setBioMsg(e instanceof Error ? e.message : "Erreur diagnostic biométrie");
@@ -194,7 +182,7 @@ export default function DeviceLab() {
     ensureAndroidChannel().catch(() => undefined);
   }, [refreshBio, refreshNotif]);
 
-  const runBio = useCallback(async (biometricsOnly: boolean) => {
+  const runBio = useCallback(async () => {
     setBioBusy(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -202,83 +190,43 @@ export default function DeviceLab() {
       const enrolled = has
         ? await LocalAuthentication.isEnrolledAsync()
         : false;
-      const types = has
-        ? await LocalAuthentication.supportedAuthenticationTypesAsync()
-        : [];
-      const hasFace = types.includes(
-        FAKESECRET_o1p2q3r4s5t6u7v8w9x0,
-      );
-      const hasTouch = types.includes(
-        LocalAuthentication.AuthenticationType.FINGERPRINT,
-      );
-
       if (!has) {
         Alert.alert(
           "Face ID",
-          "Aucun capteur biométrique. Sur simulateur : Features → Face ID → Enrolled.",
+          "Aucun capteur biométrique. Sur simulateur, active Features → Face ID.",
         );
         return;
       }
       if (!enrolled) {
         Alert.alert(
           "Face ID non configuré",
-          "Réglages iPhone → Face ID et code, puis réessaie.",
+          "Va dans Réglages iPhone → Face ID et code, puis réessaie.",
           [
             { text: "OK", style: "cancel" },
-            { text: "Ouvrir Réglages", onPress: () => Linking.openSettings() },
+            {
+              text: "Ouvrir Réglages",
+              onPress: () => Linking.openSettings(),
+            },
           ],
         );
         return;
       }
-
-      // biometricsOnly=true → LAPolicyDeviceOwnerAuthenticationWithBiometrics
-      // (Face ID réel, pas le code). Sinon iOS propose souvent le code directement.
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: hasFace
-          ? "Scan Face ID — Liquid Glass"
-          : hasTouch
-            ? "Touch ID — Liquid Glass"
-            : "Biométrie — Liquid Glass",
+        promptMessage: "Test Face ID / Touch ID — Liquid Glass",
         cancelLabel: "Annuler",
-        disableDeviceFallback: biometricsOnly,
-        // Masque le bouton « Saisir le code » sur iOS
-        fallbackLabel: biometricsOnly ? "" : "Utiliser le code",
+        fallbackLabel: "Code appareil",
+        disableDeviceFallback: false,
       });
-
       if (result.success) {
-        const mode = biometricsOnly ? "Face ID / Touch ID" : "bio ou code";
-        setBioMsg(`Authentifié ✓ (${mode})`);
-        Alert.alert("Succès", `Authentification OK (${mode}).`);
+        setBioMsg("Authentifié ✓");
+        Alert.alert("Face ID", "Succès — biométrie OK.");
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
       } else {
         const why = result.error || "annulé";
         setBioMsg(`Échec : ${why}`);
-        if (why === "user_fallback") {
-          Alert.alert(
-            "Code demandé",
-            "Tu as choisi le fallback code. Utilise « Face ID seul » pour forcer la biométrie.",
-          );
-        } else if (why === "not_available" || why === "passcode_not_set") {
-          Alert.alert(
-            "Face ID indisponible",
-            "Vérifie Réglages → Face ID et code → Autoriser pour Expo Go.",
-            [
-              { text: "OK", style: "cancel" },
-              { text: "Réglages", onPress: () => Linking.openSettings() },
-            ],
-          );
-        } else {
-          Alert.alert(
-            "Face ID",
-            `Échec / annulé : ${why}\n\nAstuce : Réglages → Face ID et code → coche Expo Go.`,
-            [
-              { text: "OK", style: "cancel" },
-              { text: "Réglages", onPress: () => Linking.openSettings() },
-            ],
-          );
-        }
+        Alert.alert("Face ID", `Échec / annulé\n${why}`);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur biométrie";
@@ -427,20 +375,10 @@ export default function DeviceLab() {
       {/* Device features d’abord — plus visibles */}
       <Section title="Face ID / Touch ID">
         <Text style={styles.meta}>{bioMsg}</Text>
-        <Text style={styles.hint}>
-          Si iOS demande le code : Réglages → Face ID et code → autorise Expo Go.
-          « Face ID seul » force la biométrie (pas de fallback code).
-        </Text>
         <View style={styles.rowWrap}>
           <Btn
-            label={bioBusy ? "…" : "Face ID seul"}
-            onPress={() => runBio(true)}
-            disabled={bioBusy}
-          />
-          <Btn
-            label="Bio ou code"
-            tone="soft"
-            onPress={() => runBio(false)}
+            label={bioBusy ? "…" : "Tester Face ID"}
+            onPress={runBio}
             disabled={bioBusy}
           />
           <Btn label="Rescan" tone="soft" onPress={refreshBio} />
