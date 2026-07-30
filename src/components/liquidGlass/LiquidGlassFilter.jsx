@@ -109,13 +109,13 @@ export function LiquidGlassFilters() {
       <LiquidGlassFilter
         id="liquid-lens-blob"
         mapSrc="/liquid-lens-blob.png"
-        scale={-58}
+        scale={-52}
         chromaticAberration
       />
       <LiquidGlassFilter
         id="liquid-lens-blob-strong"
         mapSrc="/liquid-lens-blob.png"
-        scale={-78}
+        scale={-68}
         chromaticAberration
       />
     </>

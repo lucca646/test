@@ -5,21 +5,14 @@ alwaysApply: true
 
 # Dock Liquid Glass — référence visuelle
 
-## Look validé (ne pas régresser)
+## Look validé
 
-La pastille active = **thumb Toggle/Range Konsta iOS 26** :
+- Pastille : rim Konsta `--shadow-ios-dark-glass-thumb` + fond `rgba(255,255,255,0.08)`
+- Pilule : forme **fixe** (pas de morph / scale). Frost `blur(24px)` OK sur la barre seule.
+- **Loupe** = `backdrop-filter: url(#liquid-lens-blob)` **sans** `blur()` — déforme l’intérieur, reste net/transparent
+- Icône + label sélectionnés : bleu iOS `#0a84ff`
 
-- Fond : `rgba(255, 255, 255, 0.1)`
-- Ombre : `--shadow-ios-dark-glass-thumb`
-- Barre (pilule) : `bg-ios-dark-glass` + `shadow-ios-dark-glass` + blur classique
-- **Jamais** de `backdrop-filter: url(#…)` SDF sur la pilule ni sur la pastille (effet laiteux / flou)
-- **Ne pas déformer la pilule** (pas de scale / skew sur `.dock-pill`)
+## Interdits
 
-## Morph au doigt (pastille seule)
-
-Squash / stretch / skew **léger** via `transform` CSS uniquement — reste transparent, pas de flou.
-
-## Fichiers
-
-- `src/components/AppTabbar.jsx`
-- `src/index.css` (`.dock-pill` / `.dock-bubble`)
+- Ne pas combiner `blur()` + `url(#lens)` sur la pastille (effet laiteux)
+- Ne pas morpher la forme de `.dock-pill`
