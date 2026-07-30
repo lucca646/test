@@ -108,6 +108,10 @@ export default function AppTabbar({ activePath, onSelect }) {
       <Glass
         className={`dock-pill${pressed ? " is-pressed" : ""}`}
         highlight={false}
+        colors={{
+          bgIos: "bg-white/18 dark:bg-white/[0.12]",
+          shadowIos: "shadow-ios-dark-glass",
+        }}
         ref={pillRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
