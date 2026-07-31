@@ -39,7 +39,7 @@ function statusLabel(s?: string) {
 }
 
 export default function EntreprisesScreen() {
-  const { user, activated, logout } = useAuth();
+  const { user, activated } = useAuth();
   const router = useRouter();
   const [rows, setRows] = useState<Prospect[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,15 +61,14 @@ export default function EntreprisesScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setError("Session expirée. Reconnectez-vous.");
-        await logout();
-        router.replace("/(auth)/login");
+        // Ne pas logout auto — laisse réessayer / se reconnecter manuellement
         return;
       }
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [user?.email, logout, router]);
+  }, [user?.email]);
 
   useFocusEffect(
     useCallback(() => {

@@ -55,7 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await apiRefreshUser();
       const next = normalizeUser((data?.user as CoraltUser) || null);
-      setUser(next);
+      // Ne wipe la session UI que si /me confirme clairement un user null
+      // (pas sur erreur réseau / bridge down)
+      if (next) setUser(next);
+      else if (data && data.user == null) setUser(null);
       return next;
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setUser(null);
@@ -83,14 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await apiLogin(email, password);
-    // Resync via /me pour valider le cookie jar natif
+    await apiLogin(email, password);
+    // Exige /me OK — sinon on « connecte » sans cookie et ça déconnecte ensuite
     const me = await apiRefreshUser();
-    setUser(
-      normalizeUser(
-        (me?.user as CoraltUser) || (data.user as CoraltUser) || null,
-      ),
-    );
+    const next = normalizeUser((me?.user as CoraltUser) || null);
+    if (!next) {
+      throw new Error(
+        "Session non établie après login. Vérifie le bridge (EXPO_PUBLIC_BRIDGE_URL).",
+      );
+    }
+    setUser(next);
   }, []);
 
   const register = useCallback(
@@ -101,13 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone?: string;
       invite_code?: string;
     }) => {
-      const data = await apiRegister(payload);
+      await apiRegister(payload);
       const me = await apiRefreshUser();
-      setUser(
-        normalizeUser(
-          (me?.user as CoraltUser) || (data.user as CoraltUser) || null,
-        ),
-      );
+      const next = normalizeUser((me?.user as CoraltUser) || null);
+      if (!next) {
+        throw new Error(
+          "Compte créé mais session absente. Vérifie le bridge.",
+        );
+      }
+      setUser(next);
     },
     [],
   );

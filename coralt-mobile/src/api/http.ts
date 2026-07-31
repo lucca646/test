@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL, BRIDGE_URL } from "../config";
 import {
   extractCoraltSessionCookie,
   getAccessToken,
@@ -21,12 +21,10 @@ export class ApiError extends Error {
 type ApiFetchOptions = RequestInit & { timeoutMs?: number };
 
 /**
- * Client HTTP mobile COR·ALT.
+ * Appels API COR·ALT.
  *
- * Auth :
- * 1. `credentials: "include"` → cookie jar natif iOS/Android (HttpOnly OK)
- * 2. Backup SecureStore si Set-Cookie est lisible
- * 3. Bearer si `access_token` un jour renvoyé par l’API
+ * Sur Expo Go, le header Cookie est souvent strippé par RN.
+ * → on passe par le bridge avec X-Coralt-Session (SecureStore).
  */
 export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   const { timeoutMs, headers: optHeaders, ...fetchOptions } = options;
@@ -51,17 +49,36 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
     ...(optHeaders as Record<string, string>),
   };
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
-  // Backup uniquement — le jar natif gère HttpOnly via credentials
-  if (!bearer && cookie) headers.Cookie = cookie;
 
-  const url = path.startsWith("http") ? path : `${API_URL}${path}`;
+  // Session via header custom (RN ne strippe pas X-*)
+  if (cookie) {
+    headers["X-Coralt-Session"] = cookie.startsWith("coralt_session=")
+      ? cookie
+      : `coralt_session=${cookie}`;
+  }
+
+  const relative = path.startsWith("http")
+    ? path
+    : path.startsWith("/")
+      ? path
+      : `/${path}`;
+
+  let url: string;
+  if (path.startsWith("http")) {
+    url = path;
+  } else if (BRIDGE_URL) {
+    // /api/foo → bridge /bridge/proxy/api/foo
+    url = `${BRIDGE_URL}/bridge/proxy${relative}`;
+  } else {
+    url = `${API_URL}${relative}`;
+  }
 
   let res: Response;
   try {
     res = await fetch(url, {
       ...fetchOptions,
       headers,
-      credentials: "include",
+      credentials: "omit",
       signal: controller?.signal,
     });
   } catch (err) {
@@ -78,13 +95,8 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   const setCookie =
     res.headers.get("set-cookie") ||
     res.headers.get("Set-Cookie") ||
-    // certaines builds RN exposent via getSetCookie()
-    (typeof (res.headers as Headers & { getSetCookie?: () => string[] })
-      .getSetCookie === "function"
-      ? (res.headers as Headers & { getSetCookie: () => string[] })
-          .getSetCookie()
-          .join(",")
-      : null);
+    res.headers.get("x-coralt-session") ||
+    res.headers.get("X-Coralt-Session");
   const session = extractCoraltSessionCookie(setCookie);
   if (session) await setSessionCookie(session);
 
@@ -100,6 +112,9 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
 
   if (typeof data.access_token === "string" && data.access_token) {
     await setAccessToken(data.access_token);
+  }
+  if (typeof data.session_cookie === "string" && data.session_cookie) {
+    await setSessionCookie(data.session_cookie);
   }
 
   if (!res.ok) {

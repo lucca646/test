@@ -22,7 +22,7 @@ import { hasEnvoisAccess } from "../../src/utils/planAccess";
 import { colors } from "../../src/theme";
 
 export default function EnvoisScreen() {
-  const { user, activated, logout } = useAuth();
+  const { user, activated } = useAuth();
   const router = useRouter();
   const [deck, setDeck] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,15 +43,14 @@ export default function EnvoisScreen() {
       setDeck(data.prospects);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
-        await logout();
-        router.replace("/(auth)/login");
+        setError("Session expirée. Reconnectez-vous.");
         return;
       }
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [user?.email, logout, router]);
+  }, [user?.email]);
 
   useFocusEffect(
     useCallback(() => {

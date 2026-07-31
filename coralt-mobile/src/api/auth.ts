@@ -1,17 +1,46 @@
+import { API_URL, BRIDGE_URL } from "../config";
+import { clearAuthStorage, setSessionCookie } from "./session";
 import { apiFetch } from "./http";
-import { clearAuthStorage } from "./session";
 
-export async function apiLogin(email: string, password: string) {
-  const data = await apiFetch("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ login: email, password }),
-  });
-  if (data.status !== "success") {
+async function bridgePost(path: string, body: Record<string, unknown>) {
+  if (!BRIDGE_URL) {
     throw new Error(
-      (data.message as string) || "Connexion impossible.",
+      "Bridge session absent (EXPO_PUBLIC_BRIDGE_URL). Relance Metro avec le bridge.",
+    );
+  }
+  const res = await fetch(`${BRIDGE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  let data: Record<string, unknown> = {};
+  try {
+    data = (await res.json()) as Record<string, unknown>;
+  } catch {
+    throw new Error(`Bridge: réponse invalide (${res.status})`);
+  }
+  if (!res.ok || data.status === "error") {
+    throw new Error(
+      (typeof data.message === "string" && data.message) ||
+        `Erreur ${res.status}`,
+    );
+  }
+  if (typeof data.session_cookie === "string" && data.session_cookie) {
+    await setSessionCookie(data.session_cookie);
+  } else {
+    throw new Error(
+      "Connexion OK mais session_cookie manquant (bridge / Set-Cookie).",
     );
   }
   return data;
+}
+
+export async function apiLogin(email: string, password: string) {
+  // Toujours via bridge sur mobile — cookie HttpOnly illisible en RN
+  return bridgePost("/bridge/login", { login: email, password });
 }
 
 export async function apiRegister(payload: {
@@ -21,22 +50,13 @@ export async function apiRegister(payload: {
   phone?: string;
   invite_code?: string;
 }) {
-  const data = await apiFetch("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify({
-      name: payload.name,
-      email: payload.email,
-      password: payload.password,
-      phone: payload.phone || "",
-      ...(payload.invite_code ? { invite_code: payload.invite_code } : {}),
-    }),
+  return bridgePost("/bridge/register", {
+    name: payload.name,
+    email: payload.email,
+    password: payload.password,
+    phone: payload.phone || "",
+    ...(payload.invite_code ? { invite_code: payload.invite_code } : {}),
   });
-  if (data.status !== "success") {
-    throw new Error(
-      (data.message as string) || "Inscription impossible.",
-    );
-  }
-  return data;
 }
 
 export async function apiLogout() {
@@ -52,16 +72,12 @@ export async function apiLogout() {
 }
 
 export async function apiRefreshUser() {
-  try {
-    const data = await apiFetch("/api/auth/me", {
-      method: "POST",
-      body: JSON.stringify({}),
-    });
-    if (data.status !== "success" || !data.user) return null;
-    return data;
-  } catch {
-    return null;
-  }
+  const data = await apiFetch("/api/auth/me", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  if (data.status !== "success") return null;
+  return data;
 }
 
 export async function apiUpdateProfile(body: Record<string, unknown>) {
@@ -73,4 +89,8 @@ export async function apiUpdateProfile(body: Record<string, unknown>) {
     throw new Error((data.message as string) || "Mise à jour impossible.");
   }
   return data.user;
+}
+
+export function getApiBaseLabel() {
+  return `${API_URL.replace("https://", "")}${BRIDGE_URL ? " · bridge" : ""}`;
 }

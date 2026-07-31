@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Link, Redirect } from "expo-router";
 import { useAuth } from "../../src/auth/AuthContext";
-import { API_URL } from "../../src/config";
+import { getApiBaseLabel } from "../../src/api/auth";
 import { Button } from "../../src/ui/Apple";
 import { colors } from "../../src/theme";
 
@@ -44,9 +44,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Text style={styles.brand}>COR·ALT</Text>
-      <Text style={styles.sub}>
-        Connexion native · {API_URL.replace("https://", "")}
-      </Text>
+      <Text style={styles.sub}>Connexion native · {getApiBaseLabel()}</Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Email ou identifiant</Text>
