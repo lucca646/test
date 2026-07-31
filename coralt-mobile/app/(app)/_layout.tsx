@@ -1,9 +1,10 @@
 import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/auth/AuthContext";
 import { hasEnvoisAccess } from "../../src/utils/planAccess";
 import { colors } from "../../src/theme";
+import CoraltGlassTabBar from "../../src/ui/CoraltGlassTabBar";
+import { GLASS_DOCK_CONTENT_INSET } from "../../src/ui/LiquidGlassDock";
 
 export default function AppTabsLayout() {
   const { user, authReady, activated } = useAuth();
@@ -28,16 +29,16 @@ export default function AppTabsLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <CoraltGlassTabBar {...props} />}
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
         headerShadowVisible: false,
         headerTintColor: colors.text,
-        tabBarStyle: {
-          backgroundColor: "rgba(22,22,24,0.94)",
-          borderTopColor: "rgba(84,84,88,0.45)",
+        headerTitleStyle: { fontWeight: "700" },
+        sceneStyle: {
+          backgroundColor: colors.bg,
+          paddingBottom: GLASS_DOCK_CONTENT_INSET,
         },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: "rgba(235,235,245,0.45)",
       }}
     >
       <Tabs.Screen
@@ -45,18 +46,12 @@ export default function AppTabsLayout() {
         options={{
           title: "Entreprises",
           href: activated ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business" size={size} color={color} />
-          ),
         }}
       />
       <Tabs.Screen
         name="recherche"
         options={{
           title: "Recherche",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
-          ),
         }}
       />
       <Tabs.Screen
@@ -64,9 +59,6 @@ export default function AppTabsLayout() {
         options={{
           title: "Envois",
           href: activated && envois ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="albums" size={size} color={color} />
-          ),
         }}
       />
       <Tabs.Screen
@@ -74,9 +66,6 @@ export default function AppTabsLayout() {
         options={{
           title: "Profil",
           href: activated ? undefined : null,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
-          ),
         }}
       />
     </Tabs>
