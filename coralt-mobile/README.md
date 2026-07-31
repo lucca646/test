@@ -1,48 +1,35 @@
-# COR·ALT mobile (Expo Go)
+# COR·ALT mobile (Expo)
 
 App native MVP branchée sur **https://cal.coraia.eu**.
 
-Doc architecture : [`../docs/EXPO_NATIVE_PORT.md`](../docs/EXPO_NATIVE_PORT.md)  
-Étape 2 : [`../docs/EXPO_STEP2.md`](../docs/EXPO_STEP2.md)
+## Tab bar — Liquid Glass Apple
 
-## Session (important)
+Utilise `expo-router/unstable-native-tabs` → **vraie `UITabBar` / `UITabBarController`**, pas un dock custom.
 
-Expo Go ne peut pas gérer le cookie Flask `HttpOnly` (`Set-Cookie` invisible, header `Cookie` souvent strippé).  
-Sans bridge, le login « marche » puis **déconnecte instantanément**.
-
-1. Bridge local :
-   ```bash
-   node bridge/server.mjs
-   ```
-2. Tunnel public HTTPS (depuis le téléphone) :
-   ```bash
-   cloudflared tunnel --url http://127.0.0.1:8791
-   ```
-3. `.env` :
-   ```
-   EXPO_PUBLIC_API_URL=https://cal.coraia.eu
-   EXPO_PUBLIC_BRIDGE_URL=https://xxxx.trycloudflare.com
-   ```
-4. Relancer Metro avec `--clear` pour injecter l’env.
-
-L’écran login doit afficher `cal.coraia.eu · bridge`.
-
-## Démarrage
+| Environnement | Résultat |
+|---|---|
+| **Expo Go** | UITabBar native système (blur). Pas le matériau **Liquid Glass iOS 26** (Expo Go n’est pas compilé avec Xcode 26). |
+| **Dev / preview build** (Xcode 26+) | Liquid Glass Apple réel + `minimizeBehavior` |
 
 ```bash
-cd coralt-mobile
-npm install
-cp .env.example .env   # puis renseigner BRIDGE_URL
+# Voir la vraie barre glass (après login Apple Developer) :
+npx eas-cli build --profile development --platform ios
+```
+
+## Session (Expo Go)
+
+Expo Go ne gère pas le cookie Flask `HttpOnly` → bridge obligatoire :
+
+```bash
+node bridge/server.mjs
+cloudflared tunnel --url http://127.0.0.1:8791
+# EXPO_PUBLIC_BRIDGE_URL=https://….trycloudflare.com
 npx expo start --go --tunnel --clear
 ```
 
-## MVP écrans
+Login doit afficher `cal.coraia.eu · bridge`.
 
-- Auth (login / register)
-- Recherche (compose + launch)
-- Entreprises (liste sheet)
-- Envois (deck plan 3)
-- Paramètres (profil / logout)
+## MVP
 
-Auth v1 : cookie session Flask via bridge → SecureStore → `X-Coralt-Session`.  
-Bearer prêt côté client dès que COR-ALT renverra `access_token`.
+- Auth · Recherche · Entreprises · Envois · Profil
+- Auth v1 : cookie via bridge → SecureStore → `X-Coralt-Session`
