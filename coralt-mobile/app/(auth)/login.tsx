@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +10,7 @@ import {
 import { Link, Redirect } from "expo-router";
 import { useAuth } from "../../src/auth/AuthContext";
 import { API_URL } from "../../src/config";
+import { Button } from "../../src/ui/Apple";
 import { colors } from "../../src/theme";
 
 export default function LoginScreen() {
@@ -45,7 +44,9 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Text style={styles.brand}>COR·ALT</Text>
-      <Text style={styles.sub}>Connexion native · {API_URL.replace("https://", "")}</Text>
+      <Text style={styles.sub}>
+        Connexion native · {API_URL.replace("https://", "")}
+      </Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Email ou identifiant</Text>
@@ -54,34 +55,29 @@ export default function LoginScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
+          textContentType="username"
           value={email}
           onChangeText={setEmail}
           placeholder="vous@email.fr"
-          placeholderTextColor="rgba(255,255,255,0.35)"
+          placeholderTextColor="rgba(235,235,245,0.3)"
         />
         <Text style={styles.label}>Mot de passe</Text>
         <TextInput
           style={styles.input}
           secureTextEntry
+          textContentType="password"
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"
-          placeholderTextColor="rgba(255,255,255,0.35)"
+          placeholderTextColor="rgba(235,235,245,0.3)"
         />
-
         {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Pressable
-          style={[styles.btn, busy && { opacity: 0.6 }]}
+        <Button
+          label="Se connecter"
+          loading={busy}
+          disabled={!email || !password}
           onPress={onSubmit}
-          disabled={busy || !email || !password}
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Se connecter</Text>
-          )}
-        </Pressable>
+        />
       </View>
 
       <Link href="/(auth)/register" style={styles.link}>
@@ -101,42 +97,32 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: colors.text,
-    fontSize: 34,
+    fontSize: 40,
     fontWeight: "800",
-    letterSpacing: -1,
+    letterSpacing: -1.2,
   },
-  sub: { color: colors.muted, fontSize: 13, marginBottom: 8 },
+  sub: { color: colors.muted, fontSize: 14, marginBottom: 8 },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     gap: 10,
   },
-  label: { color: colors.muted, fontSize: 12, fontWeight: "700" },
+  label: { color: colors.muted, fontSize: 13, fontWeight: "600" },
   input: {
     backgroundColor: "rgba(0,0,0,0.35)",
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     color: colors.text,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    fontSize: 17,
   },
-  btn: {
-    marginTop: 8,
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  btnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  error: { color: colors.danger, fontSize: 13 },
+  error: { color: colors.danger, fontSize: 14 },
   link: {
     color: colors.accent,
     textAlign: "center",
     fontWeight: "600",
+    fontSize: 16,
     marginTop: 8,
   },
 });

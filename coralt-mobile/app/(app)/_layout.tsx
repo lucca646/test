@@ -10,7 +10,14 @@ export default function AppTabsLayout() {
 
   if (!authReady) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: colors.bg,
+        }}
+      >
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -23,13 +30,14 @@ export default function AppTabsLayout() {
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
+        headerShadowVisible: false,
         headerTintColor: colors.text,
         tabBarStyle: {
-          backgroundColor: "#121214",
-          borderTopColor: colors.border,
+          backgroundColor: "rgba(22,22,24,0.94)",
+          borderTopColor: "rgba(84,84,88,0.45)",
         },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: "rgba(255,255,255,0.55)",
+        tabBarInactiveTintColor: "rgba(235,235,245,0.45)",
       }}
     >
       <Tabs.Screen
@@ -38,7 +46,7 @@ export default function AppTabsLayout() {
           title: "Entreprises",
           href: activated ? undefined : null,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business-outline" size={size} color={color} />
+            <Ionicons name="business" size={size} color={color} />
           ),
         }}
       />
@@ -47,7 +55,7 @@ export default function AppTabsLayout() {
         options={{
           title: "Recherche",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} />
+            <Ionicons name="search" size={size} color={color} />
           ),
         }}
       />
@@ -57,7 +65,7 @@ export default function AppTabsLayout() {
           title: "Envois",
           href: activated && envois ? undefined : null,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="albums-outline" size={size} color={color} />
+            <Ionicons name="albums" size={size} color={color} />
           ),
         }}
       />
@@ -67,7 +75,7 @@ export default function AppTabsLayout() {
           title: "Profil",
           href: activated ? undefined : null,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Ionicons name="person-circle" size={size} color={color} />
           ),
         }}
       />

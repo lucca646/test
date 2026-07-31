@@ -1,54 +1,83 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "../../src/auth/AuthContext";
 import { API_URL } from "../../src/config";
+import {
+  Button,
+  Group,
+  Row,
+  SectionHeader,
+} from "../../src/ui/Apple";
 import { colors } from "../../src/theme";
+import { userPlan } from "../../src/utils/planAccess";
 
 export default function ParametresScreen() {
   const { user, activated, logout } = useAuth();
   if (!activated) return <Redirect href="/(app)/recherche" />;
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.card}>
-        <Text style={styles.label}>Nom</Text>
-        <Text style={styles.value}>{user?.name || "—"}</Text>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{user?.email || "—"}</Text>
-        <Text style={styles.label}>Plan</Text>
-        <Text style={styles.value}>{Number(user?.plan) || 1}</Text>
-        <Text style={styles.label}>Gmail</Text>
-        <Text style={styles.value}>
-          {user?.gmail_connected ? "Connecté" : "Non connecté"}
-        </Text>
-        <Text style={styles.label}>API</Text>
-        <Text style={styles.value}>{API_URL}</Text>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <View style={styles.hero}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {(user?.name || user?.email || "?").slice(0, 1).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.name}>{user?.name || "Profil"}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
       </View>
 
-      <Pressable style={styles.btn} onPress={() => logout()}>
-        <Text style={styles.btnText}>Se déconnecter</Text>
-      </Pressable>
-    </View>
+      <SectionHeader title="Compte" />
+      <Group>
+        <Row label="Plan" value={`Plan ${userPlan(user)}`} />
+        <Row
+          label="Gmail"
+          value={user?.gmail_connected ? "Connecté" : "Non connecté"}
+        />
+        <Row label="Téléphone" value={String(user?.phone || "—")} last />
+      </Group>
+
+      <SectionHeader title="Application" />
+      <Group>
+        <Row label="API" value={API_URL.replace("https://", "")} last />
+      </Group>
+
+      <View style={styles.pad}>
+        <Button
+          label="Se déconnecter"
+          variant="destructive"
+          onPress={() => {
+            Alert.alert("Déconnexion", "Se déconnecter de COR·ALT ?", [
+              { text: "Annuler", style: "cancel" },
+              {
+                text: "Déconnexion",
+                style: "destructive",
+                onPress: () => logout(),
+              },
+            ]);
+          }}
+        />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.bg, padding: 16, gap: 16 },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    gap: 6,
-  },
-  label: { color: colors.muted, fontSize: 11, fontWeight: "700", marginTop: 8 },
-  value: { color: colors.text, fontSize: 16 },
-  btn: {
-    backgroundColor: "rgba(255,69,58,0.85)",
-    borderRadius: 12,
-    paddingVertical: 14,
+  hero: { alignItems: "center", paddingVertical: 28, gap: 6 },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.accent,
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  btnText: { color: "#fff", fontWeight: "700" },
+  avatarText: { color: "#fff", fontSize: 28, fontWeight: "700" },
+  name: { color: colors.text, fontSize: 22, fontWeight: "700" },
+  email: { color: colors.muted, fontSize: 15 },
+  pad: { paddingHorizontal: 16, marginTop: 28 },
 });

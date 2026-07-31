@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,12 +8,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "../../src/auth/AuthContext";
 import {
   apiNafSuggest,
   apiSearchProfileCompose,
+  apiSearchQueueStatus,
   apiSendSearch,
 } from "../../src/api/console";
+import { Banner, Button, Group, SectionHeader } from "../../src/ui/Apple";
 import { colors } from "../../src/theme";
 
 export default function RechercheScreen() {
@@ -22,8 +25,33 @@ export default function RechercheScreen() {
   const [zone, setZone] = useState("");
   const [profile, setProfile] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [queueLabel, setQueueLabel] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"compose" | "send" | null>(null);
+
+  const refreshQueue = useCallback(async () => {
+    try {
+      const data = await apiSearchQueueStatus(user?.email);
+      const done = Number(data.done ?? data.completed ?? 0);
+      const total = Number(data.total ?? data.pending_total ?? 0);
+      const running = Boolean(data.running ?? data.active);
+      if (total > 0 || running) {
+        setQueueLabel(
+          running
+            ? `File active · ${done}/${total || "?"}`
+            : `Dernière file · ${done}/${total || "?"}`,
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [user?.email]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshQueue();
+    }, [refreshQueue]),
+  );
 
   const onSuggest = async () => {
     if (!secteur.trim()) return;
@@ -32,16 +60,18 @@ export default function RechercheScreen() {
       const items =
         (data.suggestions as string[]) ||
         (data.items as string[]) ||
-        (data.results as { label?: string }[])?.map((x) => x.label || "") ||
+        (data.results as { label?: string; libelle?: string }[])?.map(
+          (x) => x.label || x.libelle || "",
+        ) ||
         [];
-      setSuggestions(items.filter(Boolean).slice(0, 8));
+      setSuggestions(items.filter(Boolean).slice(0, 10));
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     }
   };
 
   const onCompose = async () => {
-    setBusy(true);
+    setBusy("compose");
     setStatus(null);
     try {
       const data = await apiSearchProfileCompose({
@@ -54,18 +84,18 @@ export default function RechercheScreen() {
         (data.profile_text as string) ||
         (data.text as string) ||
         (data.composed as string) ||
-        JSON.stringify(data).slice(0, 400);
-      setProfile(text);
+        "";
+      setProfile(text || JSON.stringify(data).slice(0, 500));
       setStatus("Profil composé.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
   const onSend = async () => {
-    setBusy(true);
+    setBusy("send");
     setStatus(null);
     try {
       await apiSendSearch({
@@ -75,42 +105,68 @@ export default function RechercheScreen() {
         profile_text: profile,
       });
       await refreshUser();
-      setStatus("Recherche lancée (file APE).");
+      await refreshQueue();
+      setStatus("Recherche lancée.");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={styles.wrap}
+      keyboardShouldPersistTaps="handled"
+    >
       {!activated ? (
-        <View style={styles.banner}>
-          <Text style={styles.bannerTitle}>Compte non activé</Text>
-          <Text style={styles.bannerText}>
-            Complète le ciblage ici. Le paiement d’activation (Checkout) sera
-            branché au lot E.
-          </Text>
-        </View>
+        <Banner
+          tone="info"
+          title="Compte non activé"
+          subtitle="Configure ton ciblage ici. Le paiement d’activation arrive au lot suivant."
+        />
       ) : null}
 
-      <Text style={styles.label}>Secteur</Text>
-      <TextInput
-        style={styles.input}
-        value={secteur}
-        onChangeText={setSecteur}
-        onEndEditing={onSuggest}
-        placeholder="ex. développement web"
-        placeholderTextColor="rgba(255,255,255,0.35)"
-      />
+      {queueLabel ? (
+        <Banner tone="success" title="Recherche" subtitle={queueLabel} />
+      ) : null}
+
+      <SectionHeader title="Ciblage" />
+      <Group>
+        <View style={styles.field}>
+          <Text style={styles.label}>Secteur</Text>
+          <TextInput
+            style={styles.input}
+            value={secteur}
+            onChangeText={setSecteur}
+            onEndEditing={onSuggest}
+            placeholder="ex. développement web"
+            placeholderTextColor="rgba(235,235,245,0.3)"
+          />
+        </View>
+        <View style={[styles.field, styles.fieldBorder]}>
+          <Text style={styles.label}>Zone</Text>
+          <TextInput
+            style={styles.input}
+            value={zone}
+            onChangeText={setZone}
+            placeholder="ex. Lyon, Rhône"
+            placeholderTextColor="rgba(235,235,245,0.3)"
+          />
+        </View>
+      </Group>
+
       {suggestions.length ? (
         <View style={styles.chips}>
           {suggestions.map((s) => (
             <Pressable
               key={s}
               style={styles.chip}
-              onPress={() => setSecteur(s)}
+              onPress={() => {
+                setSecteur(s);
+                setSuggestions([]);
+              }}
             >
               <Text style={styles.chipText}>{s}</Text>
             </Pressable>
@@ -118,85 +174,72 @@ export default function RechercheScreen() {
         </View>
       ) : null}
 
-      <Text style={styles.label}>Zone</Text>
-      <TextInput
-        style={styles.input}
-        value={zone}
-        onChangeText={setZone}
-        placeholder="ex. Paris, Île-de-France"
-        placeholderTextColor="rgba(255,255,255,0.35)"
-      />
+      <View style={styles.pad}>
+        <Button
+          label="Composer le profil"
+          variant="tinted"
+          loading={busy === "compose"}
+          onPress={onCompose}
+        />
+      </View>
 
-      <Pressable style={styles.btnSecondary} onPress={onCompose} disabled={busy}>
-        <Text style={styles.btnText}>Composer le profil</Text>
-      </Pressable>
+      <SectionHeader title="Profil généré" />
+      <Group>
+        <TextInput
+          style={styles.area}
+          multiline
+          value={profile}
+          onChangeText={setProfile}
+          placeholder="Le texte de recherche apparaîtra ici"
+          placeholderTextColor="rgba(235,235,245,0.3)"
+        />
+      </Group>
 
-      <Text style={styles.label}>Profil généré</Text>
-      <TextInput
-        style={[styles.input, styles.area]}
-        multiline
-        value={profile}
-        onChangeText={setProfile}
-        placeholderTextColor="rgba(255,255,255,0.35)"
-      />
-
-      <Pressable style={styles.btn} onPress={onSend} disabled={busy}>
+      <View style={styles.pad}>
+        <Button
+          label="Lancer la recherche"
+          loading={busy === "send"}
+          disabled={!secteur.trim() && !profile.trim()}
+          onPress={onSend}
+        />
+        {status ? <Text style={styles.status}>{status}</Text> : null}
         {busy ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.btnText}>Lancer la recherche</Text>
-        )}
-      </Pressable>
-
-      {status ? <Text style={styles.status}>{status}</Text> : null}
+          <ActivityIndicator color={colors.accent} style={{ marginTop: 8 }} />
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 10, backgroundColor: colors.bg },
-  banner: {
-    backgroundColor: "rgba(10,132,255,0.15)",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(10,132,255,0.4)",
-    marginBottom: 6,
+  wrap: { paddingBottom: 40, gap: 10 },
+  field: { paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
+  fieldBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(84,84,88,0.65)",
   },
-  bannerTitle: { color: colors.text, fontWeight: "800", marginBottom: 4 },
-  bannerText: { color: colors.muted, fontSize: 13, lineHeight: 18 },
-  label: { color: colors.muted, fontSize: 12, fontWeight: "700" },
-  input: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  label: { color: colors.muted, fontSize: 13, fontWeight: "600" },
+  input: { color: colors.text, fontSize: 17, paddingVertical: 4 },
+  area: {
     color: colors.text,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    fontSize: 16,
+    minHeight: 140,
+    padding: 16,
+    textAlignVertical: "top",
   },
-  area: { minHeight: 120, textAlignVertical: "top" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
   chip: {
-    backgroundColor: "rgba(10,132,255,0.2)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: "rgba(10,132,255,0.18)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 999,
   },
-  chipText: { color: colors.text, fontSize: 12 },
-  btn: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  btnSecondary: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  btnText: { color: "#fff", fontWeight: "700" },
-  status: { color: colors.muted, fontSize: 13, marginTop: 6 },
+  chipText: { color: colors.accent, fontSize: 13, fontWeight: "600" },
+  pad: { paddingHorizontal: 16, gap: 10, marginTop: 4 },
+  status: { color: colors.muted, fontSize: 14, textAlign: "center" },
 });

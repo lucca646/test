@@ -21,10 +21,12 @@ export class ApiError extends Error {
 type ApiFetchOptions = RequestInit & { timeoutMs?: number };
 
 /**
- * Client HTTP mobile.
- * - Base : EXPO_PUBLIC_API_URL
- * - Auth : Bearer (si token) sinon Cookie session Flask
- * - Persiste Set-Cookie / access_token éventuel après login
+ * Client HTTP mobile COR·ALT.
+ *
+ * Auth :
+ * 1. `credentials: "include"` → cookie jar natif iOS/Android (HttpOnly OK)
+ * 2. Backup SecureStore si Set-Cookie est lisible
+ * 3. Bearer si `access_token` un jour renvoyé par l’API
  */
 export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   const { timeoutMs, headers: optHeaders, ...fetchOptions } = options;
@@ -44,11 +46,13 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   ]);
 
   const headers: Record<string, string> = {
+    Accept: "application/json",
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(optHeaders as Record<string, string>),
   };
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
-  else if (cookie) headers.Cookie = cookie;
+  // Backup uniquement — le jar natif gère HttpOnly via credentials
+  if (!bearer && cookie) headers.Cookie = cookie;
 
   const url = path.startsWith("http") ? path : `${API_URL}${path}`;
 
@@ -57,6 +61,7 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
     res = await fetch(url, {
       ...fetchOptions,
       headers,
+      credentials: "include",
       signal: controller?.signal,
     });
   } catch (err) {
@@ -70,9 +75,16 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   }
   if (timer) clearTimeout(timer);
 
-  // Persistance session / token
   const setCookie =
-    res.headers.get("set-cookie") || res.headers.get("Set-Cookie");
+    res.headers.get("set-cookie") ||
+    res.headers.get("Set-Cookie") ||
+    // certaines builds RN exposent via getSetCookie()
+    (typeof (res.headers as Headers & { getSetCookie?: () => string[] })
+      .getSetCookie === "function"
+      ? (res.headers as Headers & { getSetCookie: () => string[] })
+          .getSetCookie()
+          .join(",")
+      : null);
   const session = extractCoraltSessionCookie(setCookie);
   if (session) await setSessionCookie(session);
 
@@ -86,7 +98,6 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
     return { status: "success" };
   }
 
-  // Contrat futur : login renvoie access_token
   if (typeof data.access_token === "string" && data.access_token) {
     await setAccessToken(data.access_token);
   }

@@ -13,6 +13,7 @@ import {
   apiRefreshUser,
   apiRegister,
 } from "../api/auth";
+import { ApiError } from "../api/http";
 import { coerceBool } from "../utils/bool";
 import { isAccountActivated } from "../utils/accountActivation";
 import type { CoraltUser } from "../utils/planAccess";
@@ -51,10 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
 
   const refreshUser = useCallback(async () => {
-    const data = await apiRefreshUser();
-    const next = normalizeUser((data?.user as CoraltUser) || null);
-    setUser(next);
-    return next;
+    try {
+      const data = await apiRefreshUser();
+      const next = normalizeUser((data?.user as CoraltUser) || null);
+      setUser(next);
+      return next;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setUser(null);
+      return null;
+    }
   }, []);
 
   useEffect(() => {
@@ -78,7 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiLogin(email, password);
-    setUser(normalizeUser((data.user as CoraltUser) || null));
+    // Resync via /me pour valider le cookie jar natif
+    const me = await apiRefreshUser();
+    setUser(
+      normalizeUser(
+        (me?.user as CoraltUser) || (data.user as CoraltUser) || null,
+      ),
+    );
   }, []);
 
   const register = useCallback(
@@ -90,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       invite_code?: string;
     }) => {
       const data = await apiRegister(payload);
-      setUser(normalizeUser((data.user as CoraltUser) || null));
+      const me = await apiRefreshUser();
+      setUser(
+        normalizeUser(
+          (me?.user as CoraltUser) || (data.user as CoraltUser) || null,
+        ),
+      );
     },
     [],
   );
