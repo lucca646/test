@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  flex: 0 0 auto;
 }
 
 .platform-switcher-head {
@@ -222,8 +223,8 @@
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  padding: 0.35rem 0.35rem 1.1rem;
+  grid-template-columns: repeat(var(--nav-count, 4), minmax(0, 1fr));
+  padding: 0.35rem 0.35rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
   background: rgba(28, 27, 31, 0.92);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px);
@@ -333,7 +334,9 @@
 
 /* Padding bas selon nav */
 .platform-android .tab-stage {
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(
+    4.25rem + env(safe-area-inset-bottom, 0px) + var(--dock-clearance, 0.85rem)
+  );
   padding-top: 1.5rem;
 }
 
@@ -341,6 +344,7 @@
   padding-bottom: 1.5rem;
 }
 
+/* Dock ancré dans le cadre (pas fixed viewport) — évite le « trou » sous Safari */
 .platform-ios .device-frame-inner .lgn {
   position: absolute;
   left: 0;
@@ -358,39 +362,61 @@
 
 @media (max-width: 520px) {
   .web-native-shell {
-    align-content: start;
+    align-content: stretch;
   }
 
-  .device-ios,
-  .device-android {
+  .platform-switcher {
     width: 100%;
+    margin: 0;
+    padding: 0.45rem 0.75rem calc(0.35rem + env(safe-area-inset-top, 0px));
+    gap: 0.4rem;
+    background: rgba(5, 5, 8, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 60;
+  }
+
+  .platform-switcher-head {
+    display: none; /* compact mobile — chips seuls */
+  }
+
+  .platform-switcher-chips {
+    justify-content: center;
+  }
+
+  .platform-chip {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8125rem;
+  }
+
+  .device-frame,
+  .device-ios,
+  .device-android,
+  .device-web {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     border-radius: 0;
     padding: 0;
     background: transparent;
     box-shadow: none;
-  }
-
-  .device-frame-inner {
-    border-radius: 0 !important;
-    height: calc(100dvh - 6.5rem);
-    min-height: calc(100dvh - 6.5rem);
     border: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  .device-web {
-    width: 100%;
-    border-radius: 0;
-    border: 0;
-  }
-
+  .device-frame-inner,
   .device-web-inner {
-    height: calc(100dvh - 6.5rem);
-    min-height: calc(100dvh - 6.5rem);
+    border-radius: 0 !important;
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    border: 0;
   }
 
+  /* Pas de fixed viewport : le dock reste dans le cadre → plus de gap fantôme */
   .platform-ios .device-frame-inner .lgn,
   .m3-nav {
-    position: fixed;
+    position: absolute;
   }
 
   .phone-notch {

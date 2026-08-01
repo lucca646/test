@@ -47,7 +47,11 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   if (platform === "android") {
     return (
-      <nav className="m3-nav" aria-label="Navigation Android">
+      <nav
+        className="m3-nav"
+        aria-label="Navigation Android"
+        style={{ "--nav-count": items.length }}
+      >
         {items.map((tab) => {
           const on =
             tab.id === "/"

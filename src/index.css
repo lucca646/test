@@ -6,6 +6,10 @@
 
 :root {
   color-scheme: dark;
+  /* Dock LiquidGlass — clearance contenu (web + miroir) */
+  --dock-pill: 4rem;
+  --dock-pad: 0.55rem;
+  --dock-clearance: 0.85rem;
 }
 
 html,
@@ -40,7 +44,7 @@ body {
 .ios-shell {
   position: relative;
   min-height: 100%;
-  min-height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -60,10 +64,14 @@ body {
 .tab-stage {
   position: relative;
   z-index: 1;
-  height: 100dvh;
+  height: 100%;
+  min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(
+    var(--dock-pill) + var(--dock-pad) + var(--dock-clearance) +
+      env(safe-area-inset-bottom, 0px)
+  );
 }
 
 .tab-stage .k-page {
@@ -152,6 +160,7 @@ body {
 /* ── Miroir web multi-plateforme ── */
 .web-native-shell {
   min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -170,12 +179,19 @@ body {
 
 .device-frame-inner .tab-stage {
   height: 100%;
-  max-height: min(78dvh, 720px);
+  max-height: none;
+}
+
+.device-frame-inner .app-wallpaper {
+  position: absolute;
 }
 
 @media (max-width: 520px) {
   .web-native-shell {
-    padding: 0.75rem 0.65rem 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 0;
     justify-content: flex-start;
+    align-items: stretch;
   }
 }

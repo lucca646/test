@@ -1,7 +1,7 @@
 /* liquid-glass-nav — tokens + dock App Store style */
 
 .lgn {
-  --lgn-count: 5;
+  --lgn-count: 4;
   --lgn-active: #0a84ff;
   --lgn-thumb:
     inset 3px 3px 0px -3.5px rgba(255, 255, 255, 1),
