@@ -29,6 +29,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-live-activity": "0.4.2",
+    "island-bridge": "file:../packages/island-bridge",
     "expo-local-authentication": "~17.0.8",
     "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.24",

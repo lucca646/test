@@ -9,6 +9,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { beatsForMode, ISLAND_GUIDES } from "../lib/islandCopy";
 import {
+  connectIslandBridge,
+  isBridgeMode,
+  resolveIslandBridgeUrl,
+} from "../lib/islandBridge";
+import {
   autopilotInterval,
   getLiveActivityBridge,
   killActivities,
@@ -64,9 +69,19 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       ? "Choisis un mode, Start, puis regarde l’île — ou tape Comprendre."
       : (bridge.reason ?? "Indisponible"),
   );
+  const [bridgePeers, setBridgePeers] = useState(0);
   const [pulseKey, setPulseKey] = useState(0);
 
   const guide = ISLAND_GUIDES[mode];
+  const handlersRef = useRef({
+    mode,
+    running: false,
+    onChange,
+    launch: async (_m: IslandMode, _r: string) => false as boolean,
+    onStop: async () => {},
+    pushTick: (_m: IslandMode, _n: number) => {},
+    tick,
+  });
 
   useEffect(() => {
     const b = beatsForMode(mode, tick.current);
@@ -206,6 +221,65 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       setBusy(false);
     }
   };
+
+  handlersRef.current = {
+    mode,
+    running,
+    onChange,
+    launch,
+    onStop,
+    pushTick,
+    tick,
+  };
+
+  useEffect(() => {
+    if (!resolveIslandBridgeUrl()) return undefined;
+    const client = connectIslandBridge({
+      onStatus: setStatus,
+      onPeers: setBridgePeers,
+      onCommand: (cmd) => {
+        const h = handlersRef.current;
+        switch (cmd.op) {
+          case "mode": {
+            if (isBridgeMode(cmd.mode)) {
+              h.onChange(cmd.mode);
+              setStatus(`Bridge · mode « ${cmd.mode} »`);
+            }
+            break;
+          }
+          case "start":
+            void h.launch(h.mode, "bridge");
+            break;
+          case "update":
+          case "phase": {
+            if (!h.running) {
+              void h.launch(h.mode, "bridge").then((ok) => {
+                if (!ok) return;
+                h.tick.current += 1;
+                h.pushTick(h.mode, h.tick.current);
+              });
+              break;
+            }
+            h.tick.current += cmd.delta && cmd.delta > 1 ? cmd.delta : 1;
+            h.pushTick(h.mode, h.tick.current);
+            setStatus(`Bridge · ${cmd.op}`);
+            break;
+          }
+          case "stop":
+            void h.onStop();
+            break;
+          case "echo":
+            setStatus(cmd.message || "echo");
+            break;
+          default:
+            break;
+        }
+      },
+    });
+    return () => {
+      client?.close();
+    };
+  }, []);
 
   return (
     <View style={styles.wrap}>
@@ -367,6 +441,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
 
       <Text style={[styles.statusText, { color: theme.textMuted }]}>
         {status}
+        {bridgePeers > 0 ? ` · bridge ${bridgePeers} peer(s)` : ""}
       </Text>
     </View>
   );

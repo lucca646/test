@@ -211,12 +211,28 @@
   transform: scale(0.97);
 }
 
-.di-btn.primary {
+.di-btn.primary,
+.di-btn.di-btn-primary {
   background: #0a84ff;
 }
 
 .di-btn.danger {
   background: rgba(255, 69, 58, 0.85);
+}
+
+.island-bridge-script {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e8f0ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  padding: 0.75rem 0.85rem;
+  resize: vertical;
+  min-height: 9rem;
 }
 
 .di-btn:disabled {

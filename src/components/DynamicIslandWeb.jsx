@@ -1,14 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./dynamic-island.css";
 
 const LAYOUT = {
   minimal: { w: 36, h: 36, r: 18, p: 0 },
   compact: { w: 126, h: 36, r: 18, p: 12 },
   timer: { w: 126, h: 36, r: 18, p: 12 },
-  music: { w: 300, h: 88, r: 24, p: 14 },
-  progress: { w: 300, h: 88, r: 24, p: 14 },
+  music: { w: 300, h: 88, r: 22, p: 14 },
+  progress: { w: 312, h: 92, r: 24, p: 14 },
+  score: { w: 320, h: 108, r: 28, p: 14 },
+  breathe: { w: 200, h: 72, r: 36, p: 14 },
+  focus: { w: 300, h: 88, r: 24, p: 14 },
   expanded: { w: 300, h: 88, r: 24, p: 14 },
 };
+
+const CONTENT_MODES = [
+  "timer",
+  "music",
+  "progress",
+  "score",
+  "breathe",
+  "focus",
+];
 
 const PRESETS = {
   spring: {
@@ -17,7 +29,7 @@ const PRESETS = {
   },
   ease: {
     label: "Ease",
-    css: null, // filled from duration
+    css: null,
   },
   snappy: {
     label: "Snappy",
@@ -26,10 +38,10 @@ const PRESETS = {
 };
 
 /**
- * Miroir web du playground Dynamic Island natif.
- * Animations 100 % CSS (modifiables) — pas de contrainte ActivityKit.
+ * Miroir web du playground Dynamic Island.
+ * `onBind({ dispatch })` expose le même bus que le bridge iOS.
  */
-export default function DynamicIslandWeb() {
+export default function DynamicIslandWeb({ onBind } = {}) {
   const [mode, setMode] = useState("timer");
   const [preset, setPreset] = useState("spring");
   const [durationMs, setDurationMs] = useState(420);
@@ -37,11 +49,23 @@ export default function DynamicIslandWeb() {
   const [tick, setTick] = useState(0);
   const [progress, setProgress] = useState(0.35);
   const [status, setStatus] = useState(
-    "Web · animations CSS modifiables (contrairement à l’île iOS).",
+    "Web · prêt pour le bridge interprète (script unique → web + iOS).",
   );
   const [pulse, setPulse] = useState(false);
 
   const box = LAYOUT[mode] || LAYOUT.compact;
+
+  const apiRef = useRef({});
+  apiRef.current = {
+    setMode,
+    setRunning,
+    setTick,
+    setProgress,
+    setStatus,
+    setPulse,
+    running,
+    mode,
+  };
 
   const transition = useMemo(() => {
     if (preset === "ease") {
@@ -66,20 +90,22 @@ export default function DynamicIslandWeb() {
     setRunning(true);
     setTick(0);
     setProgress(0.35);
-    setStatus(`Session web démarrée · mode « ${mode} ». Change de forme ou Update.`);
+    setStatus(`Session web démarrée · mode « ${apiRef.current.mode} ».`);
     setPulse(true);
   };
 
   const onUpdate = () => {
-    if (!running) {
+    if (!apiRef.current.running) {
       setStatus("Start d’abord pour simuler les updates.");
       return;
     }
-    const n = tick + 1;
-    setTick(n);
+    setTick((n) => {
+      const next = n + 1;
+      setStatus(`Update #${next} · web`);
+      return next;
+    });
     setProgress((p) => Math.min(0.95, p + 0.14));
     setPulse(true);
-    setStatus(`Update #${n} · contenu animé en CSS (web).`);
   };
 
   const onStop = () => {
@@ -88,12 +114,50 @@ export default function DynamicIslandWeb() {
     setPulse(true);
   };
 
+  useEffect(() => {
+    if (!onBind) return undefined;
+    onBind({
+      dispatch(cmd) {
+        if (!cmd?.op) return;
+        switch (cmd.op) {
+          case "mode": {
+            const m = String(cmd.mode || "").toLowerCase();
+            if (LAYOUT[m] || CONTENT_MODES.includes(m)) {
+              setMode(m);
+              setStatus(`Bridge · mode « ${m} »`);
+              setPulse(true);
+            }
+            break;
+          }
+          case "start":
+            onStart();
+            setStatus("Bridge · start");
+            break;
+          case "update":
+          case "phase":
+            onUpdate();
+            setStatus(`Bridge · ${cmd.op}`);
+            break;
+          case "stop":
+            onStop();
+            break;
+          case "echo":
+            setStatus(cmd.message || "echo");
+            break;
+          default:
+            break;
+        }
+      },
+    });
+    return () => onBind(null);
+  }, [onBind]);
+
   return (
     <section className="di-card">
       <h3 className="di-title">Dynamic Island · web</h3>
       <p className="di-hint">
-        Même playground que l’app native, en HTML/CSS. Ici tu peux modifier
-        durée et courbe — sur iPhone réel, Apple garde le morph système.
+        Même playground que l’app native. Pilotable par le bridge interprète
+        (script unique partagé avec l’iPhone).
       </p>
 
       <div className="di-stage">
@@ -141,26 +205,15 @@ export default function DynamicIslandWeb() {
         onChange={(e) => setDurationMs(Number(e.target.value))}
       />
 
-      <p className="di-group">Forme</p>
-      <div className="di-chips">
-        {["compact", "minimal", "expanded"].map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={`di-chip${mode === id ? " is-on" : ""}`}
-            onClick={() => setMode(id)}
-          >
-            {id[0].toUpperCase() + id.slice(1)}
-          </button>
-        ))}
-      </div>
-
       <p className="di-group">Contenu</p>
       <div className="di-chips">
         {[
           ["timer", "Timer"],
-          ["music", "Now Playing"],
-          ["progress", "Progress"],
+          ["music", "Musique"],
+          ["progress", "Livraison"],
+          ["score", "Score"],
+          ["breathe", "Respirer"],
+          ["focus", "Focus"],
         ].map(([id, label]) => (
           <button
             key={id}
@@ -186,7 +239,7 @@ export default function DynamicIslandWeb() {
       </div>
 
       <div className="di-status">
-        <strong>Web · plugin CSS</strong>
+        <strong>Web · bridge-ready</strong>
         <span>{status}</span>
       </div>
     </section>
@@ -202,11 +255,53 @@ function IslandBody({ mode, tick, progress }) {
     );
   }
 
+  if (mode === "score") {
+    const home = 12 + (tick % 9) * 3;
+    const away = 10 + ((tick + 3) % 7) * 2;
+    return (
+      <div className="di-island-inner">
+        <div className="di-row" style={{ justifyContent: "space-between" }}>
+          <div>
+            <p className="di-exp-sub">COR</p>
+            <p className="di-exp-title" style={{ fontSize: 28 }}>
+              {home}
+            </p>
+          </div>
+          <span className="di-trail">vs</span>
+          <div style={{ textAlign: "right" }}>
+            <p className="di-exp-sub">ALT</p>
+            <p className="di-exp-title" style={{ fontSize: 28 }}>
+              {away}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "breathe") {
+    const phases = ["Inspire", "Retiens", "Expire", "Pause"];
+    return (
+      <div className="di-island-inner" style={{ alignItems: "center" }}>
+        <p className="di-exp-title">{phases[tick % 4]}</p>
+      </div>
+    );
+  }
+
+  if (mode === "focus") {
+    return (
+      <div className="di-island-inner">
+        <p className="di-exp-title">Focus · une tâche</p>
+        <p className="di-exp-sub">Session {(tick % 4) + 1}/4</p>
+      </div>
+    );
+  }
+
   if (mode === "compact" || mode === "timer") {
     return (
       <div className="di-island-inner">
         <div className="di-row">
-          <span className="di-lead">{mode === "timer" ? "TIM" : "LG"}</span>
+          <span className="di-lead">{mode === "timer" ? "MIN" : "LG"}</span>
           <span className="di-trail">
             {mode === "timer"
               ? `${String(4 - (tick % 5)).padStart(2, "0")}:${String(59 - (tick % 60)).padStart(2, "0")}`
@@ -227,19 +322,28 @@ function IslandBody({ mode, tick, progress }) {
             <p className="di-exp-title">{titles[tick % titles.length]}</p>
             <p className="di-exp-sub">COR·ALT · Now Playing</p>
           </div>
-          <span className="di-trail">II</span>
+          <span className="di-trail">♪</span>
         </div>
       </div>
     );
   }
 
   if (mode === "progress") {
+    const step = (tick % 4) + 1;
     return (
       <div className="di-island-inner">
-        <p className="di-exp-title">Livraison</p>
-        <p className="di-exp-sub">Update #{tick} · {Math.round(progress * 100)}%</p>
+        <div className="di-row" style={{ justifyContent: "space-between" }}>
+          <div>
+            <p className="di-exp-sub">ÉTAPE</p>
+            <p className="di-exp-title">{step}/4</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p className="di-exp-sub">ETA</p>
+            <p className="di-exp-title">{[18, 12, 4, 1][tick % 4]}'</p>
+          </div>
+        </div>
         <div className="di-progress">
-          <i />
+          <i style={{ width: `${step * 25}%` }} />
         </div>
       </div>
     );
@@ -251,7 +355,7 @@ function IslandBody({ mode, tick, progress }) {
         <span className="di-dot di-live" />
         <div style={{ flex: 1 }}>
           <p className="di-exp-title">Session active</p>
-          <p className="di-exp-sub">Expanded · 4 régions</p>
+          <p className="di-exp-sub">Expanded · bridge</p>
         </div>
         <span className="di-trail">Web</span>
       </div>

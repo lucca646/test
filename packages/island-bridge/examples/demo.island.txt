@@ -1,0 +1,16 @@
+# Demo sync web + iOS
+mode score
+start
+wait 1400
+phase
+wait 700
+mode progress
+update
+wait 1000
+mode music
+update
+wait 800
+mode breathe
+update
+wait 900
+stop

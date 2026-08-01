@@ -60,12 +60,25 @@ export default defineConfig({
   ],
   resolve: {
     dedupe: ["react", "react-dom"],
+    alias: {
+      "island-bridge": path.resolve(rootDir, "packages/island-bridge/src/index.js"),
+      "island-bridge/client": path.resolve(
+        rootDir,
+        "packages/island-bridge/src/client.js",
+      ),
+    },
   },
   server: {
     host: "127.0.0.1",
     port: 5177,
     allowedHosts: [".trycloudflare.com", "localhost", "127.0.0.1"],
     fs: { allow: [rootDir] },
+    proxy: {
+      "/bridge": {
+        target: "http://127.0.0.1:8792",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     host: "127.0.0.1",

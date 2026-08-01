@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import {
   Page,
   Navbar,
@@ -7,10 +8,24 @@ import {
   Glass,
 } from "konsta/react";
 import DynamicIslandWeb from "../components/DynamicIslandWeb.jsx";
+import IslandBridgePanel from "../components/IslandBridgePanel.jsx";
+import { useIslandBridge } from "../bridge/useIslandBridge.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
 export default function TodayPage() {
   const { platform, meta } = usePlatform();
+  const dispatchRef = useRef(null);
+
+  const onBind = useCallback((api) => {
+    dispatchRef.current = api?.dispatch ?? null;
+  }, []);
+
+  const { status, peers, runScript } = useIslandBridge({
+    enabled: platform === "ios" || platform === "web",
+    onCommand: (cmd) => {
+      dispatchRef.current?.(cmd);
+    },
+  });
 
   return (
     <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
@@ -27,11 +42,17 @@ export default function TodayPage() {
         </div>
       </Block>
 
-      {platform === "ios" && (
+      {(platform === "ios" || platform === "web") && (
         <>
-          <BlockTitle>Playground île</BlockTitle>
+          <BlockTitle>Playground île + bridge</BlockTitle>
           <Block>
-            <DynamicIslandWeb />
+            <DynamicIslandWeb onBind={onBind} />
+            <IslandBridgePanel
+              status={status}
+              peers={peers}
+              onRun={(script) => runScript(script)}
+              connectedHint="npm run bridge:island"
+            />
           </Block>
         </>
       )}
