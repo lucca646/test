@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "COR·ALT",
+    "slug": "coralt-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "coralt",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050508"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "eu.coraia.coralt.dev"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#050508",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "package": "eu.coraia.coralt.dev"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {}
+    }
+  }
+}
