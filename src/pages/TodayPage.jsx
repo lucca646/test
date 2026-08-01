@@ -12,46 +12,51 @@ import IslandBridgePanel from "../components/IslandBridgePanel.jsx";
 import { useIslandBridge } from "../bridge/useIslandBridge.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
-function SiteToday({ onNavigate }) {
+function WebappToday({ onNavigate }) {
   return (
-    <div className="site-page">
-      <section className="site-hero">
-        <p className="site-hero-kicker">Coraia · Liquid Glass</p>
-        <h1>Le verre, sans la contrainte de l’App Store.</h1>
+    <div className="wa-home">
+      <section className="wa-hero">
+        <p className="wa-hero-kicker">Webapp · Coraia</p>
+        <h1>Liquid Glass, dans le navigateur</h1>
         <p>
-          Une vitrine web pour le même produit — navigation de site, pas une
-          copie d’application iPhone dans le navigateur.
+          Même produit que l’app iOS — ici en webapp : barre du haut, panels,
+          pas de faux iPhone.
         </p>
-        <button
-          type="button"
-          className="site-cta"
-          onClick={() => onNavigate?.("/arcade/")}
-        >
-          Voir Arcade
-        </button>
-      </section>
-
-      <section className="site-section">
-        <h2>Une base, plusieurs surfaces</h2>
-        <p>
-          Le catalogue d’onglets vit dans un seul module JS. Le site web, l’app
-          iOS et bientôt Android le lisent — sans dupliquer la barre.
-        </p>
-        <div className="site-grid">
-          <article>
-            <h3>Web</h3>
-            <p>Header, typo éditoriale, pages larges.</p>
-          </article>
-          <article>
-            <h3>iOS</h3>
-            <p>UITabBar native + île ActivityKit.</p>
-          </article>
-          <article>
-            <h3>OTA</h3>
-            <p>Les changements de nav partent en update JS.</p>
-          </article>
+        <div className="wa-actions">
+          <button
+            type="button"
+            className="wa-btn wa-btn-primary"
+            onClick={() => onNavigate?.("/arcade/")}
+          >
+            Ouvrir Arcade
+          </button>
+          <button
+            type="button"
+            className="wa-btn wa-btn-ghost"
+            onClick={() => onNavigate?.("/apps/")}
+          >
+            Apps
+          </button>
         </div>
       </section>
+
+      <p className="wa-section-title">Modules</p>
+      <div className="wa-cards">
+        <article className="wa-card">
+          <h3>Nav unique</h3>
+          <p>Onglets depuis <code>app-nav</code> — web + iOS synchronisés.</p>
+        </article>
+        <article className="wa-card">
+          <h3>OTA</h3>
+          <p>Changements JS sans rebuild Store (iOS / bientôt Android).</p>
+        </article>
+        <article className="wa-card">
+          <h3>Bridge</h3>
+          <p>
+            Lab île : <code>?lab=1</code> pour le playground natif.
+          </p>
+        </article>
+      </div>
     </div>
   );
 }
@@ -72,7 +77,7 @@ export default function TodayPage({ onNavigate } = {}) {
   });
 
   if (!lab) {
-    return <SiteToday onNavigate={onNavigate} />;
+    return <WebappToday onNavigate={onNavigate} />;
   }
 
   return (
@@ -83,7 +88,7 @@ export default function TodayPage({ onNavigate } = {}) {
         <div className={`hero-card hero-blue platform-hero-${platform}`}>
           <p className="hero-kicker">LAB · {meta.label}</p>
           <h2>Playground {meta.label}</h2>
-          <p>Skins iOS / Android / Web pour tester le chrome natif.</p>
+          <p>Skins iOS / Android pour tester le chrome natif.</p>
         </div>
       </Block>
 

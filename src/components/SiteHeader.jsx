@@ -1,7 +1,7 @@
 import { visibleTabs } from "app-nav";
 
 /**
- * Header site (pas une tabbar d’app).
+ * Top bar webapp (produit navigateur — pas tabbar iOS ni menu marketing).
  */
 export default function SiteHeader({ activePath, onSelect }) {
   const tabs = visibleTabs();

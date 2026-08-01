@@ -68,7 +68,7 @@ function LiveWebShell() {
           onNavigate={selectTab}
         />
       </main>
-      <footer className="site-footer">Coraia · site web</footer>
+      <footer className="site-footer">Coraia · webapp</footer>
     </div>
   );
 }
