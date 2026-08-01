@@ -1,21 +1,25 @@
 import { useEffect } from "react";
-import { NativeTabs, Icon, Label, Badge } from "expo-router/unstable-native-tabs";
+import {
+  NativeTabs,
+  Icon,
+  Label,
+  Badge,
+} from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
+import { APP_TABS, NAV_TINT } from "app-nav";
 import { useAppTheme } from "../lib/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 
 /**
- * Vraie barre d’onglets Apple : UITabBar via NativeTabs.
- * Labels / icônes / teinte / badge = JS → modifiable en OTA (sans rebuild).
- * Morph Liquid Glass custom / remplacer UITabBar = rebuild.
+ * UITabBar native — onglets lus depuis packages/app-nav (JS unique web + iOS).
+ * Modifier APP_TABS / hidden → OTA des deux côtés.
  */
 export default function RootLayout() {
   const theme = useAppTheme();
-  // Teinte OTA-visible (bleu système → cyan un peu plus clair)
   const tint =
     Platform.OS === "ios"
-      ? DynamicColorIOS({ light: "#64D2FF", dark: "#64D2FF" })
-      : "#64D2FF";
+      ? DynamicColorIOS({ light: NAV_TINT, dark: NAV_TINT })
+      : NAV_TINT;
 
   useEffect(() => {
     void applyOtaUpdateIfAny();
@@ -34,39 +38,19 @@ export default function RootLayout() {
       blurEffect={theme.tabBlur}
       disableTransparentOnScrollEdge
     >
-      <NativeTabs.Trigger name="index">
-        <Label>Aujourd'hui</Label>
-        <Icon sf={{ default: "sun.max", selected: "sun.max.fill" }} />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="games">
-        <Label>Jeux</Label>
-        <Icon sf={{ default: "flame", selected: "flame.fill" }} />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="apps">
-        <Label>Apps</Label>
-        <Badge>OTA</Badge>
-        <Icon
-          sf={{
-            default: "square.stack.3d.up",
-            selected: "square.stack.3d.up.fill",
-          }}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="arcade">
-        <Label>Arcade</Label>
-        <Icon
-          sf={{ default: "gamecontroller", selected: "gamecontroller.fill" }}
-        />
-      </NativeTabs.Trigger>
-
-      {/* Recherche retirée de la barre (OTA) — route /search toujours là si besoin */}
-      <NativeTabs.Trigger name="search" hidden>
-        <Label>Recherche</Label>
-        <Icon sf="magnifyingglass" />
-      </NativeTabs.Trigger>
+      {APP_TABS.map((tab) => (
+        <NativeTabs.Trigger
+          key={tab.routeName}
+          name={tab.routeName}
+          role={tab.role as "search" | undefined}
+          hidden={Boolean(tab.hidden)}
+        >
+          <Label>{tab.label}</Label>
+          {tab.badge ? <Badge>{tab.badge}</Badge> : null}
+          {/* sf symbols typés côté Expo — cast depuis le catalogue partagé */}
+          <Icon sf={tab.sf as never} />
+        </NativeTabs.Trigger>
+      ))}
     </NativeTabs>
   );
 }

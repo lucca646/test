@@ -7,16 +7,18 @@ alwaysApply: true
 
 Validé par l’utilisateur (v14+) : « Parfait, garde ça en mémoire ».
 
-## Structure
+## Structure (JS unique)
 
-5 onglets App Store : Aujourd’hui · Jeux · Apps · Arcade · Recherche
+Onglets définis **uniquement** dans `packages/app-nav/src/tabs.js` (`APP_TABS`).
+Web (`AppTabbar`) + iOS (`NativeTabs`) importent ce package — ne pas dupliquer la liste.
+`hidden: true` masque un onglet partout (ex. Recherche).
 
 ## Au repos
 
 - Lentille **plus petite** que la barre (inset ~0.5rem)
 - Verre mat discret (rim fin, fond `rgba(255,255,255,0.08)`)
 - **Pas** de loupe / morph / grossissement
-- Bleu `#0a84ff` = onglet sous la lentille
+- Bleu `#0a84ff` = onglet sous la lentille (web LiquidGlass) ; teinte native via `NAV_TINT` dans app-nav
 - Icônes fixes ; mouvement **X only** (pas de translateY)
 
 ## Pendant le drag seulement (`.is-dragging`)
@@ -33,3 +35,4 @@ Validé par l’utilisateur (v14+) : « Parfait, garde ça en mémoire ».
 - Ne pas remettre les franges agressives / fish-eye fort
 - Ne pas morpher la forme de la barre (pilule)
 - Ne pas cacher / cloner les icônes
+- Ne pas redéfinir les onglets hors de `packages/app-nav`

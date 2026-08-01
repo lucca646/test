@@ -63,6 +63,10 @@ export default defineConfig({
     // Plus spécifique d’abord — évite que « island-bridge » mange « island-bridge/client »
     alias: [
       {
+        find: "app-nav",
+        replacement: path.resolve(rootDir, "packages/app-nav/src/index.js"),
+      },
+      {
         find: "island-bridge/client",
         replacement: path.resolve(
           rootDir,

@@ -16,6 +16,7 @@ config.resolver.nodeModulesPaths = [
 ];
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules ?? {}),
+  "app-nav": path.resolve(workspaceRoot, "packages/app-nav"),
   "island-bridge": path.resolve(workspaceRoot, "packages/island-bridge"),
 };
 

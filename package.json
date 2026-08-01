@@ -16,6 +16,7 @@
     "framework7": "^9.1.2",
     "framework7-icons": "^5.0.5",
     "framework7-react": "^9.1.2",
+    "app-nav": "file:packages/app-nav",
     "island-bridge": "file:packages/island-bridge",
     "konsta": "^5.3.0",
     "liquid-glass-nav": "file:packages/liquid-glass-nav",

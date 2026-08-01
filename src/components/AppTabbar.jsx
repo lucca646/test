@@ -1,4 +1,5 @@
 import { LiquidGlassNav } from "liquid-glass-nav";
+import { visibleTabs } from "app-nav";
 import {
   Today,
   TodayFill,
@@ -8,49 +9,46 @@ import {
   LayersFill,
   Gamecontroller,
   GamecontrollerFill,
+  Search,
 } from "framework7-icons/react/framework7-icons-react.esm.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
-/** Aligné sur l’app native : Recherche retirée de la barre (OTA). */
-const ITEMS = [
-  {
-    id: "/",
-    label: "Aujourd'hui",
-    short: "Today",
-    icon: <Today className="w-6 h-6" />,
-    iconActive: <TodayFill className="w-6 h-6" />,
-  },
-  {
-    id: "/games/",
-    label: "Jeux",
-    short: "Jeux",
-    icon: <Rocket className="w-6 h-6" />,
-    iconActive: <RocketFill className="w-6 h-6" />,
-  },
-  {
-    id: "/apps/",
-    label: "Apps",
-    short: "Apps",
-    icon: <Layers className="w-6 h-6" />,
-    iconActive: <LayersFill className="w-6 h-6" />,
-  },
-  {
-    id: "/arcade/",
-    label: "Arcade",
-    short: "Arcade",
-    icon: <Gamecontroller className="w-6 h-6" />,
-    iconActive: <GamecontrollerFill className="w-6 h-6" />,
-  },
-];
+const F7 = {
+  Today,
+  TodayFill,
+  Rocket,
+  RocketFill,
+  Layers,
+  LayersFill,
+  Gamecontroller,
+  GamecontrollerFill,
+  Search,
+};
+
+/** Items = source unique packages/app-nav (même JS que NativeTabs iOS). */
+function itemsFromSharedNav() {
+  return visibleTabs().map((tab) => {
+    const Def = F7[tab.f7.default] || Search;
+    const Act = F7[tab.f7.active] || Def;
+    return {
+      id: tab.path,
+      label: tab.label,
+      short: tab.short,
+      icon: <Def className="w-6 h-6" />,
+      iconActive: <Act className="w-6 h-6" />,
+    };
+  });
+}
 
 /** Même items — rendu nav selon plateforme */
 export default function AppTabbar({ activePath, onSelect }) {
   const { platform, meta } = usePlatform();
+  const items = itemsFromSharedNav();
 
   if (platform === "android") {
     return (
       <nav className="m3-nav" aria-label="Navigation Android">
-        {ITEMS.map((tab) => {
+        {items.map((tab) => {
           const on =
             tab.id === "/"
               ? activePath === "/"
@@ -78,7 +76,7 @@ export default function AppTabbar({ activePath, onSelect }) {
       <nav className="web-nav" aria-label="Navigation Web">
         <div className="web-nav-brand">Liquid Glass</div>
         <div className="web-nav-tabs">
-          {ITEMS.map((tab) => {
+          {items.map((tab) => {
             const on =
               tab.id === "/"
                 ? activePath === "/"
@@ -103,7 +101,7 @@ export default function AppTabbar({ activePath, onSelect }) {
 
   return (
     <LiquidGlassNav
-      items={ITEMS}
+      items={items}
       activeId={activePath}
       onChange={onSelect}
       activeColor={meta.accent}
