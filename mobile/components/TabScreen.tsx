@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { useAppTheme } from "../lib/theme";
 
 type Props = {
   kicker?: string;
@@ -9,6 +10,8 @@ type Props = {
   body: string;
   tint: [string, string];
   children?: ReactNode;
+  /** Masque la carte “Barre officielle Apple” en bas */
+  hideFooter?: boolean;
 };
 
 /** Contenu d’onglet — la nav est la UITabBar native (layout parent). */
@@ -18,13 +21,27 @@ export default function TabScreen({
   body,
   tint,
   children,
+  hideFooter = false,
 }: Props) {
+  const theme = useAppTheme();
+
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <LinearGradient colors={["#161625", "#050508"]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.blob, styles.blobBlue]} />
-      <View style={[styles.blob, styles.blobOrange]} />
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <StatusBar style={theme.statusBar} />
+      <LinearGradient
+        colors={theme.backgroundGradient}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        style={[styles.blob, styles.blobBlue, { backgroundColor: theme.blobBlue }]}
+      />
+      <View
+        style={[
+          styles.blob,
+          styles.blobOrange,
+          { backgroundColor: theme.blobOrange },
+        ]}
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -38,21 +55,32 @@ export default function TabScreen({
 
         {children}
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Barre officielle Apple</Text>
-          <Text style={styles.cardBody}>
-            Cette navigation utilise NativeTabs (expo-router) → UITabBarController
-            / UITabBar sur iOS. SF Symbols, blur système, comportement natif
-            (scroll, minimize, haptics selon l’OS).
-          </Text>
-        </View>
+        {!hideFooter ? (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.card,
+                borderColor: theme.cardBorder,
+              },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: theme.text }]}>
+              Mode {theme.isDark ? "nuit" : "jour"} · système
+            </Text>
+            <Text style={[styles.cardBody, { color: theme.textMuted }]}>
+              L’UI suit Réglages → Affichage et luminosité. NativeTabs /
+              UITabBar + blur matériau adaptatif.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#050508" },
+  root: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 16 },
   hero: {
     borderRadius: 28,
@@ -83,18 +111,14 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
     padding: 18,
-    backgroundColor: "rgba(28,28,30,0.72)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
   },
   cardTitle: {
-    color: "#fff",
     fontSize: 17,
     fontWeight: "600",
     marginBottom: 8,
   },
   cardBody: {
-    color: "rgba(255,255,255,0.78)",
     fontSize: 14,
     lineHeight: 22,
   },
@@ -103,16 +127,14 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    opacity: 0.4,
+    opacity: 0.9,
   },
   blobBlue: {
     top: 40,
     left: -40,
-    backgroundColor: "rgba(56,120,255,0.9)",
   },
   blobOrange: {
     top: 80,
     right: -60,
-    backgroundColor: "rgba(255,120,60,0.75)",
   },
 });

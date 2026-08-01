@@ -4,7 +4,7 @@ export default function SearchTab() {
   return (
     <TabScreen
       title="Recherche"
-      body="Trigger role=&quot;search&quot; — onglet recherche système quand supporté."
+      body="Trigger role=&quot;search&quot; — onglet recherche système. Thème lié à Appearance iOS."
       tint={["#94a3b8", "#475569"]}
     />
   );

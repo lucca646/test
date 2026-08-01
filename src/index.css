@@ -148,3 +148,34 @@ body {
     transition: none;
   }
 }
+
+/* ── Miroir web multi-plateforme ── */
+.web-native-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0.75rem;
+  box-sizing: border-box;
+  background:
+    radial-gradient(50% 40% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 70%),
+    #030306;
+}
+
+.device-frame-inner .ios-shell {
+  min-height: 100%;
+  height: 100%;
+}
+
+.device-frame-inner .tab-stage {
+  height: 100%;
+  max-height: min(78dvh, 720px);
+}
+
+@media (max-width: 520px) {
+  .web-native-shell {
+    padding: 0.75rem 0.65rem 0;
+    justify-content: flex-start;
+  }
+}
