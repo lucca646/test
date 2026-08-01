@@ -13,7 +13,7 @@ Playground Expo déjà présent ici : [`mobile/`](../mobile).
 | Hors MVP v1 | Landing, Admin, Mailing avancé (templates/prompts) |
 | Auth mobile | **Bearer token** (backend COR-ALT à étendre) |
 | Cible API v1 | **dev** (`dev.cal.coraia.eu`) en priorité |
-| Où coder Expo | ce repo → `mobile/` (ou app dédiée `coralt-mobile/` si séparation) |
+| Où coder Expo | ce repo → [`coralt-mobile/`](../coralt-mobile/) |
 
 | Champ | Valeur |
 |-------|--------|
@@ -355,12 +355,9 @@ Chaque lot = branche dédiée + test sur Expo Go contre **dev** (`dev.cal.coraia
 **Étape 1** : cartographie — faite (ce fichier).  
 **Plan produit** : validé.
 
-**Étape 2** (à faire avant le lot A code) :
-1. Contrats API Bearer (login/me/logout) à ajouter côté COR-ALT.  
-2. Arborescence navigation Expo (tabs + stacks) détaillée.  
-3. Découpage dossiers dans `mobile/` (ou `coralt-mobile/`).  
+**Étape 2** : faite — voir [`EXPO_STEP2.md`](./EXPO_STEP2.md).  
 
-**Lot A** ensuite : scaffold Expo + `apiFetch` Bearer + écran Auth contre `dev.cal.coraia.eu`.
+**Lot A** : scaffold `coralt-mobile/` + Auth + tabs MVP — en cours / poussé sur cette branche.
 
 ---
 
