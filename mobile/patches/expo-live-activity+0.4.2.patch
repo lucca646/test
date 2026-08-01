@@ -45,7 +45,7 @@ index 1a00e92..e8a4974 100644
              if let subtitle = contentState.subtitle {
                Text(subtitle)
 diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
-index 24cd8c5..07ff96f 100644
+index 24cd8c5..aed7be8 100644
 --- a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
 +++ b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
 @@ -10,6 +10,15 @@ struct LiveActivityAttributes: ActivityAttributes {
@@ -139,13 +139,15 @@ index 24cd8c5..07ff96f 100644
  struct LiveActivityWidget: Widget {
    var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
-@@ -55,52 +122,197 @@ struct LiveActivityWidget: Widget {
+@@ -55,52 +122,198 @@ struct LiveActivityWidget: Widget {
          .activitySystemActionForegroundColor(Color.black)
          .applyWidgetURL(from: context.attributes.deepLinkUrl)
      } dynamicIsland: { context in
+-      DynamicIsland {
++      // `return` obligatoire : un `let` avant empêche le single-expression return implicite
++      // (sinon Xcode: missing return in closure expected to return 'DynamicIsland').
 +      let kit = IslandKit(state: context.state)
-+
-       DynamicIsland {
++      return DynamicIsland {
          DynamicIslandExpandedRegion(.leading, priority: 1) {
 -          dynamicIslandExpandedLeading(title: context.state.title, subtitle: context.state.subtitle)
 +          expandedLeading(kit: kit, state: context.state)
@@ -364,7 +366,7 @@ index 24cd8c5..07ff96f 100644
      }
    }
  
-@@ -118,52 +330,14 @@ struct LiveActivityWidget: Widget {
+@@ -118,52 +331,14 @@ struct LiveActivityWidget: Widget {
          .frame(maxWidth: 60)
          .multilineTextAlignment(.trailing)
      } else {
@@ -559,3 +561,23 @@ index f71c857..95f1500 100644
    }
  
    var name: String
+diff --git a/node_modules/expo-live-activity/src/index.ts b/node_modules/expo-live-activity/src/index.ts
+index 675bc9e..440bd39 100644
+--- a/node_modules/expo-live-activity/src/index.ts
++++ b/node_modules/expo-live-activity/src/index.ts
+@@ -23,6 +23,15 @@ export type LiveActivityState = {
+   progressBar?: ProgressBarType
+   imageName?: string
+   dynamicIslandImageName?: string
++  /** Kit modulaire — layout + zones texte (widget natif) */
++  layout?: string
++  leadingText?: string
++  trailingText?: string
++  leadingLabel?: string
++  trailingLabel?: string
++  centerText?: string
++  bottomText?: string
++  badgeText?: string
+ }
+ 
+ export type NativeLiveActivityState = {
