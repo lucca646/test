@@ -58,7 +58,7 @@ cd mobile
 # channel = celui du profil de build (preview | production)
 ./scripts-eas-update.sh preview "fix island + logo"
 # ou :
-# npx eas-cli update --channel preview --message "…" --non-interactive
+# CI=1 npx eas-cli update --channel preview -p ios --message "…" --non-interactive
 ```
 
 **Limite :** icône App Store / splash natifs / nouveaux plugins ⇒ rebuild obligatoire.

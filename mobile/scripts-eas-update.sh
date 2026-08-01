@@ -18,7 +18,8 @@ MESSAGE="${2:-OTA update}"
 
 export EXPO_TOKEN
 npx eas-cli whoami
-npx eas-cli update \
+CI=1 npx eas-cli update \
   --channel "$CHANNEL" \
   --message "$MESSAGE" \
+  --platform ios \
   --non-interactive

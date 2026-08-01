@@ -42,3 +42,4 @@ secrets/
 # generated native folders
 /ios
 /android
+dist/
