@@ -91,3 +91,79 @@ export default function IslandGuideSheet({ mode, visible, onClose }: Props) {
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  handle: {
+    alignSelf: "center",
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  content: { padding: 22, paddingBottom: 40, gap: 10 },
+  accent: {
+    width: 44,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 8,
+  },
+  kicker: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+  },
+  tagline: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  section: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginTop: 14,
+    marginBottom: 4,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  stepRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+    marginTop: 8,
+  },
+  stepNum: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  stepNumText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  stepText: { flex: 1, fontSize: 15, lineHeight: 22 },
+  tipBox: {
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 6,
+  },
+  tipLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
+  limit: { fontSize: 12, lineHeight: 17, marginTop: 12 },
+  cta: {
+    marginTop: 18,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  ctaText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+});

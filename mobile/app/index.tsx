@@ -13,9 +13,9 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="CORAIA GLASS · STABLE"
+      kicker="CORAIA GLASS · FIX STYLES"
       title="Aujourd'hui"
-      body="Version stabilisée. Si tu vois ce bandeau, la MAJ sans build a bien marché."
+      body="Bug « styles doesn't exist » corrigé. Tu dois voir Respire / Focus / Score ici."
       tint={["#5E5CE6", "#0A84FF"]}
     >
       <View

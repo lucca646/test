@@ -203,11 +203,13 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <IslandGuideSheet
-        mode={guideMode}
-        visible={guideOpen}
-        onClose={() => setGuideOpen(false)}
-      />
+      {guideOpen ? (
+        <IslandGuideSheet
+          mode={guideMode}
+          visible={guideOpen}
+          onClose={() => setGuideOpen(false)}
+        />
+      ) : null}
 
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
