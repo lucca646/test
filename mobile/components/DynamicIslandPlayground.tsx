@@ -56,6 +56,9 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     () => beatsForMode(mode, 0).title,
   );
   const [phaseSub, setPhaseSub] = useState(() => beatsForMode(mode, 0).subtitle);
+  const [phaseMeta, setPhaseMeta] = useState(
+    () => beatsForMode(mode, 0).meta ?? {},
+  );
   const [status, setStatus] = useState(
     bridge.available
       ? "Choisis un mode, Start, puis regarde l’île — ou tape Comprendre."
@@ -69,7 +72,9 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     const b = beatsForMode(mode, tick.current);
     setPhaseTitle(b.title);
     setPhaseSub(b.subtitle);
+    setPhaseMeta(b.meta ?? {});
   }, [mode]);
+
   useEffect(() => {
     return () => {
       void killActivities(bridge, knownIds.current);
@@ -82,6 +87,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     const b = beatsForMode(nextMode, n);
     setPhaseTitle(b.title);
     setPhaseSub(b.subtitle);
+    setPhaseMeta(b.meta ?? {});
     setPulseKey((k) => k + 1);
     return b;
   };
@@ -238,6 +244,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
           title={phaseTitle}
           subtitle={phaseSub}
           accent={guide.accent}
+          meta={phaseMeta}
         />
       </View>
 
@@ -262,9 +269,13 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
           {phaseSub}
         </Text>
         <Text style={[styles.readoutWhy, { color: theme.textSecondary }]}>
-          {running
-            ? "Le gros titre = l’ordre / l’état. Le sous-titre = le détail. La barre = le temps restant de cette phase."
-            : "Appuie sur Start pour envoyer ça sur ta Dynamic Island, puis tape l’île pour ce guide."}
+          {mode === "score"
+            ? running
+              ? "Pas de barre : l’île affiche les 2 scores en titre. Long press pour agrandir."
+              : "Start envoie COR vs ALT sur l’île — sans barre. (L’oiseau vert = une autre app.)"
+            : running
+              ? "Chaque mode a sa forme : timer/barre seulement si ça a du sens (pas pour Score)."
+              : "Start envoie cette expérience sur l’île. Change de mode pour voir la diversité."}
         </Text>
       </View>
 
@@ -389,6 +400,24 @@ function ActionButton({
   );
 }
 
+function layoutForPreview(mode: IslandMode) {
+  switch (mode) {
+    case "score":
+      return { width: 320, height: 108, radius: 28, pad: 14 };
+    case "breathe":
+      return { width: 200, height: 72, radius: 36, pad: 14 };
+    case "timer":
+      return { width: 168, height: 40, radius: 20, pad: 12 };
+    case "progress":
+      return { width: 312, height: 92, radius: 24, pad: 14 };
+    case "music":
+      return { width: 300, height: 88, radius: 22, pad: 14 };
+    case "focus":
+    default:
+      return { width: 300, height: 88, radius: 24, pad: 14 };
+  }
+}
+
 function IslandPreview({
   mode,
   pulseKey,
@@ -396,6 +425,7 @@ function IslandPreview({
   title,
   subtitle,
   accent,
+  meta,
 }: {
   mode: IslandMode;
   pulseKey: number;
@@ -403,11 +433,9 @@ function IslandPreview({
   title: string;
   subtitle: string;
   accent: string;
+  meta: Record<string, string | number>;
 }) {
-  const compact = mode === "timer" || mode === "breathe";
-  const target = compact
-    ? { width: 168, height: 40, radius: 20, pad: 12 }
-    : { width: 312, height: 96, radius: 26, pad: 14 };
+  const target = layoutForPreview(mode);
   const width = useSharedValue(target.width);
   const height = useSharedValue(target.height);
   const radius = useSharedValue(target.radius);
@@ -415,15 +443,13 @@ function IslandPreview({
   const pulse = useSharedValue(1);
 
   useEffect(() => {
-    const next = compact
-      ? { width: 168, height: 40, radius: 20, pad: 12 }
-      : { width: 312, height: 96, radius: 26, pad: 14 };
+    const next = layoutForPreview(mode);
     const cfg = { damping: 16, stiffness: 200, mass: 0.8 };
     width.value = withSpring(next.width, cfg);
     height.value = withSpring(next.height, cfg);
     radius.value = withSpring(next.radius, cfg);
     pad.value = withSpring(next.pad, cfg);
-  }, [compact, width, height, radius, pad]);
+  }, [mode, width, height, radius, pad]);
 
   useEffect(() => {
     if (pulseKey === 0) return;
@@ -449,33 +475,134 @@ function IslandPreview({
       ]}
     >
       <BlurView intensity={52} tint="dark" style={StyleSheet.absoluteFill} />
-      {compact ? (
-        <View style={styles.innerRow}>
-          <Text style={styles.compactLead} numberOfLines={1}>
-            {title.replace(/^[^A-Za-zÀ-ÿ]+/, "").slice(0, 10)}
-          </Text>
-          <View style={{ flex: 1 }} />
-          <Text style={[styles.compactTrail, { color: accent }]}>live</Text>
+      <PreviewByMode
+        mode={mode}
+        title={title}
+        subtitle={subtitle}
+        accent={accent}
+        meta={meta}
+      />
+    </Animated.View>
+  );
+}
+
+function PreviewByMode({
+  mode,
+  title,
+  subtitle,
+  accent,
+  meta,
+}: {
+  mode: IslandMode;
+  title: string;
+  subtitle: string;
+  accent: string;
+  meta: Record<string, string | number>;
+}) {
+  if (mode === "score") {
+    const home = Number(meta.home ?? 12);
+    const away = Number(meta.away ?? 10);
+    return (
+      <View style={styles.scoreRow}>
+        <View style={[styles.scoreBlock, { borderColor: accent }]}>
+          <Text style={styles.scoreTeam}>COR</Text>
+          <Text style={[styles.scoreNum, { color: accent }]}>{home}</Text>
         </View>
-      ) : (
-        <View style={styles.innerCol}>
+        <Text style={styles.scoreVs}>vs</Text>
+        <View style={[styles.scoreBlock, { borderColor: "#fff" }]}>
+          <Text style={styles.scoreTeam}>ALT</Text>
+          <Text style={styles.scoreNum}>{away}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (mode === "breathe") {
+    return (
+      <View style={styles.breatheWrap}>
+        <View style={[styles.breatheRing, { borderColor: accent }]} />
+        <Text style={[styles.breatheWord, { color: accent }]} numberOfLines={1}>
+          {title.replace(/^[^\wÀ-ÿ]+/, "")}
+        </Text>
+      </View>
+    );
+  }
+
+  if (mode === "timer") {
+    return (
+      <View style={styles.innerRow}>
+        <Text style={styles.compactLead}>MIN</Text>
+        <View style={{ flex: 1 }} />
+        <Text style={[styles.compactTrail, { color: accent }]}>
+          {title.includes("25") ? "25:00" : title.includes("3 ") ? "03:00" : "05:00"}
+        </Text>
+      </View>
+    );
+  }
+
+  if (mode === "progress") {
+    const step = Number(meta.step ?? 1);
+    return (
+      <View style={styles.innerCol}>
+        <Text style={styles.expTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.expSub} numberOfLines={1}>
+          {subtitle}
+        </Text>
+        <View style={styles.stepsRow}>
+          {[1, 2, 3, 4].map((n) => (
+            <View
+              key={n}
+              style={[
+                styles.stepDot,
+                {
+                  backgroundColor: n <= step ? accent : "rgba(255,255,255,0.2)",
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (mode === "music") {
+    return (
+      <View style={styles.musicRow}>
+        <View style={styles.eq}>
+          {[0.4, 0.8, 0.55, 0.95, 0.35].map((h, i) => (
+            <View
+              key={i}
+              style={[
+                styles.eqBar,
+                { height: 10 + h * 28, backgroundColor: accent },
+              ]}
+            />
+          ))}
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.expTitle} numberOfLines={1}>
             {title}
           </Text>
-          <Text style={styles.expSub} numberOfLines={2}>
+          <Text style={styles.expSub} numberOfLines={1}>
             {subtitle}
           </Text>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: "55%", backgroundColor: accent },
-              ]}
-            />
-          </View>
         </View>
-      )}
-    </Animated.View>
+      </View>
+    );
+  }
+
+  // focus
+  return (
+    <View style={styles.innerCol}>
+      <Text style={[styles.expTitle, { color: accent }]} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={styles.expSub} numberOfLines={2}>
+        {subtitle}
+      </Text>
+    </View>
   );
 }
 
@@ -558,12 +685,66 @@ const styles = StyleSheet.create({
   compactTrail: { fontSize: 12, fontWeight: "700" },
   expTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
   expSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, lineHeight: 16 },
-  progressTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    overflow: "hidden",
-    marginTop: 2,
+  scoreRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
   },
-  progressFill: { height: "100%", borderRadius: 3 },
+  scoreBlock: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  scoreTeam: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  scoreNum: {
+    color: "#fff",
+    fontSize: 32,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -1,
+  },
+  scoreVs: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  breatheWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  breatheRing: {
+    position: "absolute",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    opacity: 0.45,
+  },
+  breatheWord: { fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
+  stepsRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  stepDot: { width: 22, height: 6, borderRadius: 3 },
+  musicRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  eq: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+    height: 40,
+  },
+  eqBar: { width: 5, borderRadius: 2 },
 });

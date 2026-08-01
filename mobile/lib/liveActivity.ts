@@ -152,11 +152,15 @@ export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
   const now = Date.now();
   const beat = beatsForMode(mode, tick);
   const theme = THEMES[mode];
+  // Score (et modes sans timer) : PAS de barre sur l’île native.
+  const useTimer = beat.showTimer !== false && beat.seconds > 0;
   return {
     state: {
       title: beat.title,
       subtitle: beat.subtitle,
-      progressBar: { date: now + beat.seconds * 1000 },
+      ...(useTimer
+        ? { progressBar: { date: now + beat.seconds * 1000 } }
+        : {}),
     },
     config: {
       titleColor: "#FFFFFF",

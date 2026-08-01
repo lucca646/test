@@ -13,10 +13,10 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="CORAIA GLASS · FIX STYLES"
+      kicker="CORAIA GLASS · DIVERSITÉ"
       title="Aujourd'hui"
-      body="Bug « styles doesn't exist » corrigé. Tu dois voir Respire / Focus / Score ici."
-      tint={["#5E5CE6", "#0A84FF"]}
+      body="Score = 2 blocs (plus de barre). Chaque mode a sa forme. Start pour l’envoyer sur l’île."
+      tint={["#FF453A", "#5E5CE6"]}
     >
       <View
         style={[

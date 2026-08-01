@@ -45,15 +45,15 @@ export const ISLAND_GUIDES: Record<IslandMode, IslandGuide> = {
   score: {
     mode: "score",
     title: "Score en direct",
-    tagline: "Un match fictif COR·ALT qui tick sur l’île.",
-    why: "Démo d’un ticker sportif : le titre montre le score, le sous-titre le quart-temps et l’horloge. Idéal pour comprendre les mises à jour Live Activity.",
+    tagline: "Deux scores côte à côte — pas de barre de progression.",
+    why: "Sur l’île, le gros titre = les deux scores (COR à gauche, ALT à droite). Pas de barre ici : chaque mode a sa forme. Le sous-titre donne le quart-temps.",
     how: [
-      "Le score évolue tout seul (autopilot)",
-      "Q1 → Q4 = les quarts du match",
-      "L’horloge descend comme en vrai",
-      "Utile pour prototyper un vrai feed sport plus tard",
+      "Start envoie le score sur l’île (sans barre)",
+      "Phase + ou Autopilot fait bouger les points",
+      "Long press sur l’île = vue agrandie Apple",
+      "Si tu vois un oiseau vert, c’est une autre app (ex. Duolingo)",
     ],
-    tip: "Ce n’est pas un vrai match — c’est une démo visuelle de l’île.",
+    tip: "Chaque expérience a un visuel différent : score = 2 blocs, respirer = phase, livraison = étapes.",
     accent: "#FF453A",
   },
   timer: {
@@ -102,6 +102,10 @@ export type IslandBeat = {
   subtitle: string;
   seconds: number;
   tint?: string;
+  /** false = pas de barre/timer sur l’île native (ex. Score). */
+  showTimer?: boolean;
+  /** Données libres pour l’aperçu in-app diversifié. */
+  meta?: Record<string, string | number>;
 };
 
 /** Phrases FR soignées pour l’île (contrainte widget = 2 lignes texte). */
@@ -163,13 +167,15 @@ export function beatsForMode(mode: IslandMode, tick: number): IslandBeat {
     case "score": {
       const home = 12 + (tick % 9) * 3;
       const away = 10 + ((tick + 3) % 7) * 2;
-      const clock = Math.max(15, 12 * 60 - tick * 18);
       const q = (Math.floor(tick / 5) % 4) + 1;
       return {
-        title: `COR ${home} — ${away} ALT`,
-        subtitle: `Quart-temps ${q} · ${fmt(clock)} restants · démo live`,
-        seconds: clock,
+        // Titre = les 2 scores (ce que l’île affiche en gros)
+        title: `${home}  —  ${away}`,
+        subtitle: `COR vs ALT · Quart-temps ${q} · live`,
+        seconds: 0,
         tint: "#FF453A",
+        showTimer: false,
+        meta: { home, away, quarter: q },
       };
     }
     case "music": {
@@ -186,6 +192,8 @@ export function beatsForMode(mode: IslandMode, tick: number): IslandBeat {
         subtitle: `${t.sub} · −${fmt(left)} restants`,
         seconds: left,
         tint: "#BF5AF2",
+        showTimer: true,
+        meta: { kind: "music" },
       };
     }
     case "progress": {
@@ -194,24 +202,32 @@ export function beatsForMode(mode: IslandMode, tick: number): IslandBeat {
           title: "Colis scanné",
           subtitle: "Entrepôt · préparation · ~18 min",
           seconds: 18 * 60,
+          meta: { step: 1 },
         },
         {
           title: "En route vers toi",
           subtitle: "Livreur assigné · ~12 min",
           seconds: 12 * 60,
+          meta: { step: 2 },
         },
         {
           title: "Dernier kilomètre",
           subtitle: "Presque là · ~4 min",
           seconds: 4 * 60,
+          meta: { step: 3 },
         },
         {
           title: "Devant chez toi",
           subtitle: "Sonne · code 4821 · 1 min",
           seconds: 60,
+          meta: { step: 4 },
         },
       ];
-      return { ...stages[tick % stages.length], tint: "#64D2FF" };
+      return {
+        ...stages[tick % stages.length],
+        tint: "#64D2FF",
+        showTimer: true,
+      };
     }
     case "timer":
     default: {
