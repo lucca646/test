@@ -48,31 +48,21 @@ npx eas build -p ios --profile preview --non-interactive
 ## MAJ sans build = EAS Update (OTA)
 
 L’app installée contient un **binaire natif** (Swift / UITabBar / ActivityKit)
-+ un **bundle JS** (React Native).  
-Un *build* EAS recompile le binaire (coûte 1 crédit Free).  
-Un *update* EAS ne renvoie **que le JS** → 0 crédit.
++ un **bundle JS** (React Native).
 
-```
-┌──────────────┐     eas update      ┌─────────────� 0 crédit.
+- Un *build* EAS recompile le binaire → **1 crédit** Free (15 iOS/mois).
+- Un *update* EAS renvoie **uniquement le JS** → **0 crédit**.
 
-```
-┌──────────────┐     eas update      ┌─────────────┐
-│  Expo CDN    │ ─────────────────►  │  iPhone     │
-│  (nouveau JS)│                     │  expo-updates│
-└──────────────┘                     │  reload JS  │
-                                     └─────────────┘
-```
+Flux :
 
-1. Tu as déjà une IPA TestFlight / preview (`runtimeVersion` = version app, ex. `1.1.0`)
-2. On publie : `./scripts-eas-update.sh production "message"`
-3. Au prochain lancement, `applyOtaUpdateIfAny()` check → fetch → `reloadAsync()`
-4. Nouvelle UI / logique île **sans** repasser par Xcode ni brûler un build
+1. IPA déjà installée (TestFlight / preview), même `runtimeVersion` (ex. `1.1.0`)
+2. Publish : `./scripts-eas-update.sh production "message"`
+3. Au lancement, `applyOtaUpdateIfAny()` → check → fetch → `reloadAsync()`
+4. Nouvelle UI / logique île **sans** Xcode ni build
 
-**Ça passe en OTA :** écrans, styles, modes Dynamic Island, autopilot, textes.  
-**Ça exige un build :** nouvelle icône home, nouveaux plugins natifs, assets
-Live Activity du widget (PNG dans l’extension), changement de `runtimeVersion`.
+**OTA OK :** écrans, styles, modes Dynamic Island, autopilot, textes.  
+**Build requis :** icône home, plugins natifs, PNG du widget Live Activity, bump `runtimeVersion`.
 
-### Commandes
 ```bash
 cd mobile
 ./scripts-eas-check-secrets.sh
