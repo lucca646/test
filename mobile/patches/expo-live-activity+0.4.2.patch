@@ -45,116 +45,148 @@ index 1a00e92..e8a4974 100644
              if let subtitle = contentState.subtitle {
                Text(subtitle)
 diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
-index 24cd8c5..0ac930d 100644
+index 24cd8c5..07ff96f 100644
 --- a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
 +++ b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
-@@ -45,6 +45,24 @@ struct LiveActivityAttributes: ActivityAttributes {
+@@ -10,6 +10,15 @@ struct LiveActivityAttributes: ActivityAttributes {
+     var progress: Double?
+     var imageName: String?
+     var dynamicIslandImageName: String?
++
++    var layout: String?
++    var leadingText: String?
++    var trailingText: String?
++    var leadingLabel: String?
++    var trailingLabel: String?
++    var centerText: String?
++    var bottomText: String?
++    var badgeText: String?
+   }
+ 
+   var name: String
+@@ -25,8 +34,8 @@ struct LiveActivityAttributes: ActivityAttributes {
+   var imagePosition: String?
+   var imageWidth: Int?
+   var imageHeight: Int?
+-  var imageWidthPercent: Double?
+   var imageHeightPercent: Double?
++  var imageWidthPercent: Double?
+   var imageAlign: String?
+   var contentFit: String?
+ 
+@@ -45,6 +54,64 @@ struct LiveActivityAttributes: ActivityAttributes {
    }
  }
  
-+/// Protocole JS : title = "12|16" → scores à gauche / droite de l’île.
-+private struct ScorePair {
-+  let home: String
-+  let away: String
++/// Résout le layout effectif + textes (compat protocole "12|16" dans title).
++private struct IslandKit {
++  let layout: String
++  let leading: String?
++  let trailing: String?
++  let leadingLabel: String?
++  let trailingLabel: String?
++  let center: String?
++  let bottom: String?
++  let badge: String?
++  let title: String
++  let subtitle: String?
 +
-+  static func parse(_ title: String) -> ScorePair? {
++  init(state: LiveActivityAttributes.ContentState) {
++    title = state.title
++    subtitle = state.subtitle
++    badge = state.badgeText
++    center = state.centerText
++    bottom = state.bottomText ?? state.subtitle
++
++    // Protocole legacy score: "12|16"
++    if let pipe = Self.parsePipe(state.title) {
++      layout = state.layout ?? "score"
++      leading = state.leadingText ?? pipe.0
++      trailing = state.trailingText ?? pipe.1
++      leadingLabel = state.leadingLabel ?? "COR"
++      trailingLabel = state.trailingLabel ?? "ALT"
++      return
++    }
++
++    layout = state.layout ?? "default"
++    leading = state.leadingText
++    trailing = state.trailingText
++    leadingLabel = state.leadingLabel
++    trailingLabel = state.trailingLabel
++  }
++
++  var isSideNumbers: Bool {
++    switch layout {
++    case "score", "dual", "sides":
++      return leading != nil && trailing != nil
++    default:
++      return false
++    }
++  }
++
++  private static func parsePipe(_ title: String) -> (String, String)? {
 +    let parts = title.split(separator: "|", omittingEmptySubsequences: false)
 +    guard parts.count == 2 else { return nil }
-+    let home = parts[0].trimmingCharacters(in: .whitespaces)
-+    let away = parts[1].trimmingCharacters(in: .whitespaces)
-+    guard !home.isEmpty, !away.isEmpty,
-+          home.allSatisfy({ $0.isNumber }),
-+          away.allSatisfy({ $0.isNumber })
-+    else { return nil }
-+    return ScorePair(home: home, away: away)
++    let a = parts[0].trimmingCharacters(in: .whitespaces)
++    let b = parts[1].trimmingCharacters(in: .whitespaces)
++    guard !a.isEmpty, !b.isEmpty, a.allSatisfy(\.isNumber), b.allSatisfy(\.isNumber) else {
++      return nil
++    }
++    return (a, b)
 +  }
 +}
 +
  struct LiveActivityWidget: Widget {
    var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
-@@ -55,55 +73,116 @@ struct LiveActivityWidget: Widget {
+@@ -55,52 +122,197 @@ struct LiveActivityWidget: Widget {
          .activitySystemActionForegroundColor(Color.black)
          .applyWidgetURL(from: context.attributes.deepLinkUrl)
      } dynamicIsland: { context in
-+      let score = ScorePair.parse(context.state.title)
++      let kit = IslandKit(state: context.state)
 +
        DynamicIsland {
          DynamicIslandExpandedRegion(.leading, priority: 1) {
 -          dynamicIslandExpandedLeading(title: context.state.title, subtitle: context.state.subtitle)
--            .dynamicIsland(verticalPlacement: .belowIfTooWide)
--            .padding(.leading, 5)
--            .applyWidgetURL(from: context.attributes.deepLinkUrl)
-+          Group {
-+            if let score {
-+              scoreExpandedSide(label: "COR", value: score.home, align: .leading)
-+            } else {
-+              dynamicIslandExpandedLeading(
-+                title: context.state.title,
-+                subtitle: context.state.subtitle
-+              )
-+            }
-+          }
-+          .dynamicIsland(verticalPlacement: .belowIfTooWide)
-+          .padding(.leading, 5)
-+          .applyWidgetURL(from: context.attributes.deepLinkUrl)
++          expandedLeading(kit: kit, state: context.state)
+             .dynamicIsland(verticalPlacement: .belowIfTooWide)
+             .padding(.leading, 5)
+             .applyWidgetURL(from: context.attributes.deepLinkUrl)
          }
          DynamicIslandExpandedRegion(.trailing) {
 -          if let imageName = context.state.imageName {
 -            dynamicIslandExpandedTrailing(imageName: imageName)
 -              .padding(.trailing, 5)
--              .applyWidgetURL(from: context.attributes.deepLinkUrl)
-+          Group {
-+            if let score {
-+              scoreExpandedSide(label: "ALT", value: score.away, align: .trailing)
-+            } else if let imageName = context.state.imageName {
-+              dynamicIslandExpandedTrailing(imageName: imageName)
-+            }
++          expandedTrailing(kit: kit, state: context.state)
++            .padding(.trailing, 5)
++            .applyWidgetURL(from: context.attributes.deepLinkUrl)
++        }
++        DynamicIslandExpandedRegion(.center) {
++          if let center = kit.center {
++            Text(center)
++              .font(.headline.weight(.semibold))
++              .foregroundStyle(.white)
+               .applyWidgetURL(from: context.attributes.deepLinkUrl)
            }
-+          .padding(.trailing, 5)
-+          .applyWidgetURL(from: context.attributes.deepLinkUrl)
          }
          DynamicIslandExpandedRegion(.bottom) {
 -          if let date = context.state.timerEndDateInMilliseconds {
 -            dynamicIslandExpandedBottom(
 -              endDate: date, progressViewTint: context.attributes.progressViewTint
 -            )
--            .padding(.horizontal, 5)
--            .applyWidgetURL(from: context.attributes.deepLinkUrl)
-+          Group {
-+            if let score {
-+              if let subtitle = context.state.subtitle {
-+                Text(subtitle)
-+                  .font(.caption)
-+                  .foregroundStyle(.white.opacity(0.8))
-+                  .frame(maxWidth: .infinity, alignment: .center)
-+              }
-+            } else if let date = context.state.timerEndDateInMilliseconds {
-+              dynamicIslandExpandedBottom(
-+                endDate: date, progressViewTint: context.attributes.progressViewTint
-+              )
-+            }
-           }
-+          .padding(.horizontal, 5)
-+          .applyWidgetURL(from: context.attributes.deepLinkUrl)
++          expandedBottom(kit: kit, state: context.state, tint: context.attributes.progressViewTint)
+             .padding(.horizontal, 5)
+             .applyWidgetURL(from: context.attributes.deepLinkUrl)
+-          }
          }
        } compactLeading: {
 -        if let dynamicIslandImageName = context.state.dynamicIslandImageName {
 -          resizableImage(imageName: dynamicIslandImageName)
 -            .frame(maxWidth: 23, maxHeight: 23)
 -            .applyWidgetURL(from: context.attributes.deepLinkUrl)
-+        Group {
-+          if let score {
-+            Text(score.home)
-+              .font(.system(size: 16, weight: .bold, design: .rounded))
-+              .foregroundStyle(.white)
-+              .minimumScaleFactor(0.7)
-+          } else if let dynamicIslandImageName = context.state.dynamicIslandImageName {
-+            resizableImage(imageName: dynamicIslandImageName)
-+              .frame(maxWidth: 23, maxHeight: 23)
-+          }
-         }
-+        .applyWidgetURL(from: context.attributes.deepLinkUrl)
+-        }
++        compactLeading(kit: kit, state: context.state)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
        } compactTrailing: {
 -        if let date = context.state.timerEndDateInMilliseconds {
 -          compactTimer(
@@ -162,21 +194,9 @@ index 24cd8c5..0ac930d 100644
 -            timerType: context.attributes.timerType ?? .circular,
 -            progressViewTint: context.attributes.progressViewTint
 -          ).applyWidgetURL(from: context.attributes.deepLinkUrl)
-+        Group {
-+          if let score {
-+            Text(score.away)
-+              .font(.system(size: 16, weight: .bold, design: .rounded))
-+              .foregroundStyle(.white)
-+              .minimumScaleFactor(0.7)
-+          } else if let date = context.state.timerEndDateInMilliseconds {
-+            compactTimer(
-+              endDate: date,
-+              timerType: context.attributes.timerType ?? .circular,
-+              progressViewTint: context.attributes.progressViewTint
-+            )
-+          }
-         }
-+        .applyWidgetURL(from: context.attributes.deepLinkUrl)
+-        }
++        compactTrailing(kit: kit, state: context.state, attributes: context.attributes)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
        } minimal: {
 -        if let date = context.state.timerEndDateInMilliseconds {
 -          compactTimer(
@@ -184,27 +204,154 @@ index 24cd8c5..0ac930d 100644
 -            timerType: context.attributes.timerType ?? .circular,
 -            progressViewTint: context.attributes.progressViewTint
 -          ).applyWidgetURL(from: context.attributes.deepLinkUrl)
-+        Group {
-+          if let score {
-+            Text(score.home)
-+              .font(.system(size: 14, weight: .bold, design: .rounded))
-+              .foregroundStyle(.white)
-+          } else if let date = context.state.timerEndDateInMilliseconds {
-+            compactTimer(
-+              endDate: date,
-+              timerType: context.attributes.timerType ?? .circular,
-+              progressViewTint: context.attributes.progressViewTint
-+            )
-+          }
++        minimalView(kit: kit, state: context.state, attributes: context.attributes)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
++      }
++    }
++  }
++
++  // MARK: - Compact
++
++  @ViewBuilder
++  private func compactLeading(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
++    if kit.isSideNumbers, let leading = kit.leading {
++      Text(leading)
++        .font(.system(size: 16, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++        .minimumScaleFactor(0.6)
++    } else if let badge = kit.badge {
++      Text(badge)
++        .font(.system(size: 12, weight: .heavy, design: .rounded))
++        .foregroundStyle(.white)
++    } else if let dynamicIslandImageName = state.dynamicIslandImageName {
++      resizableImage(imageName: dynamicIslandImageName)
++        .frame(maxWidth: 23, maxHeight: 23)
++    } else if kit.layout == "breathe" || kit.layout == "focus" {
++      Text(String((kit.center ?? kit.title).prefix(3)).uppercased())
++        .font(.system(size: 11, weight: .bold))
++        .foregroundStyle(.white)
++    }
++  }
++
++  @ViewBuilder
++  private func compactTrailing(
++    kit: IslandKit,
++    state: LiveActivityAttributes.ContentState,
++    attributes: LiveActivityAttributes
++  ) -> some View {
++    if kit.isSideNumbers, let trailing = kit.trailing {
++      Text(trailing)
++        .font(.system(size: 16, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++        .minimumScaleFactor(0.6)
++    } else if let date = state.timerEndDateInMilliseconds {
++      compactTimer(
++        endDate: date,
++        timerType: attributes.timerType ?? .circular,
++        progressViewTint: attributes.progressViewTint
++      )
++    } else if let trailing = kit.trailing {
++      Text(trailing)
++        .font(.system(size: 13, weight: .semibold, design: .rounded))
++        .foregroundStyle(.white)
++        .minimumScaleFactor(0.7)
++    }
++  }
++
++  @ViewBuilder
++  private func minimalView(
++    kit: IslandKit,
++    state: LiveActivityAttributes.ContentState,
++    attributes: LiveActivityAttributes
++  ) -> some View {
++    if kit.isSideNumbers, let leading = kit.leading {
++      Text(leading)
++        .font(.system(size: 14, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++    } else if let date = state.timerEndDateInMilliseconds {
++      compactTimer(
++        endDate: date,
++        timerType: attributes.timerType ?? .circular,
++        progressViewTint: attributes.progressViewTint
++      )
++    } else if let badge = kit.badge {
++      Text(badge)
++        .font(.caption2.weight(.bold))
++        .foregroundStyle(.white)
++    }
++  }
++
++  // MARK: - Expanded
++
++  @ViewBuilder
++  private func expandedLeading(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
++    if kit.isSideNumbers, let leading = kit.leading {
++      scoreSide(label: kit.leadingLabel ?? "L", value: leading, align: .leading)
++    } else {
++      VStack(alignment: .leading) {
++        Spacer(minLength: 0)
++        Text(kit.title.replacingOccurrences(of: "|", with: " — "))
++          .font(.title2)
++          .foregroundStyle(.white)
++          .fontWeight(.semibold)
++        if let subtitle = kit.subtitle {
++          Text(subtitle)
++            .font(.title3)
++            .minimumScaleFactor(0.8)
++            .foregroundStyle(.white.opacity(0.75))
          }
-+        .applyWidgetURL(from: context.attributes.deepLinkUrl)
++        Spacer(minLength: 0)
++      }
++    }
++  }
++
++  @ViewBuilder
++  private func expandedTrailing(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
++    if kit.isSideNumbers, let trailing = kit.trailing {
++      scoreSide(label: kit.trailingLabel ?? "R", value: trailing, align: .trailing)
++    } else if let imageName = state.imageName {
++      VStack {
++        Spacer(minLength: 0)
++        resizableImage(imageName: imageName)
++        Spacer(minLength: 0)
++      }
++    } else if let trailing = kit.trailing {
++      Text(trailing)
++        .font(.title3.weight(.bold))
++        .foregroundStyle(.white)
++    }
++  }
++
++  @ViewBuilder
++  private func expandedBottom(
++    kit: IslandKit,
++    state: LiveActivityAttributes.ContentState,
++    tint: String?
++  ) -> some View {
++    if kit.isSideNumbers {
++      if let bottom = kit.bottom {
++        Text(bottom)
++          .font(.caption)
++          .foregroundStyle(.white.opacity(0.8))
++          .frame(maxWidth: .infinity, alignment: .center)
        }
-     }
-   }
- 
-+  private func scoreExpandedSide(label: String, value: String, align: HorizontalAlignment)
-+    -> some View
-+  {
++    } else if let date = state.timerEndDateInMilliseconds {
++      ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
++        .foregroundStyle(.white)
++        .tint(tint.map { Color(hex: $0) })
++        .padding(.top, 5)
++    } else if let progress = state.progress {
++      ProgressView(value: progress)
++        .tint(tint.map { Color(hex: $0) })
++        .padding(.top, 5)
++    } else if let bottom = kit.bottom {
++      Text(bottom)
++        .font(.caption)
++        .foregroundStyle(.white.opacity(0.8))
++    }
++  }
++
++  private func scoreSide(label: String, value: String, align: HorizontalAlignment) -> some View {
 +    VStack(alignment: align, spacing: 2) {
 +      Spacer(minLength: 0)
 +      Text(label)
@@ -214,9 +361,201 @@ index 24cd8c5..0ac930d 100644
 +        .font(.system(size: 28, weight: .bold, design: .rounded))
 +        .foregroundStyle(.white)
 +      Spacer(minLength: 0)
+     }
+   }
+ 
+@@ -118,52 +330,14 @@ struct LiveActivityWidget: Widget {
+         .frame(maxWidth: 60)
+         .multilineTextAlignment(.trailing)
+     } else {
+-      circularTimer(endDate: endDate)
+-        .tint(progressViewTint.map { Color(hex: $0) })
+-    }
+-  }
+-
+-  private func dynamicIslandExpandedLeading(title: String, subtitle: String?) -> some View {
+-    VStack(alignment: .leading) {
+-      Spacer()
+-      Text(title)
+-        .font(.title2)
+-        .foregroundStyle(.white)
+-        .fontWeight(.semibold)
+-      if let subtitle {
+-        Text(subtitle)
+-          .font(.title3)
+-          .minimumScaleFactor(0.8)
+-          .foregroundStyle(.white.opacity(0.75))
+-      }
+-      Spacer()
+-    }
+-  }
+-
+-  private func dynamicIslandExpandedTrailing(imageName: String) -> some View {
+-    VStack {
+-      Spacer()
+-      resizableImage(imageName: imageName)
+-      Spacer()
+-    }
+-  }
+-
+-  private func dynamicIslandExpandedBottom(endDate: Double, progressViewTint: String?) -> some View {
+-    ProgressView(timerInterval: Date.toTimerInterval(miliseconds: endDate))
+-      .foregroundStyle(.white)
++      ProgressView(
++        timerInterval: Date.toTimerInterval(miliseconds: endDate),
++        countsDown: false,
++        label: { EmptyView() },
++        currentValueLabel: { EmptyView() }
++      )
++      .progressViewStyle(.circular)
+       .tint(progressViewTint.map { Color(hex: $0) })
+-      .padding(.top, 5)
+-  }
+-
+-  private func circularTimer(endDate: Double) -> some View {
+-    ProgressView(
+-      timerInterval: Date.toTimerInterval(miliseconds: endDate),
+-      countsDown: false,
+-      label: { EmptyView() },
+-      currentValueLabel: {
+-        EmptyView()
+-      }
+-    )
+-    .progressViewStyle(.circular)
 +    }
+   }
+ }
+diff --git a/node_modules/expo-live-activity/ios/ExpoLiveActivityModule.swift b/node_modules/expo-live-activity/ios/ExpoLiveActivityModule.swift
+index 6fdf9f5..913e3b6 100644
+--- a/node_modules/expo-live-activity/ios/ExpoLiveActivityModule.swift
++++ b/node_modules/expo-live-activity/ios/ExpoLiveActivityModule.swift
+@@ -25,6 +25,31 @@ public class ExpoLiveActivityModule: Module {
+ 
+     @Field
+     var dynamicIslandImageName: String?
++
++    /// Layout kit: default | score | dual | timer | progress | music | breathe | focus | minimal | transport
++    @Field
++    var layout: String?
++
++    @Field
++    var leadingText: String?
++
++    @Field
++    var trailingText: String?
++
++    @Field
++    var leadingLabel: String?
++
++    @Field
++    var trailingLabel: String?
++
++    @Field
++    var centerText: String?
++
++    @Field
++    var bottomText: String?
++
++    @Field
++    var badgeText: String?
+   }
+ 
+   struct LiveActivityConfig: Record {
+@@ -138,6 +163,25 @@ public class ExpoLiveActivityModule: Module {
+     }
+   }
+ 
++  private func makeContentState(from state: LiveActivityState) -> LiveActivityAttributes.ContentState {
++    LiveActivityAttributes.ContentState(
++      title: state.title,
++      subtitle: state.subtitle,
++      timerEndDateInMilliseconds: state.progressBar?.date,
++      progress: state.progressBar?.progress,
++      imageName: state.imageName,
++      dynamicIslandImageName: state.dynamicIslandImageName,
++      layout: state.layout,
++      leadingText: state.leadingText,
++      trailingText: state.trailingText,
++      leadingLabel: state.leadingLabel,
++      trailingLabel: state.trailingLabel,
++      centerText: state.centerText,
++      bottomText: state.bottomText,
++      badgeText: state.badgeText
++    )
 +  }
 +
-   @ViewBuilder
-   private func compactTimer(
-     endDate: Double,
+   private func observePushToStartToken() {
+     guard #available(iOS 17.2, *), ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+ 
+@@ -245,12 +289,7 @@ public class ExpoLiveActivityModule: Module {
+           contentFit: config.contentFit
+         )
+ 
+-        let initialState = LiveActivityAttributes.ContentState(
+-          title: state.title,
+-          subtitle: state.subtitle,
+-          timerEndDateInMilliseconds: state.progressBar?.date,
+-          progress: state.progressBar?.progress
+-        )
++        let initialState = makeContentState(from: state)
+ 
+         let activity = try Activity.request(
+           attributes: attributes,
+@@ -281,12 +320,7 @@ public class ExpoLiveActivityModule: Module {
+ 
+       Task {
+         print("Stopping activity with id: \(activityId)")
+-        var newState = LiveActivityAttributes.ContentState(
+-          title: state.title,
+-          subtitle: state.subtitle,
+-          timerEndDateInMilliseconds: state.progressBar?.date,
+-          progress: state.progressBar?.progress
+-        )
++        var newState = makeContentState(from: state)
+         try await updateImages(state: state, newState: &newState)
+         await activity.end(
+           ActivityContent(state: newState, staleDate: nil),
+@@ -308,12 +342,7 @@ public class ExpoLiveActivityModule: Module {
+ 
+       Task {
+         print("Updating activity with id: \(activityId)")
+-        var newState = LiveActivityAttributes.ContentState(
+-          title: state.title,
+-          subtitle: state.subtitle,
+-          timerEndDateInMilliseconds: state.progressBar?.date,
+-          progress: state.progressBar?.progress
+-        )
++        var newState = makeContentState(from: state)
+         try await updateImages(state: state, newState: &newState)
+         await activity.update(ActivityContent(state: newState, staleDate: nil))
+       }
+diff --git a/node_modules/expo-live-activity/ios/LiveActivityAttributes.swift b/node_modules/expo-live-activity/ios/LiveActivityAttributes.swift
+index f71c857..95f1500 100644
+--- a/node_modules/expo-live-activity/ios/LiveActivityAttributes.swift
++++ b/node_modules/expo-live-activity/ios/LiveActivityAttributes.swift
+@@ -2,6 +2,8 @@ import ActivityKit
+ import Foundation
+ 
+ struct LiveActivityAttributes: ActivityAttributes {
++  /// État ultra-modulable piloté depuis JS.
++  /// `layout` choisit le rendu ; les champs texte optionnels alimentent chaque zone.
+   struct ContentState: Codable, Hashable {
+     var title: String
+     var subtitle: String?
+@@ -9,6 +11,16 @@ struct LiveActivityAttributes: ActivityAttributes {
+     var progress: Double?
+     var imageName: String?
+     var dynamicIslandImageName: String?
++
++    /// default | score | dual | timer | progress | music | breathe | focus | minimal | transport
++    var layout: String?
++    var leadingText: String?
++    var trailingText: String?
++    var leadingLabel: String?
++    var trailingLabel: String?
++    var centerText: String?
++    var bottomText: String?
++    var badgeText: String?
+   }
+ 
+   var name: String

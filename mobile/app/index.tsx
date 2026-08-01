@@ -13,9 +13,9 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="CORAIA GLASS · CÔTÉS ÎLE"
+      kicker="CORAIA GLASS · KIT MODULAIRE"
       title="Aujourd'hui"
-      body="L’aperçu ≠ l’île Apple. Chiffres gauche/droite = 1 build natif (widget patché). OTA ne peut pas ça."
+      body="Widget natif prêt : score/dual/timer/music/breathe… Chiffres sur les côtés = ce build. Start → Score."
       tint={["#FF453A", "#5E5CE6"]}
     >
       <View

@@ -1,14 +1,28 @@
 import { Platform } from "react-native";
-import { beatsForMode } from "./islandCopy";
+import {
+  modularStateForMode,
+  type ModularIslandState,
+  type ModularPayload,
+} from "./islandKit";
 import type { IslandMode } from "./islandTypes";
 
 export type { IslandMode };
+export type { ModularIslandState, ModularPayload };
+
 export type LiveActivityState = {
   title: string;
   subtitle?: string;
   progressBar?: { date: number } | { progress: number };
   imageName?: string;
   dynamicIslandImageName?: string;
+  layout?: string;
+  leadingText?: string;
+  trailingText?: string;
+  leadingLabel?: string;
+  trailingLabel?: string;
+  centerText?: string;
+  bottomText?: string;
+  badgeText?: string;
 };
 
 export type LiveActivityConfig = {
@@ -85,50 +99,7 @@ export async function killActivities(
   if (list.length > 0) await sleep(450);
 }
 
-type ThemeCfg = Pick<
-  LiveActivityConfig,
-  "backgroundColor" | "timerType" | "deepLinkUrl"
->;
-
-const THEMES: Record<IslandMode, ThemeCfg> = {
-  timer: {
-    backgroundColor: "#0B0B0F",
-    timerType: "digital",
-    deepLinkUrl: "/",
-  },
-  music: {
-    backgroundColor: "#12081C",
-    timerType: "digital",
-    deepLinkUrl: "/",
-  },
-  progress: {
-    backgroundColor: "#071018",
-    timerType: "circular",
-    deepLinkUrl: "/",
-  },
-  focus: {
-    backgroundColor: "#0A1A12",
-    timerType: "digital",
-    deepLinkUrl: "/",
-  },
-  breathe: {
-    backgroundColor: "#0A1420",
-    timerType: "circular",
-    deepLinkUrl: "/",
-  },
-  score: {
-    backgroundColor: "#1A0A0A",
-    timerType: "digital",
-    deepLinkUrl: "/",
-  },
-};
-
-const PAD = { horizontal: 16, top: 14, bottom: 14 };
-
-export type ModePayload = {
-  state: LiveActivityState;
-  config: LiveActivityConfig;
-};
+export type ModePayload = ModularPayload;
 
 export function autopilotInterval(mode: IslandMode): number {
   switch (mode) {
@@ -148,27 +119,7 @@ export function autopilotInterval(mode: IslandMode): number {
   }
 }
 
+/** Payload modulaire — tous les champs layout prêts pour le widget patché. */
 export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
-  const now = Date.now();
-  const beat = beatsForMode(mode, tick);
-  const theme = THEMES[mode];
-  // Score (et modes sans timer) : PAS de barre sur l’île native.
-  const useTimer = beat.showTimer !== false && beat.seconds > 0;
-  return {
-    state: {
-      title: beat.title,
-      subtitle: beat.subtitle,
-      ...(useTimer
-        ? { progressBar: { date: now + beat.seconds * 1000 } }
-        : {}),
-    },
-    config: {
-      titleColor: "#FFFFFF",
-      subtitleColor: "#FFFFFFCC",
-      progressViewLabelColor: "#FFFFFF",
-      progressViewTint: beat.tint ?? "#0A84FF",
-      padding: PAD,
-      ...theme,
-    },
-  };
+  return modularStateForMode(mode, tick);
 }
