@@ -4,6 +4,7 @@ import TabScreen from "../components/TabScreen";
 import AsteroidPilot from "../components/games/AsteroidPilot";
 import JoystickSnake from "../components/games/JoystickSnake";
 import OrbRush from "../components/games/OrbRush";
+import { useAppTheme } from "../lib/theme";
 
 type GameId = "pilot" | "snake" | "orb";
 
@@ -35,6 +36,7 @@ const GAMES: {
 
 export default function GamesTab() {
   const [active, setActive] = useState<GameId | null>(null);
+  const theme = useAppTheme();
 
   if (active === "pilot") return <AsteroidPilot onClose={() => setActive(null)} />;
   if (active === "snake") return <JoystickSnake onClose={() => setActive(null)} />;
@@ -53,13 +55,21 @@ export default function GamesTab() {
             onPress={() => setActive(g.id)}
             style={({ pressed }) => [
               styles.card,
-              { borderColor: `${g.tint}66`, opacity: pressed ? 0.85 : 1 },
+              {
+                backgroundColor: theme.card,
+                borderColor: `${g.tint}66`,
+                opacity: pressed ? 0.85 : 1,
+              },
             ]}
           >
             <View style={[styles.dot, { backgroundColor: g.tint }]} />
             <View style={styles.copy}>
-              <Text style={styles.cardTitle}>{g.title}</Text>
-              <Text style={styles.cardBody}>{g.blurb}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>
+                {g.title}
+              </Text>
+              <Text style={[styles.cardBody, { color: theme.textMuted }]}>
+                {g.blurb}
+              </Text>
             </View>
             <Text style={[styles.play, { color: g.tint }]}>Jouer →</Text>
           </Pressable>
@@ -77,14 +87,12 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 20,
-    backgroundColor: "rgba(28,28,30,0.82)",
     borderWidth: 1,
   },
   dot: { width: 14, height: 14, borderRadius: 7 },
   copy: { flex: 1, gap: 4 },
-  cardTitle: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  cardTitle: { fontSize: 17, fontWeight: "700" },
   cardBody: {
-    color: "rgba(255,255,255,0.72)",
     fontSize: 13,
     lineHeight: 18,
   },

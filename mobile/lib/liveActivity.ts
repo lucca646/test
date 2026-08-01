@@ -1,22 +1,38 @@
 import { Platform } from "react-native";
 
-export type IslandMode =
-  | "compact"
-  | "minimal"
-  | "expanded"
-  | "timer"
-  | "music"
-  | "progress";
+/** Modes contenu Live Activity (ce qui est vraiment poussé sur l’île). */
+export type IslandMode = "timer" | "music" | "progress";
+
+export type LiveActivityState = {
+  title: string;
+  subtitle?: string;
+  progressBar?: { date: number } | { progress: number };
+  imageName?: string;
+  dynamicIslandImageName?: string;
+};
+
+export type LiveActivityConfig = {
+  backgroundColor?: string;
+  titleColor?: string;
+  subtitleColor?: string;
+  progressViewTint?: string;
+  progressViewLabelColor?: string;
+  deepLinkUrl?: string;
+  timerType?: "circular" | "digital";
+  padding?: { horizontal?: number; top?: number; bottom?: number };
+  imagePosition?: "left" | "right";
+  imageAlign?: "center" | "top" | "bottom";
+};
 
 export type LiveActivityBridge = {
   available: boolean;
   reason?: string;
   startActivity?: (
-    state: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    state: LiveActivityState,
+    config?: LiveActivityConfig,
   ) => string | undefined | void;
-  updateActivity?: (id: string, state: Record<string, unknown>) => void;
-  stopActivity?: (id: string, state: Record<string, unknown>) => void;
+  updateActivity?: (id: string, state: LiveActivityState) => void;
+  stopActivity?: (id: string, state: LiveActivityState) => void;
 };
 
 /** Charge le module natif seulement s’il existe (dev build). Expo Go → unavailable. */
@@ -52,7 +68,7 @@ export function getLiveActivityBridge(): LiveActivityBridge {
   }
 }
 
-const BASE_CONFIG = {
+const BASE_CONFIG: LiveActivityConfig = {
   backgroundColor: "#0B0B0F",
   titleColor: "#FFFFFF",
   subtitleColor: "#FFFFFF99",
@@ -60,78 +76,65 @@ const BASE_CONFIG = {
   progressViewLabelColor: "#FFFFFF",
   deepLinkUrl: "/",
   padding: { horizontal: 16, top: 14, bottom: 14 },
-  imagePosition: "right" as const,
-  imageAlign: "center" as const,
+  imagePosition: "right",
+  imageAlign: "center",
+};
+
+export type ModePayload = {
+  state: LiveActivityState;
+  config: LiveActivityConfig;
 };
 
 /** Mappe nos modes UI → state/config ActivityKit (via expo-live-activity). */
-export function stateForMode(mode: IslandMode) {
+export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
   const now = Date.now();
   switch (mode) {
-    case "timer":
-      return {
-        state: {
-          title: "Timer Liquid Glass",
-          subtitle: "Compte à rebours · Dynamic Island",
-          progressBar: { date: now + 5 * 60 * 1000 },
-          imageName: "live_cover",
-          dynamicIslandImageName: "island_timer",
-        },
-        config: { ...BASE_CONFIG, timerType: "digital" as const },
-      };
     case "progress":
       return {
         state: {
-          title: "Livraison en cours",
-          subtitle: "Arrivée estimée · 12 min",
-          progressBar: { progress: 0.62 },
+          title: ["Livraison en cours", "Colis en route", "Presque là"][
+            tick % 3
+          ],
+          subtitle: `Arrivée estimée · ${12 - (tick % 5)} min`,
+          progressBar: { progress: Math.min(0.95, 0.35 + tick * 0.12) },
           imageName: "live_cover",
           dynamicIslandImageName: "island_progress",
         },
-        config: { ...BASE_CONFIG, timerType: "circular" as const },
+        config: { ...BASE_CONFIG, timerType: "circular" },
       };
     case "music":
       return {
         state: {
-          title: "Liquid Glass",
+          title: ["Liquid Glass", "COR·ALT Live", "Island Drop"][tick % 3],
           subtitle: "COR·ALT · Now Playing",
-          progressBar: { progress: 0.35 },
+          progressBar: { progress: Math.min(0.95, 0.22 + tick * 0.15) },
           imageName: "live_cover",
           dynamicIslandImageName: "island_icon",
         },
         config: { ...BASE_CONFIG, deepLinkUrl: "/arcade" },
       };
-    case "minimal":
-      return {
-        state: {
-          title: "LG",
-          subtitle: "Minimal",
-          dynamicIslandImageName: "island_icon",
-        },
-        config: BASE_CONFIG,
-      };
-    case "expanded":
-      return {
-        state: {
-          title: "Session active",
-          subtitle: "Expanded · leading / trailing / center / bottom",
-          progressBar: { progress: 0.8 },
-          imageName: "live_cover",
-          dynamicIslandImageName: "island_icon",
-        },
-        config: BASE_CONFIG,
-      };
-    case "compact":
+    case "timer":
     default:
       return {
         state: {
-          title: "Liquid Glass",
-          subtitle: "Compact · leading + trailing",
-          progressBar: { date: now + 2 * 60 * 1000 },
+          title: ["Timer Liquid Glass", "Focus 25′", "Sprint final"][tick % 3],
+          subtitle: "Compte à rebours · Dynamic Island",
+          progressBar: { date: now + Math.max(60_000, (5 - (tick % 5)) * 60_000) },
           imageName: "live_cover",
-          dynamicIslandImageName: "island_icon",
+          dynamicIslandImageName: "island_timer",
         },
-        config: { ...BASE_CONFIG, timerType: "circular" as const },
+        config: { ...BASE_CONFIG, timerType: "digital" },
       };
   }
+}
+
+/**
+ * ActivityKit ne permet pas de changer `config` via update.
+ * Si timerType diffère (digital / circulaire / absent) ⇒ stop + start.
+ */
+export function needsRestart(from: IslandMode, to: IslandMode): boolean {
+  if (from === to) return false;
+  const a = stateForMode(from).config.timerType ?? "none";
+  const b = stateForMode(to).config.timerType ?? "none";
+  return a !== b;
 }

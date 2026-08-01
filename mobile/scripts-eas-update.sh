@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Publie un update OTA (JS) — ne consomme pas de crédit build EAS.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -12,6 +13,12 @@ fi
 
 : "${EXPO_TOKEN:?Manque EXPO_TOKEN — mets-le dans mobile/.env.eas}"
 
+CHANNEL="${1:-preview}"
+MESSAGE="${2:-OTA update}"
+
 export EXPO_TOKEN
 npx eas-cli whoami
-npx eas-cli build --platform ios --profile development --non-interactive "$@"
+npx eas-cli update \
+  --channel "$CHANNEL" \
+  --message "$MESSAGE" \
+  --non-interactive

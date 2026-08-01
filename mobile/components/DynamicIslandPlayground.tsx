@@ -1,55 +1,40 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
-import Slider from "@react-native-community/slider";
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import {
   getLiveActivityBridge,
+  needsRestart,
   stateForMode,
   type IslandMode,
 } from "../lib/liveActivity";
+import { useAppTheme } from "../lib/theme";
 
 export type { IslandMode };
+
 export const ISLAND_MODES: {
   id: IslandMode;
   label: string;
   hint: string;
 }[] = [
   {
-    id: "compact",
-    label: "Compact",
-    hint: "Leading + trailing dans l’île (état par défaut).",
-  },
-  {
-    id: "minimal",
-    label: "Minimal",
-    hint: "Petit pastille quand une autre activité partage l’île.",
-  },
-  {
-    id: "expanded",
-    label: "Expanded",
-    hint: "Long press / expand — régions leading / trailing / center / bottom.",
-  },
-  {
     id: "timer",
     label: "Timer",
-    hint: "Compte à rebours Live Activity (Lock Screen + Dynamic Island).",
+    hint: "Compte à rebours digital sur l’île + Lock Screen.",
   },
   {
     id: "music",
-    label: "Now Playing",
-    hint: "Lecture : titre + progression (template ActivityKit).",
+    label: "Music",
+    hint: "Now Playing — titre + barre de progression.",
   },
   {
     id: "progress",
     label: "Progress",
-    hint: "Livraison / téléchargement avec barre de progression.",
+    hint: "Livraison / téléchargement avec % circulaire.",
   },
 ];
 
@@ -58,47 +43,32 @@ type Props = {
   onChange: (mode: IslandMode) => void;
 };
 
-type AnimPreset = "spring" | "ease" | "snappy";
-
-const PRESET_META: Record<
-  AnimPreset,
-  { label: string; hint: string }
-> = {
-  spring: { label: "Spring", hint: "Ressort iOS-like (aperçu in-app)." },
-  ease: { label: "Ease", hint: "Courbe douce timing (aperçu in-app)." },
-  snappy: { label: "Snappy", hint: "Morph rapide, peu d’overshoot." },
-};
-
 /**
- * Playground Dynamic Island :
- * - aperçu UI animé (durée / ressort modifiables ici)
- * - Start / Update / Stop → vraie Live Activity (Dev Client)
- *
- * Limite Apple : les morphs Compact↔Expanded↔Minimal sur l’île réelle
- * sont 100 % système. On ne peut pas injecter durée/easing custom.
- * On anime l’aperçu in-app + on pousse le contenu natif (Update).
+ * Playground Dynamic Island — 3 modes contenu seulement.
+ * Changer de mode pendant une activité → Update (ou restart si config différente).
  */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
+  const theme = useAppTheme();
   const bridge = useMemo(() => getLiveActivityBridge(), []);
   const activityId = useRef<string | null>(null);
-  const updateTick = useRef(0);
+  const activeMode = useRef<IslandMode | null>(null);
+  const tick = useRef(0);
+  const applyingMode = useRef(false);
+
   const [running, setRunning] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string>(
     bridge.available
-      ? "Prêt — lance une Live Activity sur l’île système."
-      : bridge.reason ?? "Indisponible",
+      ? "Choisis un mode → Start. Ensuite change de mode librement."
+      : (bridge.reason ?? "Indisponible"),
   );
-  const [busy, setBusy] = useState(false);
-  const [durationMs, setDurationMs] = useState(420);
-  const [damping, setDamping] = useState(16);
-  const [preset, setPreset] = useState<AnimPreset>("spring");
-  const [previewTick, setPreviewTick] = useState(0);
+  const [pulseKey, setPulseKey] = useState(0);
 
   useEffect(() => {
     return () => {
       if (activityId.current && bridge.stopActivity) {
         try {
-          const { state } = stateForMode(mode);
+          const { state } = stateForMode(activeMode.current ?? mode);
           bridge.stopActivity(activityId.current, state);
         } catch {
           /* ignore */
@@ -108,25 +78,59 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Si une activité tourne, changer de mode contenu pousse le nouveau state. */
+  /** Changement de mode pendant une activité → sync native. */
   useEffect(() => {
-    if (!running || !activityId.current || !bridge.updateActivity) return;
-    if (["compact", "minimal", "expanded"].includes(mode)) {
-      setStatus(
-        `Aperçu « ${mode} » — morph réel = long press sur l’île (iOS).`,
-      );
-      return;
-    }
-    try {
-      const { state } = stateForMode(mode);
-      bridge.updateActivity(activityId.current, {
-        ...state,
-        subtitle: `${String(state.subtitle ?? mode)} · ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`,
-      });
-      setStatus(`Île mise à jour → « ${mode} » (transition contenu Apple).`);
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : String(e));
-    }
+    if (!running || !activityId.current || applyingMode.current) return;
+    if (activeMode.current === mode) return;
+
+    const prev = activeMode.current;
+    const id = activityId.current;
+
+    const sync = () => {
+      try {
+        if (prev && needsRestart(prev, mode)) {
+          // config (timer digital vs circulaire) non modifiable via update
+          if (bridge.stopActivity && bridge.startActivity) {
+            const old = stateForMode(prev);
+            bridge.stopActivity(id, {
+              ...old.state,
+              title: "Changement…",
+              subtitle: mode,
+            });
+            const next = stateForMode(mode, 0);
+            tick.current = 0;
+            const newId = bridge.startActivity(next.state, next.config);
+            if (!newId) {
+              activityId.current = null;
+              activeMode.current = null;
+              setRunning(false);
+              setStatus("Échec restart — relance Start.");
+              return;
+            }
+            activityId.current = String(newId);
+            activeMode.current = mode;
+            setPulseKey((k) => k + 1);
+            setStatus(`Mode « ${mode} » (restart ActivityKit).`);
+            return;
+          }
+        }
+
+        if (!bridge.updateActivity) return;
+        tick.current += 1;
+        const { state } = stateForMode(mode, tick.current);
+        bridge.updateActivity(id, {
+          ...state,
+          subtitle: `${state.subtitle ?? mode} · ${timeNow()}`,
+        });
+        activeMode.current = mode;
+        setPulseKey((k) => k + 1);
+        setStatus(`Mode « ${mode} » poussé sur l’île.`);
+      } catch (e) {
+        setStatus(e instanceof Error ? e.message : String(e));
+      }
+    };
+
+    sync();
   }, [mode, running, bridge]);
 
   const run = (fn: () => void) => {
@@ -140,20 +144,31 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     }
   };
 
+  const selectMode = (next: IslandMode) => {
+    if (next === mode) return;
+    onChange(next);
+  };
+
   const onStart = () =>
     run(() => {
       if (!bridge.startActivity) {
         setStatus(bridge.reason ?? "startActivity indisponible");
         return;
       }
-      const contentMode: IslandMode = ["compact", "minimal", "expanded"].includes(
-        mode,
-      )
-        ? "timer"
-        : mode;
-      if (contentMode !== mode) onChange(contentMode);
-      const { state, config } = stateForMode(contentMode);
+      // remplace une activité déjà active
+      if (activityId.current && bridge.stopActivity) {
+        try {
+          const prev = stateForMode(activeMode.current ?? mode);
+          bridge.stopActivity(activityId.current, prev.state);
+        } catch {
+          /* ignore */
+        }
+      }
+      applyingMode.current = true;
+      tick.current = 0;
+      const { state, config } = stateForMode(mode, 0);
       const id = bridge.startActivity(state, config);
+      applyingMode.current = false;
       if (!id) {
         setStatus(
           "Échec startActivity (iOS < 16.2, permissions, ou Expo Go).",
@@ -161,53 +176,27 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         return;
       }
       activityId.current = String(id);
-      updateTick.current = 0;
+      activeMode.current = mode;
       setRunning(true);
-      setStatus(
-        `Live Activity démarrée · ${contentMode}. Change Timer/Music/Progress ou Update.`,
-      );
+      setPulseKey((k) => k + 1);
+      setStatus(`Live Activity « ${mode} » — change de mode ci-dessus.`);
     });
 
   const onUpdate = () =>
     run(() => {
       if (!bridge.updateActivity || !activityId.current) {
-        setStatus("Aucune activité active — Start d’abord.");
+        setStatus("Aucune activité — Start d’abord.");
         return;
       }
-      updateTick.current += 1;
-      const n = updateTick.current;
-      const { state } = stateForMode(mode);
-      const progressBase =
-        state.progressBar &&
-        typeof state.progressBar === "object" &&
-        "progress" in state.progressBar
-          ? ((state.progressBar as { progress?: number }).progress ?? 0.35)
-          : 0.35;
-      const nextProgress = Math.min(0.95, progressBase + n * 0.14);
-
-      const titles =
-        mode === "music"
-          ? ["Liquid Glass", "COR·ALT Live", "Island Drop", "Morph Test"]
-          : mode === "progress"
-            ? ["Livraison en cours", "Colis en route", "Presque là", "Dernier km"]
-            : ["Timer Liquid Glass", "Focus 25′", "Pause courte", "Sprint final"];
-
-      const next = {
+      tick.current += 1;
+      const n = tick.current;
+      const { state } = stateForMode(mode, n);
+      bridge.updateActivity(activityId.current, {
         ...state,
-        title: titles[n % titles.length],
-        subtitle: `Update #${n} · ${new Date().toLocaleTimeString("fr-FR")}`,
-        progressBar:
-          state.progressBar &&
-          typeof state.progressBar === "object" &&
-          "date" in state.progressBar
-            ? { date: Date.now() + Math.max(60_000, (5 - (n % 5)) * 60_000) }
-            : { progress: nextProgress },
-      };
-      bridge.updateActivity(activityId.current, next);
-      setStatus(
-        `Contenu #${n} poussé — iOS anime le texte/barre (pas le morph).`,
-      );
-      setPreviewTick((t) => t + 1);
+        subtitle: `Update #${n} · ${timeNow()}`,
+      });
+      setPulseKey((k) => k + 1);
+      setStatus(`Contenu #${n} poussé (${mode}).`);
     });
 
   const onStop = () =>
@@ -223,95 +212,54 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         subtitle: "Live Activity arrêtée",
       });
       activityId.current = null;
+      activeMode.current = null;
       setRunning(false);
       setStatus("Live Activity arrêtée.");
     });
 
-  const layoutModes = ISLAND_MODES.filter((m) =>
-    ["compact", "minimal", "expanded"].includes(m.id),
-  );
-  const contentModes = ISLAND_MODES.filter((m) =>
-    ["timer", "music", "progress"].includes(m.id),
-  );
-
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Dynamic Island</Text>
-      <Text style={styles.sectionHint}>
-        Les morphs Compact ↔ Expanded sur l’île réelle sont gérés par Apple
-        (long press) — durée / easing non modifiables. Ci-dessous : anime
-        l’aperçu in-app, puis Start / Update pour le contenu natif.
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Dynamic Island
+      </Text>
+      <Text style={[styles.sectionHint, { color: theme.textMuted }]}>
+        3 modes natifs. Pendant Start, tape un autre mode pour basculer
+        (Update, ou restart auto si Timer ↔ Progress). Long press sur l’île =
+        expand système Apple.
       </Text>
 
       <View style={styles.previewStage}>
-        <IslandPreview
-          mode={mode}
-          durationMs={durationMs}
-          damping={damping}
-          preset={preset}
-          pulseKey={previewTick}
-        />
+        <IslandPreview mode={mode} pulseKey={pulseKey} running={running} />
       </View>
 
-      <Text style={styles.groupLabel}>Animations aperçu (in-app)</Text>
+      <Text style={[styles.groupLabel, { color: theme.textMuted }]}>Mode</Text>
       <View style={styles.chips}>
-        {(Object.keys(PRESET_META) as AnimPreset[]).map((id) => {
-          const on = id === preset;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => setPreset(id)}
-              style={[styles.chip, on && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                {PRESET_META[id].label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <Text style={styles.sliderLabel}>
-        Durée · {Math.round(durationMs)} ms
-      </Text>
-      <Slider
-        style={styles.slider}
-        minimumValue={120}
-        maximumValue={1200}
-        step={20}
-        value={durationMs}
-        onValueChange={setDurationMs}
-        minimumTrackTintColor="#0a84ff"
-        maximumTrackTintColor="rgba(255,255,255,0.2)"
-        thumbTintColor="#fff"
-      />
-      <Text style={styles.sliderLabel}>
-        Ressort · damping {damping.toFixed(0)}
-      </Text>
-      <Slider
-        style={styles.slider}
-        minimumValue={6}
-        maximumValue={36}
-        step={1}
-        value={damping}
-        onValueChange={setDamping}
-        minimumTrackTintColor="#0a84ff"
-        maximumTrackTintColor="rgba(255,255,255,0.2)"
-        thumbTintColor="#fff"
-        disabled={preset === "ease"}
-      />
-      <Text style={styles.modeHint}>{PRESET_META[preset].hint}</Text>
-
-      <Text style={styles.groupLabel}>Forme aperçu (pas forcé sur l’île)</Text>
-      <View style={styles.chips}>
-        {layoutModes.map((m) => {
+        {ISLAND_MODES.map((m) => {
           const on = m.id === mode;
           return (
             <Pressable
               key={m.id}
-              onPress={() => onChange(m.id)}
-              style={[styles.chip, on && styles.chipOn]}
+              onPress={() => selectMode(m.id)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: theme.isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.05)",
+                  borderColor: theme.cardBorder,
+                },
+                on && styles.chipOn,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
             >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: theme.textSecondary },
+                  on && styles.chipTextOn,
+                ]}
+              >
                 {m.label}
               </Text>
             </Pressable>
@@ -319,38 +267,29 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.groupLabel}>Contenu Live Activity (poussé natif)</Text>
-      <View style={styles.chips}>
-        {contentModes.map((m) => {
-          const on = m.id === mode;
-          return (
-            <Pressable
-              key={m.id}
-              onPress={() => onChange(m.id)}
-              style={[styles.chip, on && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>
-                {m.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.modeHint}>
+      <Text style={[styles.modeHint, { color: theme.textMuted }]}>
         {ISLAND_MODES.find((m) => m.id === mode)?.hint}
-        {running ? " · activité native en cours" : ""}
+        {running ? " · native en cours" : ""}
       </Text>
 
       <View style={styles.actions}>
         <ActionButton
-          label="Start"
+          label={running ? "Relancer" : "Start"}
           onPress={onStart}
           disabled={busy}
           primary
         />
-        <ActionButton label="Update" onPress={onUpdate} disabled={busy} />
-        <ActionButton label="Stop" onPress={onStop} disabled={busy} danger />
+        <ActionButton
+          label="Update"
+          onPress={onUpdate}
+          disabled={busy || !running}
+        />
+        <ActionButton
+          label="Stop"
+          onPress={onStop}
+          disabled={busy || !running}
+          danger
+        />
       </View>
 
       <View
@@ -360,12 +299,24 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         ]}
       >
         <Text style={styles.statusLabel}>
-          {bridge.available ? "Native · prêt" : "Expo Go / non natif"}
+          {bridge.available
+            ? running
+              ? `Native · ${mode}`
+              : "Native · prêt"
+            : "Expo Go / non natif"}
         </Text>
         <Text style={styles.statusText}>{status}</Text>
       </View>
     </View>
   );
+}
+
+function timeNow() {
+  return new Date().toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function ActionButton({
@@ -399,14 +350,10 @@ function ActionButton({
 
 function layoutForMode(mode: IslandMode) {
   switch (mode) {
-    case "minimal":
-      return { width: 36, height: 36, radius: 18, pad: 0 };
-    case "compact":
     case "timer":
       return { width: 126, height: 36, radius: 18, pad: 12 };
     case "music":
     case "progress":
-    case "expanded":
     default:
       return { width: 300, height: 88, radius: 24, pad: 14 };
   }
@@ -414,16 +361,12 @@ function layoutForMode(mode: IslandMode) {
 
 function IslandPreview({
   mode,
-  durationMs,
-  damping,
-  preset,
   pulseKey,
+  running,
 }: {
   mode: IslandMode;
-  durationMs: number;
-  damping: number;
-  preset: AnimPreset;
   pulseKey: number;
+  running: boolean;
 }) {
   const target = layoutForMode(mode);
   const width = useSharedValue(target.width);
@@ -434,44 +377,17 @@ function IslandPreview({
 
   useEffect(() => {
     const next = layoutForMode(mode);
-    if (preset === "spring") {
-      const cfg = {
-        damping,
-        stiffness: 180,
-        mass: 0.85,
-        overshootClamping: false,
-      };
-      width.value = withSpring(next.width, cfg);
-      height.value = withSpring(next.height, cfg);
-      radius.value = withSpring(next.radius, cfg);
-      pad.value = withSpring(next.pad, cfg);
-    } else if (preset === "snappy") {
-      const cfg = {
-        damping: Math.max(damping, 22),
-        stiffness: 420,
-        mass: 0.55,
-        overshootClamping: true,
-      };
-      width.value = withSpring(next.width, cfg);
-      height.value = withSpring(next.height, cfg);
-      radius.value = withSpring(next.radius, cfg);
-      pad.value = withSpring(next.pad, cfg);
-    } else {
-      const cfg = {
-        duration: durationMs,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      };
-      width.value = withTiming(next.width, cfg);
-      height.value = withTiming(next.height, cfg);
-      radius.value = withTiming(next.radius, cfg);
-      pad.value = withTiming(next.pad, cfg);
-    }
-  }, [mode, durationMs, damping, preset, width, height, radius, pad]);
+    const cfg = { damping: 16, stiffness: 200, mass: 0.8 };
+    width.value = withSpring(next.width, cfg);
+    height.value = withSpring(next.height, cfg);
+    radius.value = withSpring(next.radius, cfg);
+    pad.value = withSpring(next.pad, cfg);
+  }, [mode, width, height, radius, pad]);
 
   useEffect(() => {
     if (pulseKey === 0) return;
-    pulse.value = withTiming(1.06, { duration: 90 }, () => {
-      pulse.value = withSpring(1, { damping: 12, stiffness: 220 });
+    pulse.value = withSpring(1.05, { damping: 10, stiffness: 280 }, () => {
+      pulse.value = withSpring(1, { damping: 14, stiffness: 220 });
     });
   }, [pulseKey, pulse]);
 
@@ -484,7 +400,13 @@ function IslandPreview({
   }));
 
   return (
-    <Animated.View style={[styles.previewShell, boxStyle]}>
+    <Animated.View
+      style={[
+        styles.previewShell,
+        boxStyle,
+        running && styles.previewRunning,
+      ]}
+    >
       <BlurView intensity={48} tint="dark" style={StyleSheet.absoluteFill} />
       <PreviewInner mode={mode} />
     </Animated.View>
@@ -492,24 +414,12 @@ function IslandPreview({
 }
 
 function PreviewInner({ mode }: { mode: IslandMode }) {
-  if (mode === "minimal") {
-    return (
-      <View style={styles.innerCenter}>
-        <View style={styles.miniDot} />
-      </View>
-    );
-  }
-
-  if (mode === "compact" || mode === "timer") {
+  if (mode === "timer") {
     return (
       <View style={styles.innerRow}>
-        <Text style={styles.compactLead}>
-          {mode === "timer" ? "TIM" : "LG"}
-        </Text>
+        <Text style={styles.compactLead}>TIM</Text>
         <View style={{ flex: 1 }} />
-        <Text style={styles.compactTrail}>
-          {mode === "timer" ? "04:59" : "2:14"}
-        </Text>
+        <Text style={styles.compactTrail}>04:59</Text>
       </View>
     );
   }
@@ -529,30 +439,12 @@ function PreviewInner({ mode }: { mode: IslandMode }) {
     );
   }
 
-  if (mode === "progress") {
-    return (
-      <View style={styles.innerCol}>
-        <Text style={styles.expTitle}>Livraison</Text>
-        <Text style={styles.expSub}>Arrivée estimée · 12 min</Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: "62%" }]} />
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.innerCol}>
-      <View style={styles.expRow}>
-        <View style={styles.liveDot} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.expTitle}>Session active</Text>
-          <Text style={styles.expSub}>Expanded · 4 régions</Text>
-        </View>
-        <Text style={styles.expTrail}>iOS</Text>
-      </View>
-      <View style={styles.expBottom}>
-        <Text style={styles.expSub}>leading · trailing · center · bottom</Text>
+      <Text style={styles.expTitle}>Livraison</Text>
+      <Text style={styles.expSub}>Arrivée estimée · 12 min</Text>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: "62%" }]} />
       </View>
     </View>
   );
@@ -583,6 +475,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     maxWidth: "100%",
   },
+  previewRunning: {
+    borderColor: "rgba(48,209,88,0.55)",
+  },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -597,12 +492,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.14)",
+    minWidth: 88,
+    alignItems: "center",
   },
   chipOn: {
     backgroundColor: "rgba(10,132,255,0.28)",
@@ -610,16 +507,10 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: "rgba(255,255,255,0.85)",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   chipTextOn: { color: "#fff" },
-  sliderLabel: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  slider: { width: "100%", height: 32 },
   modeHint: {
     color: "rgba(255,255,255,0.55)",
     fontSize: 12,
@@ -661,29 +552,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  innerCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   innerRow: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
   },
   innerCol: { flex: 1, gap: 8, justifyContent: "center" },
-  miniDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#ff9f0a",
-  },
-  liveDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#30d158",
-  },
   compactLead: {
     color: "#fff",
     fontSize: 12,
@@ -700,20 +574,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  expTrail: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "600" },
   expTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   expSub: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
   expCtrl: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  expBottom: {
-    paddingTop: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.12)",
-  },
   art: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#0a84ff",
   },
   progressTrack: {
     height: 6,

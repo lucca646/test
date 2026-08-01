@@ -32,8 +32,10 @@ npx eas-cli build --profile development-simulator --platform ios
 npx expo start --dev-client
 ```
 
-Sur **Aujourd’hui** : choisis un mode → **Start** / **Update** / **Stop**.
-L’activité apparaît sur le Lock Screen + Dynamic Island.
+Sur **Aujourd’hui** : Timer / Music / Progress → **Start**, puis change de mode
+(l’île suit via Update ou restart auto). **Update** / **Stop** pour itérer.
+
+Sans rebuild (quota Free) : `./scripts-eas-update.sh preview "…"`.
 
 ## Expo Go (sans build)
 

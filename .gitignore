@@ -31,3 +31,8 @@ packages/*/node_modules/
 coralt-mobile/.env
 coralt-mobile/.env.local
 coralt-mobile/node_modules/
+
+# EAS / TestFlight secrets (jamais committer)
+mobile/.env
+mobile/.env.eas
+mobile/secrets/

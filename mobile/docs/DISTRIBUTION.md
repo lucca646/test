@@ -39,6 +39,33 @@ Ensuite App Store Connect → TestFlight → External Testing → **Public Link*
 
 ## Rebuilds
 ```bash
-./scripts-eas-testflight.sh          # store + submit
+# Secrets dans mobile/.env.eas (gitignoré) — voir .env.eas.example
+./scripts-eas-check-secrets.sh
+./scripts-eas-testflight.sh          # store + submit non-interactif
 npx eas build -p ios --profile preview --non-interactive
 ```
+
+## Gratuit (sans consumer le quota Free 15 iOS/mois)
+
+Plan Free = **15 builds iOS / mois**. Pour itérer sans rebuild :
+
+### 1. EAS Update (OTA) — recommandé
+Pousse le JS / assets (UI, Dynamic Island logic, etc.) sur l’app déjà installée.
+Ne consomme **pas** de build. Même `runtimeVersion` (aujourd’hui = `appVersion`).
+
+```bash
+cd mobile
+# channel = celui du profil de build (preview | production)
+./scripts-eas-update.sh preview "fix island + logo"
+# ou :
+# npx eas-cli update --channel preview --message "…" --non-interactive
+```
+
+**Limite :** icône App Store / splash natifs / nouveaux plugins ⇒ rebuild obligatoire.
+
+### 2. Build local sur Mac (illimité)
+```bash
+cd mobile
+npx expo run:ios --device
+```
+Compile sur ta machine — 0 crédit EAS.
