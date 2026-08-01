@@ -263,7 +263,9 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
           Sur l’île en ce moment
         </Text>
         <Text style={[styles.readoutTitle, { color: theme.text }]}>
-          {phaseTitle}
+          {mode === "score" && phaseTitle.includes("|")
+            ? phaseTitle.replace("|", "  —  ")
+            : phaseTitle}
         </Text>
         <Text style={[styles.readoutSub, { color: theme.textMuted }]}>
           {phaseSub}
@@ -271,8 +273,8 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         <Text style={[styles.readoutWhy, { color: theme.textSecondary }]}>
           {mode === "score"
             ? running
-              ? "Pas de barre : l’île affiche les 2 scores en titre. Long press pour agrandir."
-              : "Start envoie COR vs ALT sur l’île — sans barre. (L’oiseau vert = une autre app.)"
+              ? "Aperçu = 2 blocs. Sur l’île réelle : après le build « côtés », tu auras 12 à gauche et 16 à droite du pill."
+              : "L’aperçu ci-dessus ≠ le widget Apple. Les chiffres sur les côtés demandent 1 build natif (déjà préparé)."
             : running
               ? "Chaque mode a sa forme : timer/barre seulement si ça a du sens (pas pour Score)."
               : "Start envoie cette expérience sur l’île. Change de mode pour voir la diversité."}

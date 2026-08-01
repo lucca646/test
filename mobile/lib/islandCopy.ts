@@ -53,7 +53,7 @@ export const ISLAND_GUIDES: Record<IslandMode, IslandGuide> = {
       "Long press sur l’île = vue agrandie Apple",
       "Si tu vois un oiseau vert, c’est une autre app (ex. Duolingo)",
     ],
-    tip: "Chaque expérience a un visuel différent : score = 2 blocs, respirer = phase, livraison = étapes.",
+    tip: "Chiffres sur les côtés de l’île (compact) = widget natif. Il faut le build qui contient ce widget. L’aperçu in-app peut déjà le simuler.",
     accent: "#FF453A",
   },
   timer: {
@@ -169,8 +169,8 @@ export function beatsForMode(mode: IslandMode, tick: number): IslandBeat {
       const away = 10 + ((tick + 3) % 7) * 2;
       const q = (Math.floor(tick / 5) % 4) + 1;
       return {
-        // Titre = les 2 scores (ce que l’île affiche en gros)
-        title: `${home}  —  ${away}`,
+        // Protocole widget natif : "12|16" → chiffres gauche / droite de l’île
+        title: `${home}|${away}`,
         subtitle: `COR vs ALT · Quart-temps ${q} · live`,
         seconds: 0,
         tint: "#FF453A",

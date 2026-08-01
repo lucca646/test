@@ -1,0 +1,222 @@
+diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityView.swift b/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
+index 1a00e92..e8a4974 100644
+--- a/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
++++ b/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
+@@ -196,10 +196,37 @@ import WidgetKit
+           }
+ 
+           VStack(alignment: .leading, spacing: 2) {
+-            Text(contentState.title)
+-              .font(.title2)
+-              .fontWeight(.semibold)
+-              .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++            if contentState.title.contains("|"),
++              contentState.title.split(separator: "|").count == 2
++            {
++              let parts = contentState.title.split(separator: "|")
++              HStack(spacing: 16) {
++                VStack(alignment: .leading, spacing: 2) {
++                  Text("COR")
++                    .font(.caption2.weight(.bold))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
++                  Text(String(parts[0]))
++                    .font(.system(size: 28, weight: .bold, design: .rounded))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++                }
++                Text("vs")
++                  .font(.caption.weight(.semibold))
++                  .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
++                VStack(alignment: .trailing, spacing: 2) {
++                  Text("ALT")
++                    .font(.caption2.weight(.bold))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
++                  Text(String(parts[1]))
++                    .font(.system(size: 28, weight: .bold, design: .rounded))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++                }
++              }
++            } else {
++              Text(contentState.title)
++                .font(.title2)
++                .fontWeight(.semibold)
++                .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++            }
+ 
+             if let subtitle = contentState.subtitle {
+               Text(subtitle)
+diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
+index 24cd8c5..0ac930d 100644
+--- a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
++++ b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
+@@ -45,6 +45,24 @@ struct LiveActivityAttributes: ActivityAttributes {
+   }
+ }
+ 
++/// Protocole JS : title = "12|16" → scores à gauche / droite de l’île.
++private struct ScorePair {
++  let home: String
++  let away: String
++
++  static func parse(_ title: String) -> ScorePair? {
++    let parts = title.split(separator: "|", omittingEmptySubsequences: false)
++    guard parts.count == 2 else { return nil }
++    let home = parts[0].trimmingCharacters(in: .whitespaces)
++    let away = parts[1].trimmingCharacters(in: .whitespaces)
++    guard !home.isEmpty, !away.isEmpty,
++          home.allSatisfy({ $0.isNumber }),
++          away.allSatisfy({ $0.isNumber })
++    else { return nil }
++    return ScorePair(home: home, away: away)
++  }
++}
++
+ struct LiveActivityWidget: Widget {
+   var body: some WidgetConfiguration {
+     ActivityConfiguration(for: LiveActivityAttributes.self) { context in
+@@ -55,55 +73,116 @@ struct LiveActivityWidget: Widget {
+         .activitySystemActionForegroundColor(Color.black)
+         .applyWidgetURL(from: context.attributes.deepLinkUrl)
+     } dynamicIsland: { context in
++      let score = ScorePair.parse(context.state.title)
++
+       DynamicIsland {
+         DynamicIslandExpandedRegion(.leading, priority: 1) {
+-          dynamicIslandExpandedLeading(title: context.state.title, subtitle: context.state.subtitle)
+-            .dynamicIsland(verticalPlacement: .belowIfTooWide)
+-            .padding(.leading, 5)
+-            .applyWidgetURL(from: context.attributes.deepLinkUrl)
++          Group {
++            if let score {
++              scoreExpandedSide(label: "COR", value: score.home, align: .leading)
++            } else {
++              dynamicIslandExpandedLeading(
++                title: context.state.title,
++                subtitle: context.state.subtitle
++              )
++            }
++          }
++          .dynamicIsland(verticalPlacement: .belowIfTooWide)
++          .padding(.leading, 5)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
+         }
+         DynamicIslandExpandedRegion(.trailing) {
+-          if let imageName = context.state.imageName {
+-            dynamicIslandExpandedTrailing(imageName: imageName)
+-              .padding(.trailing, 5)
+-              .applyWidgetURL(from: context.attributes.deepLinkUrl)
++          Group {
++            if let score {
++              scoreExpandedSide(label: "ALT", value: score.away, align: .trailing)
++            } else if let imageName = context.state.imageName {
++              dynamicIslandExpandedTrailing(imageName: imageName)
++            }
+           }
++          .padding(.trailing, 5)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
+         }
+         DynamicIslandExpandedRegion(.bottom) {
+-          if let date = context.state.timerEndDateInMilliseconds {
+-            dynamicIslandExpandedBottom(
+-              endDate: date, progressViewTint: context.attributes.progressViewTint
+-            )
+-            .padding(.horizontal, 5)
+-            .applyWidgetURL(from: context.attributes.deepLinkUrl)
++          Group {
++            if let score {
++              if let subtitle = context.state.subtitle {
++                Text(subtitle)
++                  .font(.caption)
++                  .foregroundStyle(.white.opacity(0.8))
++                  .frame(maxWidth: .infinity, alignment: .center)
++              }
++            } else if let date = context.state.timerEndDateInMilliseconds {
++              dynamicIslandExpandedBottom(
++                endDate: date, progressViewTint: context.attributes.progressViewTint
++              )
++            }
+           }
++          .padding(.horizontal, 5)
++          .applyWidgetURL(from: context.attributes.deepLinkUrl)
+         }
+       } compactLeading: {
+-        if let dynamicIslandImageName = context.state.dynamicIslandImageName {
+-          resizableImage(imageName: dynamicIslandImageName)
+-            .frame(maxWidth: 23, maxHeight: 23)
+-            .applyWidgetURL(from: context.attributes.deepLinkUrl)
++        Group {
++          if let score {
++            Text(score.home)
++              .font(.system(size: 16, weight: .bold, design: .rounded))
++              .foregroundStyle(.white)
++              .minimumScaleFactor(0.7)
++          } else if let dynamicIslandImageName = context.state.dynamicIslandImageName {
++            resizableImage(imageName: dynamicIslandImageName)
++              .frame(maxWidth: 23, maxHeight: 23)
++          }
+         }
++        .applyWidgetURL(from: context.attributes.deepLinkUrl)
+       } compactTrailing: {
+-        if let date = context.state.timerEndDateInMilliseconds {
+-          compactTimer(
+-            endDate: date,
+-            timerType: context.attributes.timerType ?? .circular,
+-            progressViewTint: context.attributes.progressViewTint
+-          ).applyWidgetURL(from: context.attributes.deepLinkUrl)
++        Group {
++          if let score {
++            Text(score.away)
++              .font(.system(size: 16, weight: .bold, design: .rounded))
++              .foregroundStyle(.white)
++              .minimumScaleFactor(0.7)
++          } else if let date = context.state.timerEndDateInMilliseconds {
++            compactTimer(
++              endDate: date,
++              timerType: context.attributes.timerType ?? .circular,
++              progressViewTint: context.attributes.progressViewTint
++            )
++          }
+         }
++        .applyWidgetURL(from: context.attributes.deepLinkUrl)
+       } minimal: {
+-        if let date = context.state.timerEndDateInMilliseconds {
+-          compactTimer(
+-            endDate: date,
+-            timerType: context.attributes.timerType ?? .circular,
+-            progressViewTint: context.attributes.progressViewTint
+-          ).applyWidgetURL(from: context.attributes.deepLinkUrl)
++        Group {
++          if let score {
++            Text(score.home)
++              .font(.system(size: 14, weight: .bold, design: .rounded))
++              .foregroundStyle(.white)
++          } else if let date = context.state.timerEndDateInMilliseconds {
++            compactTimer(
++              endDate: date,
++              timerType: context.attributes.timerType ?? .circular,
++              progressViewTint: context.attributes.progressViewTint
++            )
++          }
+         }
++        .applyWidgetURL(from: context.attributes.deepLinkUrl)
+       }
+     }
+   }
+ 
++  private func scoreExpandedSide(label: String, value: String, align: HorizontalAlignment)
++    -> some View
++  {
++    VStack(alignment: align, spacing: 2) {
++      Spacer(minLength: 0)
++      Text(label)
++        .font(.caption2.weight(.bold))
++        .foregroundStyle(.white.opacity(0.65))
++      Text(value)
++        .font(.system(size: 28, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++      Spacer(minLength: 0)
++    }
++  }
++
+   @ViewBuilder
+   private func compactTimer(
+     endDate: Double,

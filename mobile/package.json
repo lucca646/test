@@ -12,7 +12,8 @@
     "web": "expo start --web",
     "prebuild:ios": "expo prebuild --platform ios --clean",
     "build:dev": "eas build --profile development --platform ios",
-    "build:sim": "eas build --profile development-simulator --platform ios"
+    "build:sim": "eas build --profile development-simulator --platform ios",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -45,6 +46,7 @@
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
     "@types/react": "~19.1.10",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true
