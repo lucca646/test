@@ -60,19 +60,38 @@ export default defineConfig({
   ],
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: {
-      "island-bridge": path.resolve(rootDir, "packages/island-bridge/src/index.js"),
-      "island-bridge/client": path.resolve(
-        rootDir,
-        "packages/island-bridge/src/client.js",
-      ),
-    },
+    // Plus spécifique d’abord — évite que « island-bridge » mange « island-bridge/client »
+    alias: [
+      {
+        find: "island-bridge/client",
+        replacement: path.resolve(
+          rootDir,
+          "packages/island-bridge/src/client.js",
+        ),
+      },
+      {
+        find: "island-bridge/interpret",
+        replacement: path.resolve(
+          rootDir,
+          "packages/island-bridge/src/interpret.js",
+        ),
+      },
+      {
+        find: "island-bridge",
+        replacement: path.resolve(
+          rootDir,
+          "packages/island-bridge/src/index.js",
+        ),
+      },
+    ],
   },
   server: {
     host: "127.0.0.1",
     port: 5177,
     allowedHosts: [".trycloudflare.com", "localhost", "127.0.0.1"],
-    fs: { allow: [rootDir] },
+    fs: {
+      allow: [rootDir, path.resolve(rootDir, "packages")],
+    },
     proxy: {
       "/bridge": {
         target: "http://127.0.0.1:8792",

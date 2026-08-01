@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   createIslandBridgeClient,
   defaultBridgeWsUrl,
-} from "island-bridge/client";
+} from "island-bridge";
 
 /**
  * Connecte la PWA au bridge interprète (même bus que l’iPhone).
