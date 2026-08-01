@@ -1,0 +1,246 @@
+/* ── Site web (live) — pas un clone d’app iOS ── */
+
+.site {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(80% 50% at 10% -10%, rgba(59, 130, 246, 0.22), transparent 55%),
+    radial-gradient(60% 40% at 90% 0%, rgba(244, 114, 182, 0.12), transparent 50%),
+    #07070c;
+  color: #e8eaf2;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 7, 12, 0.78);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.site-header-inner {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.site-brand {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.15rem 1.1rem;
+}
+
+.site-nav-link {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.site-nav-link:hover {
+  color: #fff;
+}
+
+.site-nav-link.is-on {
+  color: #fff;
+  border-bottom-color: rgba(96, 165, 250, 0.9);
+}
+
+.site-main {
+  flex: 1;
+  width: 100%;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  box-sizing: border-box;
+}
+
+.site-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.5rem 1.25rem 2rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Landing */
+.site-hero {
+  max-width: 38rem;
+  margin: 0 0 3.5rem;
+}
+
+.site-hero-kicker {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(147, 197, 253, 0.9);
+}
+
+.site-hero h1 {
+  margin: 0 0 1rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: #fff;
+}
+
+.site-hero p {
+  margin: 0 0 1.75rem;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.68);
+  max-width: 32rem;
+}
+
+.site-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #0a0a12;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.site-cta:hover {
+  background: #e8eefc;
+}
+
+.site-section {
+  margin-bottom: 3rem;
+}
+
+.site-section h2 {
+  margin: 0 0 0.65rem;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 1.65rem;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.site-section p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.62);
+  max-width: 36rem;
+}
+
+.site-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1.25rem 1.75rem;
+  margin-top: 1.5rem;
+}
+
+.site-grid article h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #fff;
+}
+
+.site-grid article p {
+  font-size: 0.9375rem;
+  max-width: none;
+}
+
+/* Pages internes (Arcade etc.) en mode site : on aplatit le look Konsta */
+.is-live-web .site-main .k-navbar,
+.is-live-web .site-main .navbar {
+  display: none !important;
+}
+
+.is-live-web .site-main .k-page {
+  background: transparent !important;
+  min-height: 0 !important;
+}
+
+.is-live-web .site-main .hero-card {
+  border-radius: 0.35rem;
+  box-shadow: none;
+  min-height: 0;
+  padding: 1.5rem 0 0;
+  background: none !important;
+}
+
+.is-live-web .site-main .hero-card h2 {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  color: #fff;
+}
+
+.is-live-web .site-main .hero-card p,
+.is-live-web .site-main .hero-kicker {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.is-live-web .site-main .hero-card + .hero-card {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.is-live-web .site-main .k-block-title {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: 1.35rem !important;
+  letter-spacing: -0.02em;
+  opacity: 1 !important;
+  color: #fff !important;
+}
+
+@media (max-width: 640px) {
+  .site-header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+    gap: 0.85rem;
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.15rem;
+  }
+
+  .site-nav-link {
+    white-space: nowrap;
+    font-size: 0.875rem;
+  }
+
+  .site-main {
+    padding: 1.75rem 1rem 3rem;
+  }
+}

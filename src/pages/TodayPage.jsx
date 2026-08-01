@@ -12,7 +12,51 @@ import IslandBridgePanel from "../components/IslandBridgePanel.jsx";
 import { useIslandBridge } from "../bridge/useIslandBridge.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
-export default function TodayPage() {
+function SiteToday({ onNavigate }) {
+  return (
+    <div className="site-page">
+      <section className="site-hero">
+        <p className="site-hero-kicker">Coraia · Liquid Glass</p>
+        <h1>Le verre, sans la contrainte de l’App Store.</h1>
+        <p>
+          Une vitrine web pour le même produit — navigation de site, pas une
+          copie d’application iPhone dans le navigateur.
+        </p>
+        <button
+          type="button"
+          className="site-cta"
+          onClick={() => onNavigate?.("/arcade/")}
+        >
+          Voir Arcade
+        </button>
+      </section>
+
+      <section className="site-section">
+        <h2>Une base, plusieurs surfaces</h2>
+        <p>
+          Le catalogue d’onglets vit dans un seul module JS. Le site web, l’app
+          iOS et bientôt Android le lisent — sans dupliquer la barre.
+        </p>
+        <div className="site-grid">
+          <article>
+            <h3>Web</h3>
+            <p>Header, typo éditoriale, pages larges.</p>
+          </article>
+          <article>
+            <h3>iOS</h3>
+            <p>UITabBar native + île ActivityKit.</p>
+          </article>
+          <article>
+            <h3>OTA</h3>
+            <p>Les changements de nav partent en update JS.</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default function TodayPage({ onNavigate } = {}) {
   const { platform, meta, lab } = usePlatform();
   const dispatchRef = useRef(null);
 
@@ -27,39 +71,25 @@ export default function TodayPage() {
     },
   });
 
+  if (!lab) {
+    return <SiteToday onNavigate={onNavigate} />;
+  }
+
   return (
     <Page colors={{ bgIos: "bg-transparent", bgMaterial: "bg-transparent" }}>
       <Navbar title="Aujourd'hui" large transparent className="top-0 sticky" />
 
       <Block className="space-y-3 mt-2">
         <div className={`hero-card hero-blue platform-hero-${platform}`}>
-          <p className="hero-kicker">LIQUID GLASS · WEB</p>
-          <h2>Version web</h2>
-          <p>
-            Navigation en haut, layout navigateur. Les skins iOS / Android
-            restent dans le lab (<code>?lab=1</code>).
-          </p>
+          <p className="hero-kicker">LAB · {meta.label}</p>
+          <h2>Playground {meta.label}</h2>
+          <p>Skins iOS / Android / Web pour tester le chrome natif.</p>
         </div>
       </Block>
 
-      {!lab && (
+      {(platform === "ios" || platform === "web") && (
         <>
-          <BlockTitle>Expérience web</BlockTitle>
-          <Block>
-            <Glass className="rounded-2xl p-4 space-y-2">
-              <p className="text-[15px] font-semibold m-0">Adapté au navigateur</p>
-              <p className="text-[13px] opacity-70 m-0 leading-snug">
-                Onglets en haut · mêmes pages (Aujourd’hui, Jeux, Arcade, Apps)
-                · source nav unique <code>app-nav</code>.
-              </p>
-            </Glass>
-          </Block>
-        </>
-      )}
-
-      {lab && (platform === "ios" || platform === "web") && (
-        <>
-          <BlockTitle>Playground île + bridge (lab)</BlockTitle>
+          <BlockTitle>Playground île + bridge</BlockTitle>
           <Block>
             <DynamicIslandWeb onBind={onBind} />
             <IslandBridgePanel
@@ -72,7 +102,7 @@ export default function TodayPage() {
         </>
       )}
 
-      {lab && platform === "android" && (
+      {platform === "android" && (
         <>
           <BlockTitle>Surface Material</BlockTitle>
           <Block>
@@ -86,15 +116,7 @@ export default function TodayPage() {
         </>
       )}
 
-      <BlockTitle>Stack</BlockTitle>
       <Block className="space-y-3">
-        <Glass className="rounded-2xl p-4 space-y-2">
-          <p className="text-[15px] font-semibold m-0">Pages partagées</p>
-          <p className="text-[13px] opacity-70 m-0 leading-snug">
-            Même contenu applicatif — le chrome suit la plateforme ({meta.label}
-            ).
-          </p>
-        </Glass>
         <div className="flex flex-wrap gap-2">
           <Button rounded>Action primaire</Button>
           <Button rounded tonal>
