@@ -12,9 +12,9 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="CORAIA GLASS · V1.1"
+      kicker="CORAIA GLASS · OTA"
       title="Aujourd'hui"
-      body="Logo minimal · Dynamic Island : Timer / Music / Progress. Change de mode pendant Start."
+      body="Timer · Music · Progress — tape un mode, Start, puis change librement. (update OTA)"
       tint={["#3b82f6", "#1d4ed8"]}
     >
       <View

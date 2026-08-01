@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useAppTheme } from "../lib/theme";
+import { applyOtaUpdateIfAny } from "../lib/ota";
 
 /**
  * Vraie barre d’onglets Apple : UITabBar / UITabBarController
@@ -13,6 +15,10 @@ export default function RootLayout() {
     Platform.OS === "ios"
       ? DynamicColorIOS({ light: "#0a84ff", dark: "#0a84ff" })
       : "#0a84ff";
+
+  useEffect(() => {
+    void applyOtaUpdateIfAny();
+  }, []);
 
   return (
     <NativeTabs
