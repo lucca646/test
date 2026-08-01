@@ -7,7 +7,8 @@ import {
 import PlatformSwitcher from "./components/PlatformSwitcher.jsx";
 import DeviceFrame from "./components/DeviceFrame.jsx";
 import AppTabbar from "./components/AppTabbar.jsx";
-import SiteHeader from "./components/SiteHeader.jsx";
+import { visibleTabs } from "app-nav";
+import SiteBottomNav from "./components/SiteBottomNav.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
 import GamesPage from "./pages/GamesPage.jsx";
 import AppsPage from "./pages/AppsPage.jsx";
@@ -59,16 +60,20 @@ function LiveWebShell() {
 
   const ActivePage = PAGES[activePath] || TodayPage;
 
+  const tabCount = 4; // synced via app-nav visible tabs
+
   return (
-    <div className="site is-live-web">
-      <SiteHeader activePath={activePath} onSelect={selectTab} />
+    <div
+      className="site is-live-web"
+      style={{ "--nav-count": tabCount }}
+    >
+      <header className="wa-topbar">
+        <span className="wa-topbar-brand">Coraia</span>
+      </header>
       <main className="site-main">
-        <ActivePage
-          key={activePath}
-          onNavigate={selectTab}
-        />
+        <ActivePage key={activePath} onNavigate={selectTab} />
       </main>
-      <footer className="site-footer">Coraia · webapp</footer>
+      <SiteBottomNav activePath={activePath} onSelect={selectTab} />
     </div>
   );
 }
