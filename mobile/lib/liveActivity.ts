@@ -76,8 +76,6 @@ const BASE_CONFIG: LiveActivityConfig = {
   progressViewLabelColor: "#FFFFFF",
   deepLinkUrl: "/",
   padding: { horizontal: 16, top: 14, bottom: 14 },
-  imagePosition: "right",
-  imageAlign: "center",
 };
 
 export type ModePayload = {
@@ -85,56 +83,75 @@ export type ModePayload = {
   config: LiveActivityConfig;
 };
 
-/** Mappe nos modes UI → state/config ActivityKit (via expo-live-activity). */
+/**
+ * Pas d’imageName : les PNG Live Activity du binaire actuel sont corrompus
+ * (carré violet). Sans rebuild on omet les images.
+ * Timer utilise une date (compact trailing digital) — requis par le widget.
+ */
 export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
   const now = Date.now();
   switch (mode) {
-    case "progress":
+    case "progress": {
+      // Le widget DI n’affiche une barre en compact/bottom QUE si `date` est set.
+      // On combine date (countdown) + titre livraison pour un rendu île correct.
+      const mins = Math.max(1, 12 - (tick % 5));
       return {
         state: {
           title: ["Livraison en cours", "Colis en route", "Presque là"][
             tick % 3
           ],
-          subtitle: `Arrivée estimée · ${12 - (tick % 5)} min`,
-          progressBar: { progress: Math.min(0.95, 0.35 + tick * 0.12) },
-          imageName: "live_cover",
-          dynamicIslandImageName: "island_progress",
+          subtitle: `Arrivée estimée · ${mins} min`,
+          progressBar: { date: now + mins * 60_000 },
         },
         config: { ...BASE_CONFIG, timerType: "circular" },
       };
+    }
     case "music":
       return {
         state: {
           title: ["Liquid Glass", "COR·ALT Live", "Island Drop"][tick % 3],
-          subtitle: "COR·ALT · Now Playing",
-          progressBar: { progress: Math.min(0.95, 0.22 + tick * 0.15) },
-          imageName: "live_cover",
-          dynamicIslandImageName: "island_icon",
+          subtitle: "Now Playing · COR·ALT",
+          // date pour avoir un trailing compact ; digital lisible
+          progressBar: { date: now + Math.max(90_000, (4 - (tick % 4)) * 45_000) },
         },
-        config: { ...BASE_CONFIG, deepLinkUrl: "/arcade" },
+        config: { ...BASE_CONFIG, timerType: "digital", deepLinkUrl: "/arcade" },
       };
     case "timer":
     default:
       return {
         state: {
           title: ["Timer Liquid Glass", "Focus 25′", "Sprint final"][tick % 3],
-          subtitle: "Compte à rebours · Dynamic Island",
-          progressBar: { date: now + Math.max(60_000, (5 - (tick % 5)) * 60_000) },
-          imageName: "live_cover",
-          dynamicIslandImageName: "island_timer",
+          subtitle: "Compte à rebours",
+          progressBar: {
+            date: now + Math.max(60_000, (5 - (tick % 5)) * 60_000),
+          },
         },
         config: { ...BASE_CONFIG, timerType: "digital" },
       };
   }
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 /**
- * ActivityKit ne permet pas de changer `config` via update.
- * Si timerType diffère (digital / circulaire / absent) ⇒ stop + start.
+ * stopActivity natif est async (Task {}) : un start immédiat laisse l’ancienne
+ * activité zombie sur l’île. On stoppe tous les IDs connus puis on attend.
  */
-export function needsRestart(from: IslandMode, to: IslandMode): boolean {
-  if (from === to) return false;
-  const a = stateForMode(from).config.timerType ?? "none";
-  const b = stateForMode(to).config.timerType ?? "none";
-  return a !== b;
+export async function killActivities(
+  bridge: LiveActivityBridge,
+  ids: Iterable<string>,
+): Promise<void> {
+  if (!bridge.stopActivity) return;
+  const list = [...new Set(ids)].filter(Boolean);
+  for (const id of list) {
+    try {
+      bridge.stopActivity(id, {
+        title: "Fin",
+        subtitle: "Remplacement",
+      });
+    } catch {
+      /* déjà morte */
+    }
+  }
+  if (list.length > 0) await sleep(450);
 }

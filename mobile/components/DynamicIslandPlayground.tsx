@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import {
   getLiveActivityBridge,
-  needsRestart,
+  killActivities,
   stateForMode,
   type IslandMode,
 } from "../lib/liveActivity";
@@ -29,12 +29,12 @@ export const ISLAND_MODES: {
   {
     id: "music",
     label: "Music",
-    hint: "Now Playing — titre + barre de progression.",
+    hint: "Now Playing — titre + timer compact.",
   },
   {
     id: "progress",
     label: "Progress",
-    hint: "Livraison / téléchargement avec % circulaire.",
+    hint: "Livraison — titre + timer circulaire compact.",
   },
 ];
 
@@ -44,16 +44,17 @@ type Props = {
 };
 
 /**
- * Playground Dynamic Island — 3 modes contenu seulement.
- * Changer de mode pendant une activité → Update (ou restart si config différente).
+ * Playground Dynamic Island.
+ * Chaque Start / changement de mode = kill all + restart (stopActivity est async).
  */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
   const theme = useAppTheme();
   const bridge = useMemo(() => getLiveActivityBridge(), []);
+  const knownIds = useRef<Set<string>>(new Set());
   const activityId = useRef<string | null>(null);
   const activeMode = useRef<IslandMode | null>(null);
   const tick = useRef(0);
-  const applyingMode = useRef(false);
+  const syncGen = useRef(0);
 
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -66,77 +67,90 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
 
   useEffect(() => {
     return () => {
-      if (activityId.current && bridge.stopActivity) {
-        try {
-          const { state } = stateForMode(activeMode.current ?? mode);
-          bridge.stopActivity(activityId.current, state);
-        } catch {
-          /* ignore */
-        }
-      }
+      void killActivities(bridge, knownIds.current);
+      knownIds.current.clear();
+      activityId.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Changement de mode pendant une activité → sync native. */
-  useEffect(() => {
-    if (!running || !activityId.current || applyingMode.current) return;
-    if (activeMode.current === mode) return;
-
-    const prev = activeMode.current;
-    const id = activityId.current;
-
-    const sync = () => {
-      try {
-        if (prev && needsRestart(prev, mode)) {
-          // config (timer digital vs circulaire) non modifiable via update
-          if (bridge.stopActivity && bridge.startActivity) {
-            const old = stateForMode(prev);
-            bridge.stopActivity(id, {
-              ...old.state,
-              title: "Changement…",
-              subtitle: mode,
-            });
-            const next = stateForMode(mode, 0);
-            tick.current = 0;
-            const newId = bridge.startActivity(next.state, next.config);
-            if (!newId) {
-              activityId.current = null;
-              activeMode.current = null;
-              setRunning(false);
-              setStatus("Échec restart — relance Start.");
-              return;
-            }
-            activityId.current = String(newId);
-            activeMode.current = mode;
-            setPulseKey((k) => k + 1);
-            setStatus(`Mode « ${mode} » (restart ActivityKit).`);
-            return;
-          }
-        }
-
-        if (!bridge.updateActivity) return;
-        tick.current += 1;
-        const { state } = stateForMode(mode, tick.current);
-        bridge.updateActivity(id, {
-          ...state,
-          subtitle: `${state.subtitle ?? mode} · ${timeNow()}`,
-        });
-        activeMode.current = mode;
-        setPulseKey((k) => k + 1);
-        setStatus(`Mode « ${mode} » poussé sur l’île.`);
-      } catch (e) {
-        setStatus(e instanceof Error ? e.message : String(e));
-      }
-    };
-
-    sync();
-  }, [mode, running, bridge]);
-
-  const run = (fn: () => void) => {
+  const launch = async (nextMode: IslandMode, reason: string) => {
+    if (!bridge.startActivity) {
+      setStatus(bridge.reason ?? "startActivity indisponible");
+      return false;
+    }
+    const gen = ++syncGen.current;
     setBusy(true);
     try {
-      fn();
+      await killActivities(bridge, [
+        ...knownIds.current,
+        ...(activityId.current ? [activityId.current] : []),
+      ]);
+      knownIds.current.clear();
+      activityId.current = null;
+
+      if (gen !== syncGen.current) return false;
+
+      tick.current = 0;
+      const { state, config } = stateForMode(nextMode, 0);
+      const id = bridge.startActivity(state, config);
+      if (!id) {
+        activeMode.current = null;
+        setRunning(false);
+        setStatus("Échec startActivity — réessaie Start.");
+        return false;
+      }
+      const sid = String(id);
+      knownIds.current.add(sid);
+      activityId.current = sid;
+      activeMode.current = nextMode;
+      setRunning(true);
+      setPulseKey((k) => k + 1);
+      setStatus(`Île = « ${nextMode} » · ${reason}`);
+      return true;
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+      return false;
+    } finally {
+      if (gen === syncGen.current) setBusy(false);
+    }
+  };
+
+  /** Changement de mode pendant une activité → restart propre. */
+  useEffect(() => {
+    if (!running) return;
+    if (activeMode.current === mode) return;
+    void launch(mode, "changement de mode");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const selectMode = (next: IslandMode) => {
+    if (next === mode || busy) return;
+    onChange(next);
+  };
+
+  const onStart = () => {
+    void launch(mode, "Start");
+  };
+
+  const onUpdate = async () => {
+    if (!bridge.updateActivity || !activityId.current) {
+      setStatus("Aucune activité — Start d’abord.");
+      return;
+    }
+    // Même mode : update contenu. Sinon restart via effect.
+    if (activeMode.current !== mode) {
+      void launch(mode, "sync mode");
+      return;
+    }
+    setBusy(true);
+    try {
+      tick.current += 1;
+      const n = tick.current;
+      const { state } = stateForMode(mode, n);
+      bridge.updateActivity(activityId.current, state);
+      setPulseKey((k) => k + 1);
+      setStatus(`Contenu #${n} · ${mode}`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     } finally {
@@ -144,78 +158,23 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
     }
   };
 
-  const selectMode = (next: IslandMode) => {
-    if (next === mode) return;
-    onChange(next);
-  };
-
-  const onStart = () =>
-    run(() => {
-      if (!bridge.startActivity) {
-        setStatus(bridge.reason ?? "startActivity indisponible");
-        return;
-      }
-      // remplace une activité déjà active
-      if (activityId.current && bridge.stopActivity) {
-        try {
-          const prev = stateForMode(activeMode.current ?? mode);
-          bridge.stopActivity(activityId.current, prev.state);
-        } catch {
-          /* ignore */
-        }
-      }
-      applyingMode.current = true;
-      tick.current = 0;
-      const { state, config } = stateForMode(mode, 0);
-      const id = bridge.startActivity(state, config);
-      applyingMode.current = false;
-      if (!id) {
-        setStatus(
-          "Échec startActivity (iOS < 16.2, permissions, ou Expo Go).",
-        );
-        return;
-      }
-      activityId.current = String(id);
-      activeMode.current = mode;
-      setRunning(true);
-      setPulseKey((k) => k + 1);
-      setStatus(`Live Activity « ${mode} » — change de mode ci-dessus.`);
-    });
-
-  const onUpdate = () =>
-    run(() => {
-      if (!bridge.updateActivity || !activityId.current) {
-        setStatus("Aucune activité — Start d’abord.");
-        return;
-      }
-      tick.current += 1;
-      const n = tick.current;
-      const { state } = stateForMode(mode, n);
-      bridge.updateActivity(activityId.current, {
-        ...state,
-        subtitle: `Update #${n} · ${timeNow()}`,
-      });
-      setPulseKey((k) => k + 1);
-      setStatus(`Contenu #${n} poussé (${mode}).`);
-    });
-
-  const onStop = () =>
-    run(() => {
-      if (!bridge.stopActivity || !activityId.current) {
-        setStatus("Rien à arrêter.");
-        return;
-      }
-      const { state } = stateForMode(mode);
-      bridge.stopActivity(activityId.current, {
-        ...state,
-        title: "Terminé",
-        subtitle: "Live Activity arrêtée",
-      });
+  const onStop = async () => {
+    setBusy(true);
+    syncGen.current += 1;
+    try {
+      await killActivities(bridge, [
+        ...knownIds.current,
+        ...(activityId.current ? [activityId.current] : []),
+      ]);
+      knownIds.current.clear();
       activityId.current = null;
       activeMode.current = null;
       setRunning(false);
       setStatus("Live Activity arrêtée.");
-    });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <View style={styles.wrap}>
@@ -223,9 +182,8 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         Dynamic Island
       </Text>
       <Text style={[styles.sectionHint, { color: theme.textMuted }]}>
-        3 modes natifs. Pendant Start, tape un autre mode pour basculer
-        (Update, ou restart auto si Timer ↔ Progress). Long press sur l’île =
-        expand système Apple.
+        Start puis change de mode : l’île redémarre proprement (plus de
+        « Livraison » zombie). Long press = expand Apple.
       </Text>
 
       <View style={styles.previewStage}>
@@ -240,6 +198,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
             <Pressable
               key={m.id}
               onPress={() => selectMode(m.id)}
+              disabled={busy}
               style={[
                 styles.chip,
                 {
@@ -247,6 +206,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
                     ? "rgba(255,255,255,0.08)"
                     : "rgba(0,0,0,0.05)",
                   borderColor: theme.cardBorder,
+                  opacity: busy ? 0.55 : 1,
                 },
                 on && styles.chipOn,
               ]}
@@ -270,6 +230,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       <Text style={[styles.modeHint, { color: theme.textMuted }]}>
         {ISLAND_MODES.find((m) => m.id === mode)?.hint}
         {running ? " · native en cours" : ""}
+        {busy ? " · sync…" : ""}
       </Text>
 
       <View style={styles.actions}>
@@ -281,12 +242,12 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         />
         <ActionButton
           label="Update"
-          onPress={onUpdate}
+          onPress={() => void onUpdate()}
           disabled={busy || !running}
         />
         <ActionButton
           label="Stop"
-          onPress={onStop}
+          onPress={() => void onStop()}
           disabled={busy || !running}
           danger
         />
@@ -301,7 +262,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         <Text style={styles.statusLabel}>
           {bridge.available
             ? running
-              ? `Native · ${mode}`
+              ? `Native · ${activeMode.current ?? mode}`
               : "Native · prêt"
             : "Expo Go / non natif"}
         </Text>
@@ -309,14 +270,6 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
       </View>
     </View>
   );
-}
-
-function timeNow() {
-  return new Date().toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 }
 
 function ActionButton({
@@ -428,12 +381,11 @@ function PreviewInner({ mode }: { mode: IslandMode }) {
     return (
       <View style={styles.innerCol}>
         <View style={styles.expRow}>
-          <View style={styles.art} />
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={styles.expTitle}>Liquid Glass</Text>
             <Text style={styles.expSub}>COR·ALT · Live</Text>
           </View>
-          <Text style={styles.expCtrl}>II</Text>
+          <Text style={styles.expCtrl}>3:12</Text>
         </View>
       </View>
     );
@@ -576,12 +528,11 @@ const styles = StyleSheet.create({
   },
   expTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   expSub: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
-  expCtrl: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  art: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#0a84ff",
+  expCtrl: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
   progressTrack: {
     height: 6,

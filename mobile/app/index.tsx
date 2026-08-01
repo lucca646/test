@@ -12,9 +12,9 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="CORAIA GLASS · OTA"
+      kicker="CORAIA GLASS · FIX ÎLE"
       title="Aujourd'hui"
-      body="Timer · Music · Progress — tape un mode, Start, puis change librement. (update OTA)"
+      body="Stop zombie : chaque mode = restart propre. Plus de carré violet (images off)."
       tint={["#3b82f6", "#1d4ed8"]}
     >
       <View
