@@ -1,7 +1,13 @@
 import { Platform } from "react-native";
 
-/** Modes contenu Live Activity (ce qui est vraiment poussé sur l’île). */
-export type IslandMode = "timer" | "music" | "progress";
+/** Modes contenu Live Activity (poussés sur l’île). */
+export type IslandMode =
+  | "timer"
+  | "music"
+  | "progress"
+  | "focus"
+  | "breathe"
+  | "score";
 
 export type LiveActivityState = {
   title: string;
@@ -35,7 +41,6 @@ export type LiveActivityBridge = {
   stopActivity?: (id: string, state: LiveActivityState) => void;
 };
 
-/** Charge le module natif seulement s’il existe (dev build). Expo Go → unavailable. */
 export function getLiveActivityBridge(): LiveActivityBridge {
   if (Platform.OS !== "ios") {
     return { available: false, reason: "Live Activities = iOS uniquement." };
@@ -68,75 +73,8 @@ export function getLiveActivityBridge(): LiveActivityBridge {
   }
 }
 
-const BASE_CONFIG: LiveActivityConfig = {
-  backgroundColor: "#0B0B0F",
-  titleColor: "#FFFFFF",
-  subtitleColor: "#FFFFFF99",
-  progressViewTint: "#0A84FF",
-  progressViewLabelColor: "#FFFFFF",
-  deepLinkUrl: "/",
-  padding: { horizontal: 16, top: 14, bottom: 14 },
-};
-
-export type ModePayload = {
-  state: LiveActivityState;
-  config: LiveActivityConfig;
-};
-
-/**
- * Pas d’imageName : les PNG Live Activity du binaire actuel sont corrompus
- * (carré violet). Sans rebuild on omet les images.
- * Timer utilise une date (compact trailing digital) — requis par le widget.
- */
-export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
-  const now = Date.now();
-  switch (mode) {
-    case "progress": {
-      // Le widget DI n’affiche une barre en compact/bottom QUE si `date` est set.
-      // On combine date (countdown) + titre livraison pour un rendu île correct.
-      const mins = Math.max(1, 12 - (tick % 5));
-      return {
-        state: {
-          title: ["Livraison en cours", "Colis en route", "Presque là"][
-            tick % 3
-          ],
-          subtitle: `Arrivée estimée · ${mins} min`,
-          progressBar: { date: now + mins * 60_000 },
-        },
-        config: { ...BASE_CONFIG, timerType: "circular" },
-      };
-    }
-    case "music":
-      return {
-        state: {
-          title: ["Liquid Glass", "COR·ALT Live", "Island Drop"][tick % 3],
-          subtitle: "Now Playing · COR·ALT",
-          // date pour avoir un trailing compact ; digital lisible
-          progressBar: { date: now + Math.max(90_000, (4 - (tick % 4)) * 45_000) },
-        },
-        config: { ...BASE_CONFIG, timerType: "digital", deepLinkUrl: "/arcade" },
-      };
-    case "timer":
-    default:
-      return {
-        state: {
-          title: ["Timer Liquid Glass", "Focus 25′", "Sprint final"][tick % 3],
-          subtitle: "Compte à rebours",
-          progressBar: {
-            date: now + Math.max(60_000, (5 - (tick % 5)) * 60_000),
-          },
-        },
-        config: { ...BASE_CONFIG, timerType: "digital" },
-      };
-  }
-}
-
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/**
- * stopActivity natif est async (Task {}) : un start immédiat laisse l’ancienne
- * activité zombie sur l’île. On stoppe tous les IDs connus puis on attend.
- */
 export async function killActivities(
   bridge: LiveActivityBridge,
   ids: Iterable<string>,
@@ -145,13 +83,222 @@ export async function killActivities(
   const list = [...new Set(ids)].filter(Boolean);
   for (const id of list) {
     try {
-      bridge.stopActivity(id, {
-        title: "Fin",
-        subtitle: "Remplacement",
-      });
+      bridge.stopActivity(id, { title: "Fin", subtitle: "Remplacement" });
     } catch {
       /* déjà morte */
     }
   }
   if (list.length > 0) await sleep(450);
+}
+
+type ThemeCfg = Pick<
+  LiveActivityConfig,
+  | "backgroundColor"
+  | "titleColor"
+  | "subtitleColor"
+  | "progressViewTint"
+  | "progressViewLabelColor"
+  | "timerType"
+  | "deepLinkUrl"
+>;
+
+const THEMES: Record<IslandMode, ThemeCfg> = {
+  timer: {
+    backgroundColor: "#0B0B0F",
+    progressViewTint: "#0A84FF",
+    timerType: "digital",
+    deepLinkUrl: "/",
+  },
+  music: {
+    backgroundColor: "#12081C",
+    progressViewTint: "#BF5AF2",
+    timerType: "digital",
+    deepLinkUrl: "/arcade",
+  },
+  progress: {
+    backgroundColor: "#071018",
+    progressViewTint: "#64D2FF",
+    timerType: "circular",
+    deepLinkUrl: "/apps",
+  },
+  focus: {
+    backgroundColor: "#0A1A12",
+    progressViewTint: "#30D158",
+    timerType: "digital",
+    deepLinkUrl: "/",
+  },
+  breathe: {
+    backgroundColor: "#0A1420",
+    progressViewTint: "#5E5CE6",
+    timerType: "circular",
+    deepLinkUrl: "/games",
+  },
+  score: {
+    backgroundColor: "#1A0A0A",
+    progressViewTint: "#FF453A",
+    timerType: "digital",
+    deepLinkUrl: "/games",
+  },
+};
+
+const PAD = { horizontal: 16, top: 14, bottom: 14 };
+
+export type ModePayload = {
+  state: LiveActivityState;
+  config: LiveActivityConfig;
+};
+
+/** Intervalle autopilot recommandé par mode (ms). */
+export function autopilotInterval(mode: IslandMode): number {
+  switch (mode) {
+    case "breathe":
+      return 4000;
+    case "score":
+      return 2500;
+    case "focus":
+      return 5000;
+    case "music":
+      return 4000;
+    case "progress":
+      return 3500;
+    case "timer":
+    default:
+      return 6000;
+  }
+}
+
+/**
+ * Contenu île pour un mode + tick d’autopilot.
+ * Pas d’images (PNG widget du binaire = carré violet).
+ * Toujours une `date` → compact trailing / bottom widget fonctionnels.
+ */
+export function stateForMode(mode: IslandMode, tick = 0): ModePayload {
+  const now = Date.now();
+  const theme = THEMES[mode];
+  const config: LiveActivityConfig = {
+    titleColor: "#FFFFFF",
+    subtitleColor: "#FFFFFF99",
+    progressViewLabelColor: "#FFFFFF",
+    padding: PAD,
+    ...theme,
+  };
+
+  switch (mode) {
+    case "progress": {
+      const stages = [
+        { title: "Colis scanné", sub: "Entrepôt · préparation", mins: 18 },
+        { title: "En route", sub: "Livreur assigné", mins: 12 },
+        { title: "Dernier km", sub: "Arrive bientôt", mins: 4 },
+        { title: "À votre porte", sub: "Sonnez · code 4821", mins: 1 },
+      ];
+      const s = stages[tick % stages.length];
+      return {
+        state: {
+          title: s.title,
+          subtitle: `${s.sub} · ${s.mins} min`,
+          progressBar: { date: now + s.mins * 60_000 },
+        },
+        config,
+      };
+    }
+    case "music": {
+      const tracks = [
+        { title: "Liquid Glass", sub: "COR·ALT · Live Set" },
+        { title: "Island Drop", sub: "feat. NativeTabs" },
+        { title: "Morph Blue", sub: "B-side · 128 BPM" },
+        { title: "Soft Strong", sub: "Lens Remix" },
+      ];
+      const t = tracks[tick % tracks.length];
+      const left = Math.max(45, 210 - (tick % 8) * 22);
+      return {
+        state: {
+          title: t.title,
+          subtitle: `${t.sub} · −${fmtMmSs(left)}`,
+          progressBar: { date: now + left * 1000 },
+        },
+        config,
+      };
+    }
+    case "focus": {
+      // Pomodoro : Focus 25′ ↔ Pause 5′ selon tick
+      const focusPhase = tick % 6 < 4;
+      if (focusPhase) {
+        const left = Math.max(60, 25 * 60 - (tick % 4) * 90);
+        return {
+          state: {
+            title: "Focus · deep work",
+            subtitle: `Session ${(Math.floor(tick / 6) % 4) + 1}/4 · ${fmtMmSs(left)}`,
+            progressBar: { date: now + left * 1000 },
+          },
+          config,
+        };
+      }
+      const left = Math.max(45, 5 * 60 - (tick % 2) * 40);
+      return {
+        state: {
+          title: "Pause · recharge",
+          subtitle: `Respiration · ${fmtMmSs(left)}`,
+          progressBar: { date: now + left * 1000 },
+        },
+        config: { ...config, progressViewTint: "#FF9F0A" },
+      };
+    }
+    case "breathe": {
+      // Cycle 4 temps : inspire → hold → expire → hold
+      const phases = [
+        { title: "Inspire", sub: "4 secondes · nez", secs: 4 },
+        { title: "Retiens", sub: "plein · calme", secs: 4 },
+        { title: "Expire", sub: "6 secondes · bouche", secs: 6 },
+        { title: "Vide", sub: "repos · recommence", secs: 2 },
+      ];
+      const p = phases[tick % phases.length];
+      return {
+        state: {
+          title: p.title,
+          subtitle: `${p.sub} · cycle ${Math.floor(tick / 4) + 1}`,
+          progressBar: { date: now + p.secs * 1000 },
+        },
+        config,
+      };
+    }
+    case "score": {
+      const home = 12 + (tick % 9) * 3;
+      const away = 10 + ((tick + 3) % 7) * 2;
+      const clock = Math.max(15, 12 * 60 - tick * 18);
+      const q = (Math.floor(tick / 5) % 4) + 1;
+      return {
+        state: {
+          title: `COR ${home} — ${away} ALT`,
+          subtitle: `Q${q} · ${fmtMmSs(clock)} · live`,
+          progressBar: { date: now + clock * 1000 },
+        },
+        config,
+      };
+    }
+    case "timer":
+    default: {
+      const presets = [
+        { title: "Timer Liquid Glass", mins: 5 },
+        { title: "Focus 25′", mins: 25 },
+        { title: "Sprint final", mins: 3 },
+        { title: "Pause courte", mins: 2 },
+      ];
+      const p = presets[tick % presets.length];
+      return {
+        state: {
+          title: p.title,
+          subtitle: "Compte à rebours · Dynamic Island",
+          progressBar: { date: now + p.mins * 60_000 },
+        },
+        config,
+      };
+    }
+  }
+}
+
+function fmtMmSs(totalSec: number): string {
+  const s = Math.max(0, Math.floor(totalSec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
 }

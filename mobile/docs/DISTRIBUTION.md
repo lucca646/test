@@ -45,27 +45,42 @@ Ensuite App Store Connect → TestFlight → External Testing → **Public Link*
 npx eas build -p ios --profile preview --non-interactive
 ```
 
-## Gratuit (sans consumer le quota Free 15 iOS/mois)
+## MAJ sans build = EAS Update (OTA)
 
-Plan Free = **15 builds iOS / mois**. Pour itérer sans rebuild :
+L’app installée contient un **binaire natif** (Swift / UITabBar / ActivityKit)
++ un **bundle JS** (React Native).  
+Un *build* EAS recompile le binaire (coûte 1 crédit Free).  
+Un *update* EAS ne renvoie **que le JS** → 0 crédit.
 
-### 1. EAS Update (OTA) — recommandé
-Pousse le JS / assets (UI, Dynamic Island logic, etc.) sur l’app déjà installée.
-Ne consomme **pas** de build. Même `runtimeVersion` (aujourd’hui = `appVersion`).
+```
+┌──────────────┐     eas update      ┌─────────────� 0 crédit.
 
-```bash
-cd mobile
-# channel = celui du profil de build (preview | production)
-./scripts-eas-update.sh preview "fix island + logo"
-# ou :
-# CI=1 npx eas-cli update --channel preview -p ios --message "…" --non-interactive
+```
+┌──────────────┐     eas update      ┌─────────────┐
+│  Expo CDN    │ ─────────────────►  │  iPhone     │
+│  (nouveau JS)│                     │  expo-updates│
+└──────────────┘                     │  reload JS  │
+                                     └─────────────┘
 ```
 
-**Limite :** icône App Store / splash natifs / nouveaux plugins ⇒ rebuild obligatoire.
+1. Tu as déjà une IPA TestFlight / preview (`runtimeVersion` = version app, ex. `1.1.0`)
+2. On publie : `./scripts-eas-update.sh production "message"`
+3. Au prochain lancement, `applyOtaUpdateIfAny()` check → fetch → `reloadAsync()`
+4. Nouvelle UI / logique île **sans** repasser par Xcode ni brûler un build
 
-### 2. Build local sur Mac (illimité)
+**Ça passe en OTA :** écrans, styles, modes Dynamic Island, autopilot, textes.  
+**Ça exige un build :** nouvelle icône home, nouveaux plugins natifs, assets
+Live Activity du widget (PNG dans l’extension), changement de `runtimeVersion`.
+
+### Commandes
 ```bash
 cd mobile
+./scripts-eas-check-secrets.sh
+./scripts-eas-update.sh production "nouvelle feature île"
+# channel = preview | production  (doit matcher le profil du build installé)
+```
+
+### Build local (aussi gratuit, illimité)
+```bash
 npx expo run:ios --device
 ```
-Compile sur ta machine — 0 crédit EAS.
