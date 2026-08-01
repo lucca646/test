@@ -75,9 +75,9 @@ export default function IslandGuideSheet({ mode, visible, onClose }: Props) {
           </View>
 
           <Text style={[styles.limit, { color: theme.textMuted }]}>
-            Limite Apple : l’île n’affiche que titre, sous-titre et barre de
-            temps. La « beauté » se joue surtout dans le texte et les couleurs —
-            un vrai design custom (icônes, layout) demande un rebuild du widget.
+            Chaque mode a son layout natif (score, livraison en étapes, musique
+            + timer digital…). Une nouvelle forme d’île = rebuild widget ;
+            brancher un mode déjà câblé peut se faire en OTA.
           </Text>
 
           <Pressable

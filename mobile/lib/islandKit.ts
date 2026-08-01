@@ -152,7 +152,8 @@ export function buildTimerState(
       title,
       subtitle,
       layout: "timer",
-      badgeText: "TIM",
+      badgeText: "MIN",
+      bottomText: subtitle ?? "Compte à rebours",
       progressBar: { date: endAtMs },
     },
     config: { ...BASE, timerType: "digital" },
@@ -167,6 +168,7 @@ export function buildBreatheState(phase: string, seconds: number): ModularPayloa
       layout: "breathe",
       centerText: phase,
       badgeText: phase.slice(0, 3).toUpperCase(),
+      bottomText: "Suis le rythme · pas de barre",
       progressBar: { date: Date.now() + seconds * 1000 },
     },
     config: {
@@ -189,6 +191,7 @@ export function buildFocusState(
       subtitle,
       layout: "focus",
       badgeText: "FOC",
+      bottomText: subtitle,
       progressBar: { date: endAtMs },
     },
     config: {
@@ -210,7 +213,10 @@ export function buildMusicState(
       title: track,
       subtitle: artist,
       layout: "music",
+      badgeText: "♪",
       trailingText: "♪",
+      bottomText: artist,
+      // Timer digital sur le côté — pas de barre linéaire (layout music)
       progressBar: { date: endAtMs },
     },
     config: {
@@ -226,16 +232,23 @@ export function buildMusicState(
 export function buildTransportState(
   title: string,
   subtitle: string,
-  endAtMs: number,
+  opts: { step: number; mins: number },
 ): ModularPayload {
+  const step = Math.max(1, Math.min(4, opts.step));
+  const mins = opts.mins;
   return {
     state: {
       title,
       subtitle,
       layout: "transport",
       badgeText: "GPS",
+      leadingText: `${step}/4`,
+      trailingText: `${mins}'`,
+      leadingLabel: "ÉTAPE",
+      trailingLabel: "ETA",
       bottomText: subtitle,
-      progressBar: { date: endAtMs },
+      // Progression par pastilles (pas de date → pas de barre timer)
+      progressBar: { progress: step / 4 },
     },
     config: {
       ...BASE,
@@ -309,12 +322,12 @@ export function modularStateForMode(
         "Dernier kilomètre",
         "Devant chez toi",
       ];
+      const step = (tick % 4) + 1;
       const mins = [18, 12, 4, 1][tick % 4];
-      return buildTransportState(
-        stages[tick % 4],
-        `ETA · ${mins} min`,
-        now + mins * 60_000,
-      );
+      return buildTransportState(stages[tick % 4], `Entrepôt → porte · ~${mins} min`, {
+        step,
+        mins,
+      });
     }
     case "timer":
     default: {

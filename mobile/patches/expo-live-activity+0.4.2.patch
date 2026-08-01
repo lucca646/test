@@ -1,8 +1,44 @@
 diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityView.swift b/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
-index 1a00e92..e8a4974 100644
+index 1a00e92..ac456c9 100644
 --- a/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
 +++ b/node_modules/expo-live-activity/ios-files/LiveActivityView.swift
-@@ -196,10 +196,37 @@ import WidgetKit
+@@ -150,6 +150,26 @@ import WidgetKit
+       )
+     }
+ 
++    private var layout: String {
++      if let layout = contentState.layout, !layout.isEmpty { return layout }
++      if contentState.title.contains("|"),
++        contentState.title.split(separator: "|").count == 2
++      {
++        return "score"
++      }
++      return "default"
++    }
++
++    /// Barre linéaire uniquement pour `progress` / `default`.
++    private var showsLinearBar: Bool {
++      switch layout {
++      case "progress", "default":
++        return true
++      default:
++        return false
++      }
++    }
++
+     var body: some View {
+       let defaultPadding = 24
+ 
+@@ -181,7 +201,7 @@ import WidgetKit
+           ?? defaultPadding
+       )
+ 
+-      VStack(alignment: .leading) {
++      VStack(alignment: .leading, spacing: 8) {
+         let position = attributes.imagePosition ?? "right"
+         let isStretch = position.contains("Stretch")
+         let isLeftImage = position.hasPrefix("left")
+@@ -196,18 +216,68 @@ import WidgetKit
            }
  
            VStack(alignment: .leading, spacing: 2) {
@@ -10,16 +46,18 @@ index 1a00e92..e8a4974 100644
 -              .font(.title2)
 -              .fontWeight(.semibold)
 -              .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
-+            if contentState.title.contains("|"),
++            if layout == "score" || contentState.title.contains("|"),
 +              contentState.title.split(separator: "|").count == 2
 +            {
 +              let parts = contentState.title.split(separator: "|")
++              let homeLabel = contentState.leadingLabel ?? "COR"
++              let awayLabel = contentState.trailingLabel ?? "ALT"
 +              HStack(spacing: 16) {
 +                VStack(alignment: .leading, spacing: 2) {
-+                  Text("COR")
++                  Text(homeLabel)
 +                    .font(.caption2.weight(.bold))
 +                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
-+                  Text(String(parts[0]))
++                  Text(contentState.leadingText ?? String(parts[0]))
 +                    .font(.system(size: 28, weight: .bold, design: .rounded))
 +                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
 +                }
@@ -27,10 +65,31 @@ index 1a00e92..e8a4974 100644
 +                  .font(.caption.weight(.semibold))
 +                  .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
 +                VStack(alignment: .trailing, spacing: 2) {
-+                  Text("ALT")
++                  Text(awayLabel)
 +                    .font(.caption2.weight(.bold))
 +                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
-+                  Text(String(parts[1]))
++                  Text(contentState.trailingText ?? String(parts[1]))
++                    .font(.system(size: 28, weight: .bold, design: .rounded))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++                }
++              }
++            } else if layout == "transport" {
++              HStack(alignment: .firstTextBaseline) {
++                VStack(alignment: .leading, spacing: 2) {
++                  Text(contentState.leadingLabel ?? "LIVRAISON")
++                    .font(.caption2.weight(.bold))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
++                  Text(contentState.title)
++                    .font(.title2)
++                    .fontWeight(.semibold)
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++                }
++                Spacer(minLength: 8)
++                VStack(alignment: .trailing, spacing: 2) {
++                  Text(contentState.trailingLabel ?? "ETA")
++                    .font(.caption2.weight(.bold))
++                    .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
++                  Text(contentState.trailingText ?? "—")
 +                    .font(.system(size: 28, weight: .bold, design: .rounded))
 +                    .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
 +                }
@@ -42,10 +101,57 @@ index 1a00e92..e8a4974 100644
 +                .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
 +            }
  
-             if let subtitle = contentState.subtitle {
+-            if let subtitle = contentState.subtitle {
++            if let subtitle = contentState.subtitle, layout != "score" {
                Text(subtitle)
+                 .font(.title3)
+                 .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
+             }
+ 
+-            if effectiveStretch {
++            if effectiveStretch, showsLinearBar {
+               if let date = contentState.timerEndDateInMilliseconds {
+                 ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
+                   .tint(progressViewTint)
+@@ -228,7 +298,17 @@ import WidgetKit
+           }
+         }
+ 
+-        if !effectiveStretch {
++        if layout == "transport" {
++          let progress = contentState.progress ?? 0.25
++          let filled = max(1, min(4, Int((progress * 4).rounded(.up))))
++          HStack(spacing: 6) {
++            ForEach(1...4, id: \.self) { n in
++              Capsule()
++                .fill(n <= filled ? (progressViewTint ?? .cyan) : Color.white.opacity(0.22))
++                .frame(height: 5)
++            }
++          }
++        } else if !effectiveStretch, showsLinearBar {
+           if let date = contentState.timerEndDateInMilliseconds {
+             ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
+               .tint(progressViewTint)
+@@ -238,6 +318,17 @@ import WidgetKit
+               .tint(progressViewTint)
+               .modifier(ConditionalForegroundViewModifier(color: attributes.progressViewLabelColor))
+           }
++        } else if layout == "music" || layout == "timer" || layout == "focus",
++          let date = contentState.timerEndDateInMilliseconds
++        {
++          Text(timerInterval: Date.toTimerInterval(miliseconds: date), countsDown: true)
++            .font(.system(size: 20, weight: .bold, design: .rounded))
++            .monospacedDigit()
++            .modifier(ConditionalForegroundViewModifier(color: attributes.titleColor))
++        } else if let bottom = contentState.bottomText, layout != "default", layout != "progress" {
++          Text(bottom)
++            .font(.caption)
++            .modifier(ConditionalForegroundViewModifier(color: attributes.subtitleColor))
+         }
+       }
+       .padding(EdgeInsets(top: top, leading: leading, bottom: bottom, trailing: trailing))
 diff --git a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
-index 24cd8c5..aed7be8 100644
+index 24cd8c5..e7cd760 100644
 --- a/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
 +++ b/node_modules/expo-live-activity/ios-files/LiveActivityWidget.swift
 @@ -10,6 +10,15 @@ struct LiveActivityAttributes: ActivityAttributes {
@@ -74,7 +180,7 @@ index 24cd8c5..aed7be8 100644
    var imageAlign: String?
    var contentFit: String?
  
-@@ -45,6 +54,64 @@ struct LiveActivityAttributes: ActivityAttributes {
+@@ -45,6 +54,74 @@ struct LiveActivityAttributes: ActivityAttributes {
    }
  }
  
@@ -124,6 +230,16 @@ index 24cd8c5..aed7be8 100644
 +    }
 +  }
 +
++  /// Layouts qui ne doivent JAMAIS afficher de barre linéaire.
++  var rejectsLinearBar: Bool {
++    switch layout {
++    case "score", "dual", "sides", "transport", "music", "breathe", "focus", "timer", "minimal":
++      return true
++    default:
++      return false
++    }
++  }
++
 +  private static func parsePipe(_ title: String) -> (String, String)? {
 +    let parts = title.split(separator: "|", omittingEmptySubsequences: false)
 +    guard parts.count == 2 else { return nil }
@@ -139,7 +255,7 @@ index 24cd8c5..aed7be8 100644
  struct LiveActivityWidget: Widget {
    var body: some WidgetConfiguration {
      ActivityConfiguration(for: LiveActivityAttributes.self) { context in
-@@ -55,52 +122,198 @@ struct LiveActivityWidget: Widget {
+@@ -55,115 +132,413 @@ struct LiveActivityWidget: Widget {
          .activitySystemActionForegroundColor(Color.black)
          .applyWidgetURL(from: context.attributes.deepLinkUrl)
      } dynamicIsland: { context in
@@ -159,17 +275,15 @@ index 24cd8c5..aed7be8 100644
 -          if let imageName = context.state.imageName {
 -            dynamicIslandExpandedTrailing(imageName: imageName)
 -              .padding(.trailing, 5)
-+          expandedTrailing(kit: kit, state: context.state)
+-              .applyWidgetURL(from: context.attributes.deepLinkUrl)
+-          }
++          expandedTrailing(kit: kit, state: context.state, attributes: context.attributes)
 +            .padding(.trailing, 5)
 +            .applyWidgetURL(from: context.attributes.deepLinkUrl)
 +        }
 +        DynamicIslandExpandedRegion(.center) {
-+          if let center = kit.center {
-+            Text(center)
-+              .font(.headline.weight(.semibold))
-+              .foregroundStyle(.white)
-               .applyWidgetURL(from: context.attributes.deepLinkUrl)
-           }
++          expandedCenter(kit: kit)
++            .applyWidgetURL(from: context.attributes.deepLinkUrl)
          }
          DynamicIslandExpandedRegion(.bottom) {
 -          if let date = context.state.timerEndDateInMilliseconds {
@@ -206,21 +320,34 @@ index 24cd8c5..aed7be8 100644
 -            timerType: context.attributes.timerType ?? .circular,
 -            progressViewTint: context.attributes.progressViewTint
 -          ).applyWidgetURL(from: context.attributes.deepLinkUrl)
+-        }
 +        minimalView(kit: kit, state: context.state, attributes: context.attributes)
 +          .applyWidgetURL(from: context.attributes.deepLinkUrl)
-+      }
-+    }
-+  }
-+
+       }
+     }
+   }
+ 
 +  // MARK: - Compact
 +
-+  @ViewBuilder
+   @ViewBuilder
+-  private func compactTimer(
+-    endDate: Double,
+-    timerType: LiveActivityAttributes.DynamicIslandTimerType,
+-    progressViewTint: String?
 +  private func compactLeading(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
 +    if kit.isSideNumbers, let leading = kit.leading {
 +      Text(leading)
 +        .font(.system(size: 16, weight: .bold, design: .rounded))
 +        .foregroundStyle(.white)
 +        .minimumScaleFactor(0.6)
++    } else if kit.layout == "transport", let leading = kit.leading {
++      Text(leading)
++        .font(.system(size: 13, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++    } else if kit.layout == "music" {
++      Text("♪")
++        .font(.system(size: 14, weight: .bold))
++        .foregroundStyle(.white)
 +    } else if let badge = kit.badge {
 +      Text(badge)
 +        .font(.system(size: 12, weight: .heavy, design: .rounded))
@@ -240,12 +367,43 @@ index 24cd8c5..aed7be8 100644
 +    kit: IslandKit,
 +    state: LiveActivityAttributes.ContentState,
 +    attributes: LiveActivityAttributes
-+  ) -> some View {
+   ) -> some View {
+-    if timerType == .digital {
+-      Text(timerInterval: Date.toTimerInterval(miliseconds: endDate))
+-        .font(.system(size: 15))
+-        .minimumScaleFactor(0.8)
+-        .fontWeight(.semibold)
+-        .frame(maxWidth: 60)
+-        .multilineTextAlignment(.trailing)
+-    } else {
+-      circularTimer(endDate: endDate)
+-        .tint(progressViewTint.map { Color(hex: $0) })
++    // Transport / dual texte : ETA ou trailing avant toute barre/timer circulaire
 +    if kit.isSideNumbers, let trailing = kit.trailing {
 +      Text(trailing)
 +        .font(.system(size: 16, weight: .bold, design: .rounded))
 +        .foregroundStyle(.white)
 +        .minimumScaleFactor(0.6)
++    } else if kit.layout == "transport", let trailing = kit.trailing {
++      Text(trailing)
++        .font(.system(size: 14, weight: .bold, design: .rounded))
++        .foregroundStyle(.white)
++        .minimumScaleFactor(0.7)
++    } else if kit.layout == "music" || kit.layout == "timer" || kit.layout == "focus",
++      let date = state.timerEndDateInMilliseconds
++    {
++      compactTimer(endDate: date, timerType: .digital, progressViewTint: attributes.progressViewTint)
++    } else if kit.layout == "breathe", let date = state.timerEndDateInMilliseconds {
++      compactTimer(
++        endDate: date,
++        timerType: attributes.timerType ?? .circular,
++        progressViewTint: attributes.progressViewTint
++      )
++    } else if let trailing = kit.trailing, kit.rejectsLinearBar {
++      Text(trailing)
++        .font(.system(size: 13, weight: .semibold, design: .rounded))
++        .foregroundStyle(.white)
++        .minimumScaleFactor(0.7)
 +    } else if let date = state.timerEndDateInMilliseconds {
 +      compactTimer(
 +        endDate: date,
@@ -257,9 +415,14 @@ index 24cd8c5..aed7be8 100644
 +        .font(.system(size: 13, weight: .semibold, design: .rounded))
 +        .foregroundStyle(.white)
 +        .minimumScaleFactor(0.7)
-+    }
-+  }
-+
+     }
+   }
+ 
+-  private func dynamicIslandExpandedLeading(title: String, subtitle: String?) -> some View {
+-    VStack(alignment: .leading) {
+-      Spacer()
+-      Text(title)
+-        .font(.title2)
 +  @ViewBuilder
 +  private func minimalView(
 +    kit: IslandKit,
@@ -269,7 +432,19 @@ index 24cd8c5..aed7be8 100644
 +    if kit.isSideNumbers, let leading = kit.leading {
 +      Text(leading)
 +        .font(.system(size: 14, weight: .bold, design: .rounded))
+         .foregroundStyle(.white)
+-        .fontWeight(.semibold)
+-      if let subtitle {
+-        Text(subtitle)
+-          .font(.title3)
++    } else if kit.layout == "transport", let trailing = kit.trailing {
++      Text(trailing)
++        .font(.system(size: 12, weight: .bold, design: .rounded))
 +        .foregroundStyle(.white)
++    } else if let date = state.timerEndDateInMilliseconds,
++      kit.layout == "music" || kit.layout == "timer" || kit.layout == "focus"
++    {
++      compactTimer(endDate: date, timerType: .digital, progressViewTint: attributes.progressViewTint)
 +    } else if let date = state.timerEndDateInMilliseconds {
 +      compactTimer(
 +        endDate: date,
@@ -289,6 +464,45 @@ index 24cd8c5..aed7be8 100644
 +  private func expandedLeading(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
 +    if kit.isSideNumbers, let leading = kit.leading {
 +      scoreSide(label: kit.leadingLabel ?? "L", value: leading, align: .leading)
++    } else if kit.layout == "transport" {
++      VStack(alignment: .leading, spacing: 2) {
++        Spacer(minLength: 0)
++        if let label = kit.leadingLabel {
++          Text(label)
++            .font(.caption2.weight(.bold))
++            .foregroundStyle(.white.opacity(0.65))
++        }
++        Text(kit.title)
++          .font(.headline.weight(.semibold))
++          .foregroundStyle(.white)
++          .lineLimit(2)
+           .minimumScaleFactor(0.8)
+-          .foregroundStyle(.white.opacity(0.75))
++        Spacer(minLength: 0)
++      }
++    } else if kit.layout == "music" {
++      VStack(alignment: .leading, spacing: 2) {
++        Spacer(minLength: 0)
++        Text("♪ EN LECTURE")
++          .font(.caption2.weight(.bold))
++          .foregroundStyle(.white.opacity(0.65))
++        Text(kit.title)
++          .font(.headline.weight(.semibold))
++          .foregroundStyle(.white)
++          .lineLimit(2)
++        Spacer(minLength: 0)
++      }
++    } else if kit.layout == "breathe" {
++      VStack(alignment: .leading, spacing: 2) {
++        Spacer(minLength: 0)
++        Text("RESPIRATION")
++          .font(.caption2.weight(.bold))
++          .foregroundStyle(.white.opacity(0.65))
++        Text(kit.center ?? kit.title)
++          .font(.title2.weight(.bold))
++          .foregroundStyle(.white)
++        Spacer(minLength: 0)
++      }
 +    } else {
 +      VStack(alignment: .leading) {
 +        Spacer(minLength: 0)
@@ -301,56 +515,195 @@ index 24cd8c5..aed7be8 100644
 +            .font(.title3)
 +            .minimumScaleFactor(0.8)
 +            .foregroundStyle(.white.opacity(0.75))
-         }
++        }
 +        Spacer(minLength: 0)
 +      }
 +    }
 +  }
 +
 +  @ViewBuilder
-+  private func expandedTrailing(kit: IslandKit, state: LiveActivityAttributes.ContentState) -> some View {
++  private func expandedTrailing(
++    kit: IslandKit,
++    state: LiveActivityAttributes.ContentState,
++    attributes: LiveActivityAttributes
++  ) -> some View {
 +    if kit.isSideNumbers, let trailing = kit.trailing {
 +      scoreSide(label: kit.trailingLabel ?? "R", value: trailing, align: .trailing)
++    } else if kit.layout == "transport" {
++      VStack(alignment: .trailing, spacing: 2) {
++        Spacer(minLength: 0)
++        Text(kit.trailingLabel ?? "ETA")
++          .font(.caption2.weight(.bold))
++          .foregroundStyle(.white.opacity(0.65))
++        Text(kit.trailing ?? "—")
++          .font(.system(size: 28, weight: .bold, design: .rounded))
++          .foregroundStyle(.white)
++          .minimumScaleFactor(0.6)
++        Spacer(minLength: 0)
++      }
++    } else if kit.layout == "music" || kit.layout == "timer" || kit.layout == "focus",
++      let date = state.timerEndDateInMilliseconds
++    {
++      VStack(alignment: .trailing, spacing: 2) {
++        Spacer(minLength: 0)
++        Text(kit.layout == "music" ? "RESTANT" : "TIMER")
++          .font(.caption2.weight(.bold))
++          .foregroundStyle(.white.opacity(0.65))
++        Text(timerInterval: Date.toTimerInterval(miliseconds: date), countsDown: true)
++          .font(.system(size: 22, weight: .bold, design: .rounded))
++          .foregroundStyle(.white)
++          .monospacedDigit()
++          .multilineTextAlignment(.trailing)
++          .frame(minWidth: 64)
++        Spacer(minLength: 0)
++      }
++    } else if kit.layout == "breathe", let date = state.timerEndDateInMilliseconds {
++      VStack {
++        Spacer(minLength: 0)
++        ProgressView(
++          timerInterval: Date.toTimerInterval(miliseconds: date),
++          countsDown: true,
++          label: { EmptyView() },
++          currentValueLabel: { EmptyView() }
++        )
++        .progressViewStyle(.circular)
++        .tint(attributes.progressViewTint.map { Color(hex: $0) } ?? .white)
++        Spacer(minLength: 0)
++      }
 +    } else if let imageName = state.imageName {
 +      VStack {
 +        Spacer(minLength: 0)
 +        resizableImage(imageName: imageName)
 +        Spacer(minLength: 0)
-+      }
+       }
+-      Spacer()
 +    } else if let trailing = kit.trailing {
 +      Text(trailing)
 +        .font(.title3.weight(.bold))
 +        .foregroundStyle(.white)
-+    }
-+  }
-+
+     }
+   }
+ 
+-  private func dynamicIslandExpandedTrailing(imageName: String) -> some View {
+-    VStack {
+-      Spacer()
+-      resizableImage(imageName: imageName)
+-      Spacer()
++  @ViewBuilder
++  private func expandedCenter(kit: IslandKit) -> some View {
++    if kit.layout == "breathe" {
++      EmptyView()
++    } else if let center = kit.center {
++      Text(center)
++        .font(.headline.weight(.semibold))
++        .foregroundStyle(.white)
+     }
+   }
+ 
+-  private func dynamicIslandExpandedBottom(endDate: Double, progressViewTint: String?) -> some View {
+-    ProgressView(timerInterval: Date.toTimerInterval(miliseconds: endDate))
+-      .foregroundStyle(.white)
+-      .tint(progressViewTint.map { Color(hex: $0) })
+-      .padding(.top, 5)
 +  @ViewBuilder
 +  private func expandedBottom(
 +    kit: IslandKit,
 +    state: LiveActivityAttributes.ContentState,
 +    tint: String?
 +  ) -> some View {
-+    if kit.isSideNumbers {
++    switch kit.layout {
++    case "score", "dual", "sides":
 +      if let bottom = kit.bottom {
 +        Text(bottom)
 +          .font(.caption)
 +          .foregroundStyle(.white.opacity(0.8))
 +          .frame(maxWidth: .infinity, alignment: .center)
-       }
-+    } else if let date = state.timerEndDateInMilliseconds {
-+      ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
-+        .foregroundStyle(.white)
-+        .tint(tint.map { Color(hex: $0) })
-+        .padding(.top, 5)
-+    } else if let progress = state.progress {
-+      ProgressView(value: progress)
-+        .tint(tint.map { Color(hex: $0) })
-+        .padding(.top, 5)
-+    } else if let bottom = kit.bottom {
-+      Text(bottom)
-+        .font(.caption)
-+        .foregroundStyle(.white.opacity(0.8))
++      }
++
++    case "transport":
++      VStack(spacing: 6) {
++        stepRow(progress: state.progress ?? stepProgress(from: kit.leading), tint: tint)
++        if let bottom = kit.bottom {
++          Text(bottom)
++            .font(.caption2)
++            .foregroundStyle(.white.opacity(0.75))
++            .frame(maxWidth: .infinity, alignment: .leading)
++        }
++      }
++      .padding(.top, 4)
++
++    case "music", "breathe", "focus", "timer", "minimal":
++      if let bottom = kit.bottom ?? kit.subtitle {
++        Text(bottom)
++          .font(.caption)
++          .foregroundStyle(.white.opacity(0.8))
++          .frame(maxWidth: .infinity, alignment: .leading)
++          .padding(.top, 4)
++      }
++
++    case "progress":
++      // Seul layout volontairement « barre »
++      if let date = state.timerEndDateInMilliseconds {
++        ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
++          .foregroundStyle(.white)
++          .tint(tint.map { Color(hex: $0) })
++          .padding(.top, 5)
++      } else if let progress = state.progress {
++        ProgressView(value: progress)
++          .tint(tint.map { Color(hex: $0) })
++          .padding(.top, 5)
++      }
++
++    default:
++      if kit.rejectsLinearBar {
++        if let bottom = kit.bottom {
++          Text(bottom)
++            .font(.caption)
++            .foregroundStyle(.white.opacity(0.8))
++        }
++      } else if let date = state.timerEndDateInMilliseconds {
++        ProgressView(timerInterval: Date.toTimerInterval(miliseconds: date))
++          .foregroundStyle(.white)
++          .tint(tint.map { Color(hex: $0) })
++          .padding(.top, 5)
++      } else if let progress = state.progress {
++        ProgressView(value: progress)
++          .tint(tint.map { Color(hex: $0) })
++          .padding(.top, 5)
++      } else if let bottom = kit.bottom {
++        Text(bottom)
++          .font(.caption)
++          .foregroundStyle(.white.opacity(0.8))
++      }
 +    }
+   }
+ 
+-  private func circularTimer(endDate: Double) -> some View {
+-    ProgressView(
+-      timerInterval: Date.toTimerInterval(miliseconds: endDate),
+-      countsDown: false,
+-      label: { EmptyView() },
+-      currentValueLabel: {
+-        EmptyView()
++  private func stepRow(progress: Double, tint: String?) -> some View {
++    let filled = max(1, min(4, Int((progress * 4).rounded(.up))))
++    let color = tint.map { Color(hex: $0) } ?? Color.cyan
++    return HStack(spacing: 6) {
++      ForEach(1...4, id: \.self) { n in
++        Capsule()
++          .fill(n <= filled ? color : Color.white.opacity(0.22))
++          .frame(height: 5)
+       }
+-    )
+-    .progressViewStyle(.circular)
++    }
++  }
++
++  private func stepProgress(from leading: String?) -> Double {
++    guard let leading, let slash = leading.split(separator: "/").first,
++      let n = Double(slash.trimmingCharacters(in: .whitespaces))
++    else { return 0.25 }
++    return min(1, max(0.05, n / 4.0))
 +  }
 +
 +  private func scoreSide(label: String, value: String, align: HorizontalAlignment) -> some View {
@@ -363,46 +716,23 @@ index 24cd8c5..aed7be8 100644
 +        .font(.system(size: 28, weight: .bold, design: .rounded))
 +        .foregroundStyle(.white)
 +      Spacer(minLength: 0)
-     }
-   }
- 
-@@ -118,52 +331,14 @@ struct LiveActivityWidget: Widget {
-         .frame(maxWidth: 60)
-         .multilineTextAlignment(.trailing)
-     } else {
--      circularTimer(endDate: endDate)
--        .tint(progressViewTint.map { Color(hex: $0) })
--    }
--  }
--
--  private func dynamicIslandExpandedLeading(title: String, subtitle: String?) -> some View {
--    VStack(alignment: .leading) {
--      Spacer()
--      Text(title)
--        .font(.title2)
--        .foregroundStyle(.white)
--        .fontWeight(.semibold)
--      if let subtitle {
--        Text(subtitle)
--          .font(.title3)
--          .minimumScaleFactor(0.8)
--          .foregroundStyle(.white.opacity(0.75))
--      }
--      Spacer()
--    }
--  }
--
--  private func dynamicIslandExpandedTrailing(imageName: String) -> some View {
--    VStack {
--      Spacer()
--      resizableImage(imageName: imageName)
--      Spacer()
--    }
--  }
--
--  private func dynamicIslandExpandedBottom(endDate: Double, progressViewTint: String?) -> some View {
--    ProgressView(timerInterval: Date.toTimerInterval(miliseconds: endDate))
--      .foregroundStyle(.white)
++    }
++  }
++
++  @ViewBuilder
++  private func compactTimer(
++    endDate: Double,
++    timerType: LiveActivityAttributes.DynamicIslandTimerType,
++    progressViewTint: String?
++  ) -> some View {
++    if timerType == .digital {
++      Text(timerInterval: Date.toTimerInterval(miliseconds: endDate))
++        .font(.system(size: 15))
++        .minimumScaleFactor(0.8)
++        .fontWeight(.semibold)
++        .frame(maxWidth: 60)
++        .multilineTextAlignment(.trailing)
++    } else {
 +      ProgressView(
 +        timerInterval: Date.toTimerInterval(miliseconds: endDate),
 +        countsDown: false,
@@ -410,20 +740,7 @@ index 24cd8c5..aed7be8 100644
 +        currentValueLabel: { EmptyView() }
 +      )
 +      .progressViewStyle(.circular)
-       .tint(progressViewTint.map { Color(hex: $0) })
--      .padding(.top, 5)
--  }
--
--  private func circularTimer(endDate: Double) -> some View {
--    ProgressView(
--      timerInterval: Date.toTimerInterval(miliseconds: endDate),
--      countsDown: false,
--      label: { EmptyView() },
--      currentValueLabel: {
--        EmptyView()
--      }
--    )
--    .progressViewStyle(.circular)
++      .tint(progressViewTint.map { Color(hex: $0) })
 +    }
    }
  }

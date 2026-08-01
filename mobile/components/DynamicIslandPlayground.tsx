@@ -276,7 +276,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
               ? "Aperçu = 2 blocs. Sur l’île réelle : après le build « côtés », tu auras 12 à gauche et 16 à droite du pill."
               : "L’aperçu ci-dessus ≠ le widget Apple. Les chiffres sur les côtés demandent 1 build natif (déjà préparé)."
             : running
-              ? "Chaque mode a sa forme : timer/barre seulement si ça a du sens (pas pour Score)."
+              ? "Chaque mode a sa forme : Score = chiffres, Livraison = étapes + ETA, Musique = ♪ + timer — pas de barre partout."
               : "Start envoie cette expérience sur l’île. Change de mode pour voir la diversité."}
         </Text>
       </View>
