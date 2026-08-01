@@ -1,25 +1,15 @@
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
 /**
- * Cadre device selon la plateforme — même contenu enfants.
+ * Cadre device — en live web : plein écran navigateur, sans faux chrome.
+ * En lab (?lab=1) : miroirs iOS / Android / Web desktop.
  */
-export default function DeviceFrame({ children, nav }) {
+export default function DeviceFrame({ children, nav, liveWeb = false }) {
   const { platform } = usePlatform();
 
-  if (platform === "web") {
+  if (liveWeb || platform === "web") {
     return (
-      <div className="device-frame device-web">
-        <div className="web-chrome" aria-hidden>
-          <div className="web-traffic">
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className="web-url">
-            <span>liquid.glass</span>
-            <em>/preview?platform=web</em>
-          </div>
-        </div>
+      <div className="device-frame device-web device-web-live">
         <div className="device-frame-inner device-web-inner">
           {nav}
           <div className="device-web-body">{children}</div>
@@ -45,7 +35,7 @@ export default function DeviceFrame({ children, nav }) {
     );
   }
 
-  // iOS
+  // Lab iOS
   return (
     <div className="device-frame device-ios">
       <div className="device-frame-inner">

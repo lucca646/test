@@ -4,35 +4,52 @@ import { createContext, useContext, useMemo, useState } from "react";
 
 export const PLATFORMS = [
   {
+    id: "web",
+    label: "Web",
+    hint: "Layout navigateur — onglets en haut",
+    konstaTheme: "ios",
+    accent: "#3b82f6",
+  },
+  {
     id: "ios",
     label: "iOS",
-    hint: "Dynamic Island · dock Liquid Glass · Konsta iOS",
+    hint: "Lab · Dynamic Island · dock Liquid Glass",
     konstaTheme: "ios",
     accent: "#0a84ff",
   },
   {
     id: "android",
     label: "Android",
-    hint: "Material 3 · barre du bas · Konsta Material",
+    hint: "Lab · Material 3",
     konstaTheme: "material",
     accent: "#8ab4f8",
-  },
-  {
-    id: "web",
-    label: "Web",
-    hint: "Chrome navigateur · onglets haut · layout desktop",
-    konstaTheme: "ios",
-    accent: "#3b82f6",
   },
 ];
 
 const PlatformContext = createContext(null);
 
+function readQuery() {
+  return new URLSearchParams(window.location.search);
+}
+
+/**
+ * Mode lab (?lab=1) : bascule iOS / Android / Web pour le playground.
+ * Sinon : toujours la version web adaptée (pas de sélecteur).
+ */
 export function PlatformProvider({ children }) {
+  const [lab] = useState(() => {
+    const q = readQuery();
+    return q.get("lab") === "1" || q.get("demo") === "platforms";
+  });
+
   const [platform, setPlatform] = useState(() => {
-    const q = new URLSearchParams(window.location.search).get("platform");
-    if (q === "android" || q === "web" || q === "ios") return q;
-    return "ios";
+    const q = readQuery();
+    if (lab) {
+      const p = q.get("platform");
+      if (p === "android" || p === "web" || p === "ios") return p;
+      return "ios";
+    }
+    return "web";
   });
 
   const meta = useMemo(
@@ -43,15 +60,18 @@ export function PlatformProvider({ children }) {
   const value = useMemo(
     () => ({
       platform,
+      lab,
       setPlatform: (id) => {
+        if (!lab) return; // prod web : pas de bascule
         setPlatform(id);
         const url = new URL(window.location.href);
         url.searchParams.set("platform", id);
+        url.searchParams.set("lab", "1");
         window.history.replaceState({}, "", url);
       },
       meta,
     }),
-    [platform, meta],
+    [platform, meta, lab],
   );
 
   return (

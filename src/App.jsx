@@ -36,7 +36,7 @@ function normalizePath(path) {
 }
 
 function AppShell() {
-  const { platform, meta } = usePlatform();
+  const { platform, meta, lab } = usePlatform();
   const [activePath, setActivePath] = useState(() =>
     normalizePath(window.location.pathname),
   );
@@ -45,7 +45,8 @@ function AppShell() {
     document.documentElement.classList.add("dark");
     document.documentElement.style.colorScheme = "dark";
     document.documentElement.dataset.platform = platform;
-  }, [platform]);
+    document.documentElement.dataset.lab = lab ? "1" : "0";
+  }, [platform, lab]);
 
   const selectTab = useCallback((path) => {
     const next = normalizePath(path);
@@ -59,9 +60,9 @@ function AppShell() {
   const nav = <AppTabbar activePath={activePath} onSelect={selectTab} />;
 
   return (
-    <div className={`web-native-shell platform-${platform}`}>
-      <PlatformSwitcher />
-      <DeviceFrame nav={nav}>
+    <div className={`web-native-shell platform-${platform}${lab ? " is-lab" : " is-live-web"}`}>
+      {lab ? <PlatformSwitcher /> : null}
+      <DeviceFrame nav={nav} liveWeb={!lab}>
         <KonstaApp
           key={meta.konstaTheme}
           theme={meta.konstaTheme}
@@ -71,7 +72,6 @@ function AppShell() {
         >
           <div className="app-wallpaper" aria-hidden data-platform={platform} />
           <main className="tab-stage">
-            {/* key path only — same page base when switching platform */}
             <ActivePage key={activePath} />
           </main>
         </KonstaApp>
