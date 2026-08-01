@@ -62,14 +62,10 @@ export default function RootLayout() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="search" role="search">
+      {/* Recherche retirée de la barre (OTA) — route /search toujours là si besoin */}
+      <NativeTabs.Trigger name="search" hidden>
         <Label>Recherche</Label>
-        <Icon
-          sf={{
-            default: "magnifyingglass",
-            selected: "magnifyingglass.circle.fill",
-          }}
-        />
+        <Icon sf="magnifyingglass" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
