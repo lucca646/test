@@ -1,20 +1,21 @@
 import { useEffect } from "react";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
+import { NativeTabs, Icon, Label, Badge } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useAppTheme } from "../lib/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 
 /**
- * Vraie barre d’onglets Apple : UITabBar / UITabBarController
- * via expo-router NativeTabs (pas un composant custom).
- * Blur + teinte suivent le mode clair / sombre système.
+ * Vraie barre d’onglets Apple : UITabBar via NativeTabs.
+ * Labels / icônes / teinte / badge = JS → modifiable en OTA (sans rebuild).
+ * Morph Liquid Glass custom / remplacer UITabBar = rebuild.
  */
 export default function RootLayout() {
   const theme = useAppTheme();
+  // Teinte OTA-visible (bleu système → cyan un peu plus clair)
   const tint =
     Platform.OS === "ios"
-      ? DynamicColorIOS({ light: "#0a84ff", dark: "#0a84ff" })
-      : "#0a84ff";
+      ? DynamicColorIOS({ light: "#64D2FF", dark: "#64D2FF" })
+      : "#64D2FF";
 
   useEffect(() => {
     void applyOtaUpdateIfAny();
@@ -25,17 +26,17 @@ export default function RootLayout() {
       tintColor={tint}
       labelStyle={{
         fontSize: 10,
-        fontWeight: "600",
+        fontWeight: "700",
         color: theme.isDark
-          ? "rgba(235,235,245,0.6)"
-          : "rgba(60,60,67,0.6)",
+          ? "rgba(235,235,245,0.72)"
+          : "rgba(60,60,67,0.72)",
       }}
       blurEffect={theme.tabBlur}
       disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="index">
         <Label>Aujourd'hui</Label>
-        <Icon sf={{ default: "newspaper", selected: "newspaper.fill" }} />
+        <Icon sf={{ default: "sun.max", selected: "sun.max.fill" }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="games">
@@ -45,6 +46,7 @@ export default function RootLayout() {
 
       <NativeTabs.Trigger name="apps">
         <Label>Apps</Label>
+        <Badge>OTA</Badge>
         <Icon
           sf={{
             default: "square.stack.3d.up",
@@ -62,7 +64,12 @@ export default function RootLayout() {
 
       <NativeTabs.Trigger name="search" role="search">
         <Label>Recherche</Label>
-        <Icon sf="magnifyingglass" />
+        <Icon
+          sf={{
+            default: "magnifyingglass",
+            selected: "magnifyingglass.circle.fill",
+          }}
+        />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
