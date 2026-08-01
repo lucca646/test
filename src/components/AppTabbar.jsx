@@ -8,10 +8,10 @@ import {
   LayersFill,
   Gamecontroller,
   GamecontrollerFill,
-  Search,
 } from "framework7-icons/react/framework7-icons-react.esm.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
+/** Aligné sur l’app native : Recherche retirée de la barre (OTA). */
 const ITEMS = [
   {
     id: "/",
@@ -40,13 +40,6 @@ const ITEMS = [
     short: "Arcade",
     icon: <Gamecontroller className="w-6 h-6" />,
     iconActive: <GamecontrollerFill className="w-6 h-6" />,
-  },
-  {
-    id: "/search/",
-    label: "Recherche",
-    short: "Search",
-    icon: <Search className="w-6 h-6" />,
-    iconActive: <Search className="w-6 h-6" />,
   },
 ];
 
