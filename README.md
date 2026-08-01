@@ -1,11 +1,14 @@
-# test — Apple-like Liquid Glass
+# test — Apple-like Liquid Glass + port COR·ALT
 
-Deux playgrounds dans ce repo :
+Playgrounds et doc native dans ce repo :
 
 | Dossier | Stack | Test |
 |---------|-------|------|
 | `/` (racine) | React web + Konsta + Vite **PWA** | navigateur / tunnel Cloudflare |
 | [`mobile/`](./mobile) | **Expo** · **UITabBar native** iOS | **Expo Go** — sans App Store |
+| [`docs/EXPO_NATIVE_PORT.md`](./docs/EXPO_NATIVE_PORT.md) | Doc portage **COR·ALT** → Expo | plan validé |
+| [`coralt-mobile/`](./coralt-mobile) | **Expo Go** COR·ALT MVP → `dev.cal.coraia.eu` | Auth + tabs |
+| [`docs/EXPO_STEP2.md`](./docs/EXPO_STEP2.md) | Contrats Bearer + nav | étape 2 |
 
 ## Web (PWA)
 

@@ -1,29 +1,40 @@
 {
   "expo": {
-    "name": "Liquid Glass",
+    "name": "Coraia Glass",
     "slug": "liquid-glass-mobile",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "scheme": "liquidglass",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "eu.coraia.liquidglass.dev",
       "infoPlist": {
+        "CFBundleDisplayName": "Coraia Glass",
         "NSSupportsLiveActivities": true,
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Zone de test caméra / flash dans l’onglet Apps.",
+        "NSFaceIDUsageDescription": "Zone de test Face ID dans l’onglet Apps.",
+        "NSMicrophoneUsageDescription": "Optionnel pour tests caméra vidéo.",
+        "NSSupportsLiveActivitiesFrequentUpdates": false
+      },
+      "entitlements": {}
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#050508",
+        "backgroundColor": "#080a1c",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "eu.coraia.liquidglass.dev",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +42,28 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
-      "expo-live-activity"
+      "expo-live-activity",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Zone de test caméra / flash dans l’onglet Apps.",
+          "microphonePermission": "Optionnel pour tests caméra vidéo.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Zone de test Face ID dans l’onglet Apps."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "enableBackgroundRemoteNotifications": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -55,6 +87,14 @@
         },
         "projectId": "cfec5576-6c42-4ead-b311-2e85c207cb33"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cfec5576-6c42-4ead-b311-2e85c207cb33",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
     }
   }
 }
