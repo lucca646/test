@@ -1,4 +1,6 @@
-import type { IslandMode } from "./liveActivity";
+import type { IslandMode } from "./islandTypes";
+
+export type { IslandMode };
 
 /** Guide FR affiché dans l’app (tap sur l’île ou bouton Comprendre). */
 export type IslandGuide = {

@@ -1,15 +1,8 @@
 import { Platform } from "react-native";
 import { beatsForMode } from "./islandCopy";
+import type { IslandMode } from "./islandTypes";
 
-/** Modes contenu Live Activity (poussés sur l’île). */
-export type IslandMode =
-  | "timer"
-  | "music"
-  | "progress"
-  | "focus"
-  | "breathe"
-  | "score";
-
+export type { IslandMode };
 export type LiveActivityState = {
   title: string;
   subtitle?: string;
@@ -101,32 +94,32 @@ const THEMES: Record<IslandMode, ThemeCfg> = {
   timer: {
     backgroundColor: "#0B0B0F",
     timerType: "digital",
-    deepLinkUrl: "/?guide=timer",
+    deepLinkUrl: "/",
   },
   music: {
     backgroundColor: "#12081C",
     timerType: "digital",
-    deepLinkUrl: "/?guide=music",
+    deepLinkUrl: "/",
   },
   progress: {
     backgroundColor: "#071018",
     timerType: "circular",
-    deepLinkUrl: "/?guide=progress",
+    deepLinkUrl: "/",
   },
   focus: {
     backgroundColor: "#0A1A12",
     timerType: "digital",
-    deepLinkUrl: "/?guide=focus",
+    deepLinkUrl: "/",
   },
   breathe: {
     backgroundColor: "#0A1420",
     timerType: "circular",
-    deepLinkUrl: "/?guide=breathe",
+    deepLinkUrl: "/",
   },
   score: {
     backgroundColor: "#1A0A0A",
     timerType: "digital",
-    deepLinkUrl: "/?guide=score",
+    deepLinkUrl: "/",
   },
 };
 

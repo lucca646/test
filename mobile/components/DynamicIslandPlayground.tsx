@@ -36,15 +36,9 @@ export const ISLAND_MODES: {
 type Props = {
   mode: IslandMode;
   onChange: (mode: IslandMode) => void;
-  /** Ouvre le guide si deep link `?guide=` */
-  initialGuide?: IslandMode | null;
 };
 
-export default function DynamicIslandPlayground({
-  mode,
-  onChange,
-  initialGuide = null,
-}: Props) {
+export default function DynamicIslandPlayground({ mode, onChange }: Props) {
   const theme = useAppTheme();
   const bridge = useMemo(() => getLiveActivityBridge(), []);
   const knownIds = useRef<Set<string>>(new Set());
@@ -55,11 +49,9 @@ export default function DynamicIslandPlayground({
 
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [autopilot, setAutopilot] = useState(true);
-  const [guideOpen, setGuideOpen] = useState(Boolean(initialGuide));
-  const [guideMode, setGuideMode] = useState<IslandMode | null>(
-    initialGuide ?? mode,
-  );
+  const [autopilot, setAutopilot] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideMode, setGuideMode] = useState<IslandMode | null>(mode);
   const [phaseTitle, setPhaseTitle] = useState(
     () => beatsForMode(mode, 0).title,
   );
@@ -74,20 +66,10 @@ export default function DynamicIslandPlayground({
   const guide = ISLAND_GUIDES[mode];
 
   useEffect(() => {
-    if (initialGuide) {
-      setGuideMode(initialGuide);
-      setGuideOpen(true);
-      onChange(initialGuide);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialGuide]);
-
-  useEffect(() => {
     const b = beatsForMode(mode, tick.current);
     setPhaseTitle(b.title);
     setPhaseSub(b.subtitle);
   }, [mode]);
-
   useEffect(() => {
     return () => {
       void killActivities(bridge, knownIds.current);
@@ -142,9 +124,13 @@ export default function DynamicIslandPlayground({
       applyBeat(nextMode, 0);
       setRunning(true);
       setStatus(
-        `Sur l’île : « ${state.title} ». Tape l’île pour l’explication.`,
+        `Sur l’île : « ${state.title} ». Tape Comprendre pour l’explication.`,
       );
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      try {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {
+        /* ignore */
+      }
       return true;
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
@@ -171,7 +157,11 @@ export default function DynamicIslandPlayground({
         pushTick(mode, tick.current);
         setStatus(`Phase suivante envoyée sur l’île · ${mode}`);
         if (mode === "breathe" || mode === "focus") {
-          void Haptics.selectionAsync();
+          try {
+            void Haptics.selectionAsync();
+          } catch {
+            /* ignore */
+          }
         }
       } catch (e) {
         setStatus(e instanceof Error ? e.message : String(e));
@@ -199,7 +189,13 @@ export default function DynamicIslandPlayground({
       activeMode.current = null;
       setRunning(false);
       setStatus("Activité retirée de l’île.");
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+      } catch {
+        /* ignore */
+      }
     } finally {
       setBusy(false);
     }
@@ -338,7 +334,11 @@ export default function DynamicIslandPlayground({
             if (!running) return;
             tick.current += 1;
             pushTick(mode, tick.current);
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            try {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch {
+              /* ignore */
+            }
           }}
           disabled={busy || !running}
         />

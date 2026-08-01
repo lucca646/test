@@ -19,7 +19,7 @@ export default function IslandGuideSheet({ mode, visible, onClose }: Props) {
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={false}
       onRequestClose={onClose}
     >
       <View style={[styles.root, { backgroundColor: theme.background }]}>
