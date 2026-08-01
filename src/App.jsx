@@ -1,5 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { App as KonstaApp } from "konsta/react";
+import {
+  PlatformProvider,
+  usePlatform,
+} from "./platform/PlatformContext.jsx";
+import PlatformSwitcher from "./components/PlatformSwitcher.jsx";
+import DeviceFrame from "./components/DeviceFrame.jsx";
 import AppTabbar from "./components/AppTabbar.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
 import GamesPage from "./pages/GamesPage.jsx";
@@ -29,7 +35,8 @@ function normalizePath(path) {
   return PAGES[path] ? path : "/";
 }
 
-export default function App() {
+function AppShell() {
+  const { platform, meta } = usePlatform();
   const [activePath, setActivePath] = useState(() =>
     normalizePath(window.location.pathname),
   );
@@ -37,26 +44,46 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.add("dark");
     document.documentElement.style.colorScheme = "dark";
-  }, []);
+    document.documentElement.dataset.platform = platform;
+  }, [platform]);
 
   const selectTab = useCallback((path) => {
     const next = normalizePath(path);
     setActivePath(next);
-    window.history.replaceState({}, "", next === "/" ? "/" : next);
+    const url = new URL(window.location.href);
+    url.pathname = next === "/" ? "/" : next;
+    window.history.replaceState({}, "", url);
   }, []);
 
   const ActivePage = PAGES[activePath] || TodayPage;
+  const nav = <AppTabbar activePath={activePath} onSelect={selectTab} />;
 
   return (
-    <>
-      <KonstaApp theme="ios" dark safeAreas={false} className="ios-shell dark no-safe-areas-bottom">
-        <div className="app-wallpaper" aria-hidden />
-        <main className="tab-stage">
-          <ActivePage key={activePath} />
-        </main>
-      </KonstaApp>
-      {/* Hors Konsta → fixed viewport, vraiment en bas */}
-      <AppTabbar activePath={activePath} onSelect={selectTab} />
-    </>
+    <div className={`web-native-shell platform-${platform}`}>
+      <PlatformSwitcher />
+      <DeviceFrame nav={nav}>
+        <KonstaApp
+          key={meta.konstaTheme}
+          theme={meta.konstaTheme}
+          dark
+          safeAreas={false}
+          className={`ios-shell dark no-safe-areas-bottom theme-${meta.konstaTheme}`}
+        >
+          <div className="app-wallpaper" aria-hidden data-platform={platform} />
+          <main className="tab-stage">
+            {/* key path only — same page base when switching platform */}
+            <ActivePage key={activePath} />
+          </main>
+        </KonstaApp>
+      </DeviceFrame>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <PlatformProvider>
+      <AppShell />
+    </PlatformProvider>
   );
 }

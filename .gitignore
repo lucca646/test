@@ -26,3 +26,13 @@ dist-ssr
 dev-dist/
 dist/
 packages/*/node_modules/
+
+# COR·ALT mobile secrets
+coralt-mobile/.env
+coralt-mobile/.env.local
+coralt-mobile/node_modules/
+
+# EAS / TestFlight secrets (jamais committer)
+mobile/.env
+mobile/.env.eas
+mobile/secrets/

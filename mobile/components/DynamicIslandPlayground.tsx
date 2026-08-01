@@ -1,48 +1,41 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { beatsForMode, ISLAND_GUIDES } from "../lib/islandCopy";
 import {
+  connectIslandBridge,
+  isBridgeMode,
+  resolveIslandBridgeUrl,
+} from "../lib/islandBridge";
+import {
+  autopilotInterval,
   getLiveActivityBridge,
+  killActivities,
   stateForMode,
   type IslandMode,
 } from "../lib/liveActivity";
+import { useAppTheme } from "../lib/theme";
+import IslandGuideSheet from "./IslandGuideSheet";
 
 export type { IslandMode };
+
 export const ISLAND_MODES: {
   id: IslandMode;
   label: string;
-  hint: string;
+  tag: "classic" | "new";
 }[] = [
-  {
-    id: "compact",
-    label: "Compact",
-    hint: "Leading + trailing dans l’île (état par défaut).",
-  },
-  {
-    id: "minimal",
-    label: "Minimal",
-    hint: "Petit pastille quand une autre activité partage l’île.",
-  },
-  {
-    id: "expanded",
-    label: "Expanded",
-    hint: "Long press / expand — régions leading / trailing / center / bottom.",
-  },
-  {
-    id: "timer",
-    label: "Timer",
-    hint: "Compte à rebours Live Activity (Lock Screen + Dynamic Island).",
-  },
-  {
-    id: "music",
-    label: "Now Playing",
-    hint: "Lecture : titre + progression (template ActivityKit).",
-  },
-  {
-    id: "progress",
-    label: "Progress",
-    hint: "Livraison / téléchargement avec barre de progression.",
-  },
+  { id: "breathe", label: "Respirer", tag: "new" },
+  { id: "focus", label: "Focus", tag: "new" },
+  { id: "score", label: "Score", tag: "new" },
+  { id: "timer", label: "Minuteur", tag: "classic" },
+  { id: "music", label: "Musique", tag: "classic" },
+  { id: "progress", label: "Livraison", tag: "classic" },
 ];
 
 type Props = {
@@ -50,128 +43,366 @@ type Props = {
   onChange: (mode: IslandMode) => void;
 };
 
-/**
- * Playground Dynamic Island :
- * - aperçu UI toujours
- * - boutons Start / Update / Stop → vraie Live Activity (Dev Client)
- */
 export default function DynamicIslandPlayground({ mode, onChange }: Props) {
+  const theme = useAppTheme();
   const bridge = useMemo(() => getLiveActivityBridge(), []);
+  const knownIds = useRef<Set<string>>(new Set());
   const activityId = useRef<string | null>(null);
-  const [status, setStatus] = useState<string>(
-    bridge.available
-      ? "Prêt — lance une Live Activity sur l’île système."
-      : bridge.reason ?? "Indisponible",
-  );
+  const activeMode = useRef<IslandMode | null>(null);
+  const tick = useRef(0);
+  const syncGen = useRef(0);
+
+  const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [autopilot, setAutopilot] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideMode, setGuideMode] = useState<IslandMode | null>(mode);
+  const [phaseTitle, setPhaseTitle] = useState(
+    () => beatsForMode(mode, 0).title,
+  );
+  const [phaseSub, setPhaseSub] = useState(() => beatsForMode(mode, 0).subtitle);
+  const [phaseMeta, setPhaseMeta] = useState(
+    () => beatsForMode(mode, 0).meta ?? {},
+  );
+  const [status, setStatus] = useState(
+    bridge.available
+      ? "Choisis un mode, Start, puis regarde l’île — ou tape Comprendre."
+      : (bridge.reason ?? "Indisponible"),
+  );
+  const [bridgePeers, setBridgePeers] = useState(0);
+  const [pulseKey, setPulseKey] = useState(0);
+
+  const guide = ISLAND_GUIDES[mode];
+  const handlersRef = useRef({
+    mode,
+    running: false,
+    onChange,
+    launch: async (_m: IslandMode, _r: string) => false as boolean,
+    onStop: async () => {},
+    pushTick: (_m: IslandMode, _n: number) => {},
+    tick,
+  });
+
+  useEffect(() => {
+    const b = beatsForMode(mode, tick.current);
+    setPhaseTitle(b.title);
+    setPhaseSub(b.subtitle);
+    setPhaseMeta(b.meta ?? {});
+  }, [mode]);
 
   useEffect(() => {
     return () => {
-      if (activityId.current && bridge.stopActivity) {
-        try {
-          const { state } = stateForMode(mode);
-          bridge.stopActivity(activityId.current, state);
-        } catch {
-          /* ignore */
-        }
-      }
+      void killActivities(bridge, knownIds.current);
+      knownIds.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const run = (fn: () => void) => {
+  const applyBeat = (nextMode: IslandMode, n: number) => {
+    const b = beatsForMode(nextMode, n);
+    setPhaseTitle(b.title);
+    setPhaseSub(b.subtitle);
+    setPhaseMeta(b.meta ?? {});
+    setPulseKey((k) => k + 1);
+    return b;
+  };
+
+  const pushTick = (nextMode: IslandMode, n: number) => {
+    if (!bridge.updateActivity || !activityId.current) return;
+    const { state } = stateForMode(nextMode, n);
+    bridge.updateActivity(activityId.current, state);
+    applyBeat(nextMode, n);
+  };
+
+  const launch = async (nextMode: IslandMode, reason: string) => {
+    if (!bridge.startActivity) {
+      setStatus(bridge.reason ?? "startActivity indisponible");
+      return false;
+    }
+    const gen = ++syncGen.current;
     setBusy(true);
     try {
-      fn();
+      await killActivities(bridge, [
+        ...knownIds.current,
+        ...(activityId.current ? [activityId.current] : []),
+      ]);
+      knownIds.current.clear();
+      activityId.current = null;
+      if (gen !== syncGen.current) return false;
+
+      tick.current = 0;
+      const { state, config } = stateForMode(nextMode, 0);
+      const id = bridge.startActivity(state, config);
+      if (!id) {
+        activeMode.current = null;
+        setRunning(false);
+        setStatus("Impossible de démarrer l’activité — réessaie.");
+        return false;
+      }
+      knownIds.current.add(String(id));
+      activityId.current = String(id);
+      activeMode.current = nextMode;
+      applyBeat(nextMode, 0);
+      setRunning(true);
+      setStatus(
+        `Sur l’île : « ${state.title} ». Tape Comprendre pour l’explication.`,
+      );
+      try {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {
+        /* ignore */
+      }
+      return true;
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
+      return false;
+    } finally {
+      if (gen === syncGen.current) setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!running) return;
+    if (activeMode.current === mode) return;
+    void launch(mode, "mode");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  useEffect(() => {
+    if (!running || !autopilot || busy) return;
+    const ms = autopilotInterval(mode);
+    const handle = setInterval(() => {
+      if (!activityId.current || activeMode.current !== mode) return;
+      tick.current += 1;
+      try {
+        pushTick(mode, tick.current);
+        setStatus(`Phase suivante envoyée sur l’île · ${mode}`);
+        if (mode === "breathe" || mode === "focus") {
+          try {
+            void Haptics.selectionAsync();
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch (e) {
+        setStatus(e instanceof Error ? e.message : String(e));
+      }
+    }, ms);
+    return () => clearInterval(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, autopilot, mode, busy]);
+
+  const openGuide = () => {
+    setGuideMode(mode);
+    setGuideOpen(true);
+  };
+
+  const onStop = async () => {
+    setBusy(true);
+    syncGen.current += 1;
+    try {
+      await killActivities(bridge, [
+        ...knownIds.current,
+        ...(activityId.current ? [activityId.current] : []),
+      ]);
+      knownIds.current.clear();
+      activityId.current = null;
+      activeMode.current = null;
+      setRunning(false);
+      setStatus("Activité retirée de l’île.");
+      try {
+        void Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+      } catch {
+        /* ignore */
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  const onStart = () =>
-    run(() => {
-      if (!bridge.startActivity) {
-        setStatus(bridge.reason ?? "startActivity indisponible");
-        return;
-      }
-      const { state, config } = stateForMode(mode);
-      const id = bridge.startActivity(state, config);
-      if (!id) {
-        setStatus(
-          "Échec startActivity (iOS < 16.2, permissions, ou Expo Go).",
-        );
-        return;
-      }
-      activityId.current = id;
-      setStatus(`Live Activity démarrée · id ${id.slice(0, 8)}…`);
-    });
+  handlersRef.current = {
+    mode,
+    running,
+    onChange,
+    launch,
+    onStop,
+    pushTick,
+    tick,
+  };
 
-  const onUpdate = () =>
-    run(() => {
-      if (!bridge.updateActivity || !activityId.current) {
-        setStatus("Aucune activité active — Start d’abord.");
-        return;
-      }
-      const { state } = stateForMode(mode);
-      // petite variation pour voir l’update
-      const next = {
-        ...state,
-        subtitle: `${state.subtitle ?? ""} · maj ${new Date().toLocaleTimeString("fr-FR")}`,
-        progressBar:
-          "progress" in (state.progressBar ?? {})
-            ? {
-                progress: Math.min(
-                  0.95,
-                  ((state.progressBar as { progress?: number }).progress ??
-                    0.4) + 0.1,
-                ),
-              }
-            : state.progressBar,
-      };
-      bridge.updateActivity(activityId.current, next);
-      setStatus(`Activity mise à jour (${mode}).`);
+  useEffect(() => {
+    if (!resolveIslandBridgeUrl()) return undefined;
+    const client = connectIslandBridge({
+      onStatus: setStatus,
+      onPeers: setBridgePeers,
+      onCommand: (cmd) => {
+        const h = handlersRef.current;
+        switch (cmd.op) {
+          case "mode": {
+            if (isBridgeMode(cmd.mode)) {
+              h.onChange(cmd.mode);
+              setStatus(`Bridge · mode « ${cmd.mode} »`);
+            }
+            break;
+          }
+          case "start":
+            void h.launch(h.mode, "bridge");
+            break;
+          case "update":
+          case "phase": {
+            if (!h.running) {
+              void h.launch(h.mode, "bridge").then((ok) => {
+                if (!ok) return;
+                h.tick.current += 1;
+                h.pushTick(h.mode, h.tick.current);
+              });
+              break;
+            }
+            h.tick.current += cmd.delta && cmd.delta > 1 ? cmd.delta : 1;
+            h.pushTick(h.mode, h.tick.current);
+            setStatus(`Bridge · ${cmd.op}`);
+            break;
+          }
+          case "stop":
+            void h.onStop();
+            break;
+          case "echo":
+            setStatus(cmd.message || "echo");
+            break;
+          default:
+            break;
+        }
+      },
     });
-
-  const onStop = () =>
-    run(() => {
-      if (!bridge.stopActivity || !activityId.current) {
-        setStatus("Rien à arrêter.");
-        return;
-      }
-      const { state } = stateForMode(mode);
-      bridge.stopActivity(activityId.current, {
-        ...state,
-        title: "Terminé",
-        subtitle: "Live Activity arrêtée",
-      });
-      activityId.current = null;
-      setStatus("Live Activity arrêtée.");
-    });
+    return () => {
+      client?.close();
+    };
+  }, []);
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Dynamic Island</Text>
-      <Text style={styles.sectionHint}>
-        Modes → aperçu. Puis Start pour pousser une vraie Live Activity sur
-        l’île (Dev Client / build native uniquement).
-      </Text>
+      {guideOpen ? (
+        <IslandGuideSheet
+          mode={guideMode}
+          visible={guideOpen}
+          onClose={() => setGuideOpen(false)}
+        />
+      ) : null}
 
-      <View style={styles.previewStage}>
-        <IslandPreview mode={mode} />
+      <View style={styles.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            {guide.title}
+          </Text>
+          <Text style={[styles.sectionHint, { color: theme.textMuted }]}>
+            {guide.tagline}
+          </Text>
+        </View>
+        <Pressable
+          onPress={openGuide}
+          style={[styles.helpBtn, { borderColor: guide.accent }]}
+        >
+          <Text style={[styles.helpBtnText, { color: guide.accent }]}>
+            Comprendre
+          </Text>
+        </Pressable>
       </View>
 
+      <View style={styles.previewStage}>
+        <IslandPreview
+          mode={mode}
+          pulseKey={pulseKey}
+          running={running}
+          title={phaseTitle}
+          subtitle={phaseSub}
+          accent={guide.accent}
+          meta={phaseMeta}
+        />
+      </View>
+
+      <View
+        style={[
+          styles.readout,
+          {
+            backgroundColor: theme.isDark
+              ? "rgba(255,255,255,0.06)"
+              : "rgba(0,0,0,0.04)",
+            borderColor: theme.cardBorder,
+          },
+        ]}
+      >
+        <Text style={[styles.readoutLabel, { color: guide.accent }]}>
+          Sur l’île en ce moment
+        </Text>
+        <Text style={[styles.readoutTitle, { color: theme.text }]}>
+          {mode === "score" && phaseTitle.includes("|")
+            ? phaseTitle.replace("|", "  —  ")
+            : phaseTitle}
+        </Text>
+        <Text style={[styles.readoutSub, { color: theme.textMuted }]}>
+          {phaseSub}
+        </Text>
+        <Text style={[styles.readoutWhy, { color: theme.textSecondary }]}>
+          {mode === "score"
+            ? running
+              ? "Aperçu = 2 blocs. Sur l’île réelle : après le build « côtés », tu auras 12 à gauche et 16 à droite du pill."
+              : "L’aperçu ci-dessus ≠ le widget Apple. Les chiffres sur les côtés demandent 1 build natif (déjà préparé)."
+            : running
+              ? "Chaque mode a sa forme : Score = chiffres, Livraison = étapes + ETA, Musique = ♪ + timer — pas de barre partout."
+              : "Start envoie cette expérience sur l’île. Change de mode pour voir la diversité."}
+        </Text>
+      </View>
+
+      <View style={styles.autoRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.autoTitle, { color: theme.text }]}>
+            Autopilot
+          </Text>
+          <Text style={[styles.autoHint, { color: theme.textMuted }]}>
+            Enchaîne les phases toutes les{" "}
+            {(autopilotInterval(mode) / 1000).toFixed(0)} s
+          </Text>
+        </View>
+        <Switch
+          value={autopilot}
+          onValueChange={setAutopilot}
+          trackColor={{ false: "#3a3a3c", true: `${guide.accent}88` }}
+          thumbColor={autopilot ? guide.accent : "#f4f4f5"}
+        />
+      </View>
+
+      <Text style={[styles.groupLabel, { color: theme.textMuted }]}>
+        Choisir une expérience
+      </Text>
       <View style={styles.chips}>
         {ISLAND_MODES.map((m) => {
           const on = m.id === mode;
+          const accent = ISLAND_GUIDES[m.id].accent;
           return (
             <Pressable
               key={m.id}
-              onPress={() => onChange(m.id)}
-              style={[styles.chip, on && styles.chipOn]}
+              onPress={() => !busy && onChange(m.id)}
+              disabled={busy}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: theme.isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.05)",
+                  borderColor: on ? accent : theme.cardBorder,
+                  opacity: busy ? 0.55 : 1,
+                },
+                on && { backgroundColor: `${accent}33` },
+              ]}
             >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: on ? accent : theme.textSecondary },
+                ]}
+              >
                 {m.label}
               </Text>
             </Pressable>
@@ -179,32 +410,39 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.modeHint}>
-        {ISLAND_MODES.find((m) => m.id === mode)?.hint}
-      </Text>
-
       <View style={styles.actions}>
         <ActionButton
-          label="Start"
-          onPress={onStart}
+          label={running ? "Relancer" : "Start"}
+          onPress={() => void launch(mode, "Start")}
           disabled={busy}
-          primary
+          color={guide.accent}
         />
-        <ActionButton label="Update" onPress={onUpdate} disabled={busy} />
-        <ActionButton label="Stop" onPress={onStop} disabled={busy} danger />
+        <ActionButton
+          label="Phase +"
+          onPress={() => {
+            if (!running) return;
+            tick.current += 1;
+            pushTick(mode, tick.current);
+            try {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch {
+              /* ignore */
+            }
+          }}
+          disabled={busy || !running}
+        />
+        <ActionButton
+          label="Stop"
+          onPress={() => void onStop()}
+          disabled={busy || !running}
+          danger
+        />
       </View>
 
-      <View
-        style={[
-          styles.statusBox,
-          bridge.available ? styles.statusOk : styles.statusWarn,
-        ]}
-      >
-        <Text style={styles.statusLabel}>
-          {bridge.available ? "Native · prêt" : "Expo Go / non natif"}
-        </Text>
-        <Text style={styles.statusText}>{status}</Text>
-      </View>
+      <Text style={[styles.statusText, { color: theme.textMuted }]}>
+        {status}
+        {bridgePeers > 0 ? ` · bridge ${bridgePeers} peer(s)` : ""}
+      </Text>
     </View>
   );
 }
@@ -213,13 +451,13 @@ function ActionButton({
   label,
   onPress,
   disabled,
-  primary,
+  color,
   danger,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
-  primary?: boolean;
+  color?: string;
   danger?: boolean;
 }) {
   return (
@@ -228,8 +466,9 @@ function ActionButton({
       disabled={disabled}
       style={[
         styles.actionBtn,
-        primary && styles.actionPrimary,
+        color ? { backgroundColor: color } : null,
         danger && styles.actionDanger,
+        !color && !danger && styles.actionMuted,
         disabled && { opacity: 0.45 },
       ]}
     >
@@ -238,252 +477,351 @@ function ActionButton({
   );
 }
 
-function IslandPreview({ mode }: { mode: IslandMode }) {
-  if (mode === "minimal") {
+function layoutForPreview(mode: IslandMode) {
+  switch (mode) {
+    case "score":
+      return { width: 320, height: 108, radius: 28, pad: 14 };
+    case "breathe":
+      return { width: 200, height: 72, radius: 36, pad: 14 };
+    case "timer":
+      return { width: 168, height: 40, radius: 20, pad: 12 };
+    case "progress":
+      return { width: 312, height: 92, radius: 24, pad: 14 };
+    case "music":
+      return { width: 300, height: 88, radius: 22, pad: 14 };
+    case "focus":
+    default:
+      return { width: 300, height: 88, radius: 24, pad: 14 };
+  }
+}
+
+function IslandPreview({
+  mode,
+  pulseKey,
+  running,
+  title,
+  subtitle,
+  accent,
+  meta,
+}: {
+  mode: IslandMode;
+  pulseKey: number;
+  running: boolean;
+  title: string;
+  subtitle: string;
+  accent: string;
+  meta: Record<string, string | number>;
+}) {
+  const target = layoutForPreview(mode);
+  const width = useSharedValue(target.width);
+  const height = useSharedValue(target.height);
+  const radius = useSharedValue(target.radius);
+  const pad = useSharedValue(target.pad);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    const next = layoutForPreview(mode);
+    const cfg = { damping: 16, stiffness: 200, mass: 0.8 };
+    width.value = withSpring(next.width, cfg);
+    height.value = withSpring(next.height, cfg);
+    radius.value = withSpring(next.radius, cfg);
+    pad.value = withSpring(next.pad, cfg);
+  }, [mode, width, height, radius, pad]);
+
+  useEffect(() => {
+    if (pulseKey === 0) return;
+    pulse.value = withSpring(1.04, { damping: 10, stiffness: 280 }, () => {
+      pulse.value = withSpring(1, { damping: 14, stiffness: 220 });
+    });
+  }, [pulseKey, pulse]);
+
+  const boxStyle = useAnimatedStyle(() => ({
+    width: width.value,
+    height: height.value,
+    borderRadius: radius.value,
+    padding: pad.value,
+    transform: [{ scale: pulse.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.previewShell,
+        boxStyle,
+        running && { borderColor: `${accent}99` },
+      ]}
+    >
+      <BlurView intensity={52} tint="dark" style={StyleSheet.absoluteFill} />
+      <PreviewByMode
+        mode={mode}
+        title={title}
+        subtitle={subtitle}
+        accent={accent}
+        meta={meta}
+      />
+    </Animated.View>
+  );
+}
+
+function PreviewByMode({
+  mode,
+  title,
+  subtitle,
+  accent,
+  meta,
+}: {
+  mode: IslandMode;
+  title: string;
+  subtitle: string;
+  accent: string;
+  meta: Record<string, string | number>;
+}) {
+  if (mode === "score") {
+    const home = Number(meta.home ?? 12);
+    const away = Number(meta.away ?? 10);
     return (
-      <View style={styles.minimal}>
-        <View style={styles.miniDot} />
+      <View style={styles.scoreRow}>
+        <View style={[styles.scoreBlock, { borderColor: accent }]}>
+          <Text style={styles.scoreTeam}>COR</Text>
+          <Text style={[styles.scoreNum, { color: accent }]}>{home}</Text>
+        </View>
+        <Text style={styles.scoreVs}>vs</Text>
+        <View style={[styles.scoreBlock, { borderColor: "#fff" }]}>
+          <Text style={styles.scoreTeam}>ALT</Text>
+          <Text style={styles.scoreNum}>{away}</Text>
+        </View>
       </View>
     );
   }
 
-  if (mode === "compact") {
+  if (mode === "breathe") {
     return (
-      <View style={styles.compact}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-        <Text style={styles.compactLead}>LG</Text>
-        <View style={{ flex: 1 }} />
-        <Text style={styles.compactTrail}>2:14</Text>
+      <View style={styles.breatheWrap}>
+        <View style={[styles.breatheRing, { borderColor: accent }]} />
+        <Text style={[styles.breatheWord, { color: accent }]} numberOfLines={1}>
+          {title.replace(/^[^\wÀ-ÿ]+/, "")}
+        </Text>
       </View>
     );
   }
 
   if (mode === "timer") {
     return (
-      <View style={styles.compact}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-        <Text style={styles.compactLead}>TIM</Text>
+      <View style={styles.innerRow}>
+        <Text style={styles.compactLead}>MIN</Text>
         <View style={{ flex: 1 }} />
-        <Text style={styles.compactTrail}>04:59</Text>
+        <Text style={[styles.compactTrail, { color: accent }]}>
+          {title.includes("25") ? "25:00" : title.includes("3 ") ? "03:00" : "05:00"}
+        </Text>
+      </View>
+    );
+  }
+
+  if (mode === "progress") {
+    const step = Number(meta.step ?? 1);
+    return (
+      <View style={styles.innerCol}>
+        <Text style={styles.expTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.expSub} numberOfLines={1}>
+          {subtitle}
+        </Text>
+        <View style={styles.stepsRow}>
+          {[1, 2, 3, 4].map((n) => (
+            <View
+              key={n}
+              style={[
+                styles.stepDot,
+                {
+                  backgroundColor: n <= step ? accent : "rgba(255,255,255,0.2)",
+                },
+              ]}
+            />
+          ))}
+        </View>
       </View>
     );
   }
 
   if (mode === "music") {
     return (
-      <View style={styles.expanded}>
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.expRow}>
-          <View style={styles.art} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.expTitle}>Liquid Glass</Text>
-            <Text style={styles.expSub}>COR·ALT · Live</Text>
-          </View>
-          <Text style={styles.expCtrl}>II</Text>
+      <View style={styles.musicRow}>
+        <View style={styles.eq}>
+          {[0.4, 0.8, 0.55, 0.95, 0.35].map((h, i) => (
+            <View
+              key={i}
+              style={[
+                styles.eqBar,
+                { height: 10 + h * 28, backgroundColor: accent },
+              ]}
+            />
+          ))}
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.expTitle} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.expSub} numberOfLines={1}>
+            {subtitle}
+          </Text>
         </View>
       </View>
     );
   }
 
-  if (mode === "progress") {
-    return (
-      <View style={styles.expanded}>
-        <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-        <Text style={styles.expTitle}>Livraison</Text>
-        <Text style={styles.expSub}>Arrivée estimée · 12 min</Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: "62%" }]} />
-        </View>
-      </View>
-    );
-  }
-
+  // focus
   return (
-    <View style={styles.expanded}>
-      <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={styles.expRow}>
-        <View style={styles.liveDot} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.expTitle}>Session active</Text>
-          <Text style={styles.expSub}>Expanded · 4 régions</Text>
-        </View>
-        <Text style={styles.expTrail}>iOS</Text>
-      </View>
-      <View style={styles.expBottom}>
-        <Text style={styles.expSub}>leading · trailing · center · bottom</Text>
-      </View>
+    <View style={styles.innerCol}>
+      <Text style={[styles.expTitle, { color: accent }]} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={styles.expSub} numberOfLines={2}>
+        {subtitle}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 12 },
-  sectionTitle: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  sectionHint: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  previewStage: {
-    minHeight: 88,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-  },
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
+  wrap: { gap: 14 },
+  headerRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  sectionTitle: { fontSize: 18, fontWeight: "700", letterSpacing: -0.3 },
+  sectionHint: { fontSize: 13, lineHeight: 18, marginTop: 4 },
+  helpBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  helpBtnText: { fontSize: 13, fontWeight: "700" },
+  previewStage: {
+    minHeight: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
+  previewShell: {
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.14)",
+    maxWidth: "100%",
   },
-  chipOn: {
-    backgroundColor: "rgba(10,132,255,0.28)",
-    borderColor: "rgba(10,132,255,0.7)",
+  readout: {
+    borderRadius: 16,
+    padding: 14,
+    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  chipText: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 13,
-    fontWeight: "600",
+  readoutLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
-  chipTextOn: { color: "#fff" },
-  modeHint: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
-    lineHeight: 17,
+  readoutTitle: { fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
+  readoutSub: { fontSize: 13, lineHeight: 18 },
+  readoutWhy: { fontSize: 13, lineHeight: 18, marginTop: 8 },
+  autoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  actions: { flexDirection: "row", gap: 8, marginTop: 4 },
+  autoTitle: { fontSize: 15, fontWeight: "700" },
+  autoHint: { fontSize: 12, marginTop: 2 },
+  groupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  chipText: { fontSize: 13, fontWeight: "700" },
+  actions: { flexDirection: "row", gap: 8 },
   actionBtn: {
     flex: 1,
     alignItems: "center",
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
   },
-  actionPrimary: { backgroundColor: "#0a84ff" },
-  actionDanger: { backgroundColor: "rgba(255,69,58,0.85)" },
+  actionMuted: { backgroundColor: "rgba(255,255,255,0.12)" },
+  actionDanger: { backgroundColor: "rgba(255,69,58,0.9)" },
   actionText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  statusBox: {
-    borderRadius: 12,
-    padding: 12,
-    gap: 4,
-    borderWidth: StyleSheet.hairlineWidth,
+  statusText: { fontSize: 12, lineHeight: 17 },
+  innerRow: { flex: 1, flexDirection: "row", alignItems: "center" },
+  innerCol: { flex: 1, gap: 5, justifyContent: "center" },
+  compactLead: { color: "#fff", fontSize: 13, fontWeight: "700", flexShrink: 1 },
+  compactTrail: { fontSize: 12, fontWeight: "700" },
+  expTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  expSub: { color: "rgba(255,255,255,0.65)", fontSize: 12, lineHeight: 16 },
+  scoreRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
   },
-  statusOk: {
-    backgroundColor: "rgba(48,209,88,0.12)",
-    borderColor: "rgba(48,209,88,0.35)",
+  scoreBlock: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingVertical: 8,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
-  statusWarn: {
-    backgroundColor: "rgba(255,159,10,0.12)",
-    borderColor: "rgba(255,159,10,0.35)",
+  scoreTeam: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
-  statusLabel: {
+  scoreNum: {
     color: "#fff",
+    fontSize: 32,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -1,
+  },
+  scoreVs: {
+    color: "rgba(255,255,255,0.45)",
     fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 0.3,
   },
-  statusText: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  minimal: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#000",
+  breatheWrap: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  breatheRing: {
+    position: "absolute",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
+    opacity: 0.45,
   },
-  miniDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#ff9f0a",
-  },
-  liveDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#30d158",
-  },
-  compact: {
-    width: 126,
-    height: 36,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "#000",
+  breatheWord: { fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
+  stepsRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  stepDot: { width: 22, height: 6, borderRadius: 3 },
+  musicRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    gap: 12,
   },
-  compactLead: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  compactTrail: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 12,
-    fontVariant: ["tabular-nums"],
-    fontWeight: "600",
-  },
-  expanded: {
-    width: "92%",
-    maxWidth: 340,
-    borderRadius: 24,
-    overflow: "hidden",
-    backgroundColor: "#000",
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-  },
-  expRow: {
+  eq: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    alignItems: "flex-end",
+    gap: 3,
+    height: 40,
   },
-  expTrail: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "600" },
-  expTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  expSub: { color: "rgba(255,255,255,0.6)", fontSize: 12 },
-  expCtrl: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  expBottom: {
-    paddingTop: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,255,255,0.12)",
-  },
-  art: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#7c3aed",
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#0a84ff",
-    borderRadius: 3,
-  },
+  eqBar: { width: 5, borderRadius: 2 },
 });
