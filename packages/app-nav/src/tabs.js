@@ -1,11 +1,12 @@
 /**
- * Source UNIQUE de la barre d’onglets — web + iOS (NativeTabs).
+ * Source UNIQUE de la barre d’onglets — web + iOS.
  * Modifier ici → les deux clients suivent (OTA JS / Vite HMR).
  *
  * `hidden: true` retire l’onglet de la barre partout, sans supprimer la route.
+ * `side` pilote le split G/D (web CSS + dock iOS custom).
  */
 
-/** Teinte sélection (UITabBar / LiquidGlass) */
+/** Teinte sélection */
 export const NAV_TINT = "#64D2FF";
 
 /**
@@ -17,6 +18,7 @@ export const NAV_TINT = "#64D2FF";
  *   short: string,
  *   sf: string | { default: string, selected: string },
  *   f7: { default: string, active: string },
+ *   ion: { default: string, active: string },
  *   badge?: string | null,
  *   role?: string,
  *   hidden?: boolean,
@@ -34,6 +36,7 @@ export const APP_TABS = [
     short: "Today",
     sf: { default: "sun.max", selected: "sun.max.fill" },
     f7: { default: "Today", active: "TodayFill" },
+    ion: { default: "sunny-outline", active: "sunny" },
     badge: null,
     hidden: false,
     side: "left",
@@ -46,6 +49,7 @@ export const APP_TABS = [
     short: "Jeux",
     sf: { default: "flame", selected: "flame.fill" },
     f7: { default: "Rocket", active: "RocketFill" },
+    ion: { default: "flame-outline", active: "flame" },
     badge: null,
     hidden: false,
     side: "left",
@@ -58,6 +62,7 @@ export const APP_TABS = [
     short: "Arcade",
     sf: { default: "gamecontroller", selected: "gamecontroller.fill" },
     f7: { default: "Gamecontroller", active: "GamecontrollerFill" },
+    ion: { default: "game-controller-outline", active: "game-controller" },
     badge: null,
     hidden: false,
     side: "right",
@@ -73,6 +78,7 @@ export const APP_TABS = [
       selected: "square.stack.3d.up.fill",
     },
     f7: { default: "Layers", active: "LayersFill" },
+    ion: { default: "layers-outline", active: "layers" },
     badge: "OTA",
     hidden: false,
     side: "right",
@@ -88,6 +94,7 @@ export const APP_TABS = [
       selected: "magnifyingglass.circle.fill",
     },
     f7: { default: "Search", active: "Search" },
+    ion: { default: "search-outline", active: "search" },
     role: "search",
     badge: null,
     /** false = visible partout ; true = masqué web + iOS */
@@ -101,7 +108,7 @@ export function visibleTabs() {
   return APP_TABS.filter((t) => !t.hidden);
 }
 
-/** Groupes gauche / droite pour la barre web split */
+/** Groupes gauche / droite (web + dock iOS) */
 export function tabsBySide() {
   const tabs = visibleTabs();
   return {

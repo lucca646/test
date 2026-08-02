@@ -7,6 +7,7 @@ declare module "app-nav" {
     short: string;
     sf: string | { default: string; selected: string };
     f7: { default: string; active: string };
+    ion: { default: string; active: string };
     badge?: string | null;
     role?: string;
     hidden?: boolean;

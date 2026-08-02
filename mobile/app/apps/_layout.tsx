@@ -2,8 +2,8 @@ import { Stack } from "expo-router";
 import { useAppTheme } from "../../lib/theme";
 
 /**
- * Stack dans l’onglet Apps — permet de pousser des pages
- * (ex. /apps/atelier) sans toucher à la UITabBar (5 onglets).
+ * Stack dans l’onglet Apps — pages secondaires (ex. /apps/atelier)
+ * sans ajouter d’onglet au dock split.
  */
 export default function AppsStackLayout() {
   const theme = useAppTheme();
