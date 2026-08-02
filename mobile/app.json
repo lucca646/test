@@ -2,7 +2,7 @@
   "expo": {
     "name": "COR·ALT",
     "slug": "liquid-glass-mobile",
-    "version": "1.2.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
