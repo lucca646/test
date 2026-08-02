@@ -14,6 +14,7 @@ export const CAPABILITIES = {
     chrome: "split-bottom",
     icons: "f7",
     side: true,
+    centerPromoted: true,
     badge: true,
     island: true,
     nativeTabBar: false,

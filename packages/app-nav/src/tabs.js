@@ -22,7 +22,7 @@ export const NAV_TINT = "#64D2FF";
  *   badge?: string | null,
  *   role?: string,
  *   hidden?: boolean,
- *   side?: "left" | "right",
+ *   side?: "left" | "center" | "right",
  * }} AppTab
  */
 
@@ -65,7 +65,8 @@ export const APP_TABS = [
     ion: { default: "newspaper-outline", active: "newspaper" },
     badge: null,
     hidden: false,
-    side: "left",
+    /** Bouton central plus grand (web) ; au milieu de la UITabBar iOS */
+    side: "center",
   },
   {
     id: "arcade",
@@ -121,11 +122,12 @@ export function visibleTabs() {
   return APP_TABS.filter((t) => !t.hidden);
 }
 
-/** Groupes gauche / droite — web uniquement */
+/** Groupes gauche / centre / droite — web (iOS ignore `side`) */
 export function tabsBySide() {
   const tabs = visibleTabs();
   return {
     left: tabs.filter((t) => (t.side || "left") === "left"),
+    center: tabs.filter((t) => t.side === "center"),
     right: tabs.filter((t) => t.side === "right"),
   };
 }

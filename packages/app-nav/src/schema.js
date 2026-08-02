@@ -3,7 +3,7 @@
 /** Current nav catalog schema version — bump when breaking shape changes. */
 export const NAV_SCHEMA_VERSION = 1;
 
-const VALID_SIDES = new Set(["left", "right"]);
+const VALID_SIDES = new Set(["left", "center", "right"]);
 const VALID_ROLES = new Set(["search"]);
 
 /**
@@ -83,7 +83,7 @@ export function validateNavCatalog(tabs) {
 
     if (tab.side !== undefined && !VALID_SIDES.has(tab.side)) {
       errors.push(
-        `${prefix} (${tab.id ?? "?"}): side must be "left", "right", or undefined (got ${JSON.stringify(tab.side)})`,
+        `${prefix} (${tab.id ?? "?"}): side must be "left", "center", "right", or undefined (got ${JSON.stringify(tab.side)})`,
       );
     }
 

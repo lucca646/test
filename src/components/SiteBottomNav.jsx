@@ -1,7 +1,7 @@
 import { tabsBySide, getCapabilities } from "app-nav";
 import { resolveF7Icons } from "../nav/f7IconMap.js";
 
-function NavItem({ tab, activePath, onSelect, showBadge }) {
+function NavItem({ tab, activePath, onSelect, showBadge, promoted }) {
   const on =
     tab.path === "/"
       ? activePath === "/"
@@ -12,7 +12,7 @@ function NavItem({ tab, activePath, onSelect, showBadge }) {
   return (
     <button
       type="button"
-      className={`wa-bottom-item${on ? " is-on" : ""}`}
+      className={`wa-bottom-item${on ? " is-on" : ""}${promoted ? " is-promoted" : ""}`}
       aria-current={on ? "page" : undefined}
       onClick={() => onSelect(tab.path)}
     >
@@ -28,11 +28,13 @@ function NavItem({ tab, activePath, onSelect, showBadge }) {
 }
 
 /**
- * Barre bas web split — interprète app-nav.side via capabilities web-live.
+ * Barre bas web : G / centre promu / D — Actu = bouton central plus grand.
  */
 export default function SiteBottomNav({ activePath, onSelect }) {
-  const { left, right } = tabsBySide();
+  const { left, center, right } = tabsBySide();
   const caps = getCapabilities("web-live");
+  const showBadge = Boolean(caps?.badge);
+  const promoteCenter = caps?.centerPromoted !== false;
 
   return (
     <nav className="wa-bottom-nav" aria-label="Navigation">
@@ -43,10 +45,26 @@ export default function SiteBottomNav({ activePath, onSelect }) {
             tab={tab}
             activePath={activePath}
             onSelect={onSelect}
-            showBadge={Boolean(caps?.badge)}
+            showBadge={showBadge}
           />
         ))}
       </div>
+
+      {center.length > 0 ? (
+        <div className="wa-bottom-center">
+          {center.map((tab) => (
+            <NavItem
+              key={tab.id}
+              tab={tab}
+              activePath={activePath}
+              onSelect={onSelect}
+              showBadge={showBadge}
+              promoted={promoteCenter}
+            />
+          ))}
+        </div>
+      ) : null}
+
       <div className="wa-bottom-group" style={{ "--nav-count": right.length }}>
         {right.map((tab) => (
           <NavItem
@@ -54,7 +72,7 @@ export default function SiteBottomNav({ activePath, onSelect }) {
             tab={tab}
             activePath={activePath}
             onSelect={onSelect}
-            showBadge={Boolean(caps?.badge)}
+            showBadge={showBadge}
           />
         ))}
       </div>

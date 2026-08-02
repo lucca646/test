@@ -58,15 +58,16 @@ export function normalizeWebPath(path, tabs) {
 }
 
 /**
- * Split visible tabs into left/right groups (web split-bottom chrome only).
+ * Split visible tabs into left / center / right (web chrome).
  * Mirrors `tabsBySide()` but accepts an explicit tab list.
  * @param {AppTab[]} tabs
- * @returns {{ left: AppTab[], right: AppTab[] }}
+ * @returns {{ left: AppTab[], center: AppTab[], right: AppTab[] }}
  */
 export function toWebSplitGroups(tabs) {
   const visible = tabs.filter((t) => !t.hidden);
   return {
     left: visible.filter((t) => (t.side || "left") === "left"),
+    center: visible.filter((t) => t.side === "center"),
     right: visible.filter((t) => t.side === "right"),
   };
 }

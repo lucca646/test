@@ -11,7 +11,7 @@ declare module "app-nav" {
     badge?: string | null;
     role?: string;
     hidden?: boolean;
-    side?: "left" | "right";
+    side?: "left" | "center" | "right";
   };
 
   export const APP_TABS: AppTab[];
@@ -48,6 +48,7 @@ declare module "app-nav" {
       chrome: string;
       icons: "sf" | "f7" | "ion";
       side: boolean;
+      centerPromoted?: boolean;
       badge: boolean;
       island: boolean;
       nativeTabBar: boolean;
@@ -55,7 +56,11 @@ declare module "app-nav" {
   >;
 
   export function visibleTabs(): AppTab[];
-  export function tabsBySide(): { left: AppTab[]; right: AppTab[] };
+  export function tabsBySide(): {
+    left: AppTab[];
+    center: AppTab[];
+    right: AppTab[];
+  };
   export function allTabs(): AppTab[];
   export function getCapabilities(platformId: string): (typeof CAPABILITIES)[string] | null;
   export function iconPair(
