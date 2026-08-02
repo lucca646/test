@@ -303,6 +303,13 @@ function EnvoisScreen() {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
+  largeTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
