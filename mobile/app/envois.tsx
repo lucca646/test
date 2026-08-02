@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useAuth } from "../src/auth/AuthContext";
 import AuthGate from "../src/screens/AuthGate";
@@ -20,7 +21,7 @@ import { ApiError } from "../src/api/http";
 import { Banner, Button, EmptyState } from "../src/ui/Apple";
 import SwipeDeck from "../src/ui/SwipeDeck";
 import { hasEnvoisAccess } from "../src/utils/planAccess";
-import { colors } from "../src/theme";
+import { TAB_BAR_CLEARANCE, useColors } from "../src/theme";
 
 const PAGE_SIZE = 10;
 /** Quand il reste ≤ N cartes, précharge la page suivante. */
@@ -32,6 +33,8 @@ function prospectKey(p: Prospect) {
 
 function EnvoisScreen() {
   const { user, activated } = useAuth();
+  const c = useColors();
+  const insets = useSafeAreaInsets();
   const [deck, setDeck] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -122,7 +125,12 @@ function EnvoisScreen() {
   if (!activated) return <Redirect href="/recherche" />;
   if (!hasEnvoisAccess(user)) {
     return (
-      <View style={styles.wrap}>
+      <View
+        style={[
+          styles.wrap,
+          { backgroundColor: c.bg, paddingTop: Math.max(insets.top, 8) + 4 },
+        ]}
+      >
         <EmptyState
           title="Envois réservés au plan 3"
           subtitle="Passe au plan Complet pour swiper et envoyer."
@@ -205,15 +213,27 @@ function EnvoisScreen() {
   };
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={[
+        styles.wrap,
+        {
+          backgroundColor: c.bg,
+          paddingTop: Math.max(insets.top, 8) + 4,
+          // Laisse la place à UITabBar + home indicator (évite boutons coupés)
+          paddingBottom: TAB_BAR_CLEARANCE,
+        },
+      ]}
+    >
       <View style={styles.metaRow}>
-        <Text style={styles.meta}>
+        <Text style={[styles.meta, { color: c.muted }]}>
           {deck.length}
           {total > deck.length ? ` / ${total}` : ""} carte
           {deck.length > 1 ? "s" : ""}
         </Text>
         {loadingMore ? (
-          <Text style={styles.metaHint}>Chargement…</Text>
+          <Text style={[styles.metaHint, { color: c.accent }]}>
+            Chargement…
+          </Text>
         ) : null}
       </View>
 
@@ -227,7 +247,7 @@ function EnvoisScreen() {
       ) : null}
 
       {loading ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 48 }} />
+        <ActivityIndicator color={c.accent} style={{ marginTop: 48 }} />
       ) : current ? (
         <>
           <SwipeDeck
@@ -264,7 +284,7 @@ function EnvoisScreen() {
               />
             </View>
           </View>
-          <Text style={styles.hint}>
+          <Text style={[styles.hint, { color: c.muted }]}>
             Glisse à droite pour envoyer · à gauche pour passer
           </Text>
         </>
@@ -283,29 +303,31 @@ function EnvoisScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.bg, paddingTop: 8 },
+  wrap: { flex: 1 },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 20,
-    marginBottom: 4,
+    marginBottom: 8,
+    minHeight: 22,
   },
-  meta: { color: colors.muted, fontSize: 13 },
-  metaHint: { color: colors.accent, fontSize: 12, fontWeight: "600" },
+  meta: { fontSize: 13 },
+  metaHint: { fontSize: 12, fontWeight: "600" },
   actions: {
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingTop: 8,
+    paddingBottom: 6,
   },
-  actionBtn: { flex: 1 },
+  actionBtn: { flex: 1, minHeight: 50 },
   hint: {
-    color: colors.muted,
     fontSize: 12,
     textAlign: "center",
-    paddingBottom: 12,
+    paddingBottom: 4,
     paddingHorizontal: 20,
+    lineHeight: 16,
   },
 });
 

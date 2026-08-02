@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/auth/AuthContext";
 import AuthGate from "../src/screens/AuthGate";
 import {
@@ -18,10 +19,12 @@ import {
   apiSendSearch,
 } from "../src/api/console";
 import { Banner, Button, Group, SectionHeader } from "../src/ui/Apple";
-import { colors } from "../src/theme";
+import { TAB_BAR_CLEARANCE, useColors } from "../src/theme";
 
 function RechercheScreen() {
   const { user, activated, refreshUser } = useAuth();
+  const c = useColors();
+  const insets = useSafeAreaInsets();
   const [secteur, setSecteur] = useState("");
   const [zone, setZone] = useState("");
   const [profile, setProfile] = useState("");
@@ -117,8 +120,12 @@ function RechercheScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={styles.wrap}
+      style={{ flex: 1, backgroundColor: c.bg }}
+      contentContainerStyle={{
+        paddingTop: Math.max(insets.top, 8),
+        paddingBottom: TAB_BAR_CLEARANCE + insets.bottom,
+        gap: 10,
+      }}
       keyboardShouldPersistTaps="handled"
     >
       {!activated ? (
@@ -136,24 +143,30 @@ function RechercheScreen() {
       <SectionHeader title="Ciblage" />
       <Group>
         <View style={styles.field}>
-          <Text style={styles.label}>Secteur</Text>
+          <Text style={[styles.label, { color: c.muted }]}>Secteur</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: c.text }]}
             value={secteur}
             onChangeText={setSecteur}
             onEndEditing={onSuggest}
             placeholder="ex. développement web"
-            placeholderTextColor="rgba(235,235,245,0.3)"
+            placeholderTextColor={c.muted}
           />
         </View>
-        <View style={[styles.field, styles.fieldBorder]}>
-          <Text style={styles.label}>Zone</Text>
+        <View
+          style={[
+            styles.field,
+            styles.fieldBorder,
+            { borderTopColor: c.border },
+          ]}
+        >
+          <Text style={[styles.label, { color: c.muted }]}>Zone</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: c.text }]}
             value={zone}
             onChangeText={setZone}
             placeholder="ex. Lyon, Rhône"
-            placeholderTextColor="rgba(235,235,245,0.3)"
+            placeholderTextColor={c.muted}
           />
         </View>
       </Group>
@@ -163,13 +176,13 @@ function RechercheScreen() {
           {suggestions.map((s) => (
             <Pressable
               key={s}
-              style={styles.chip}
+              style={[styles.chip, { backgroundColor: c.pillBg }]}
               onPress={() => {
                 setSecteur(s);
                 setSuggestions([]);
               }}
             >
-              <Text style={styles.chipText}>{s}</Text>
+              <Text style={[styles.chipText, { color: c.accent }]}>{s}</Text>
             </Pressable>
           ))}
         </View>
@@ -187,12 +200,12 @@ function RechercheScreen() {
       <SectionHeader title="Profil généré" />
       <Group>
         <TextInput
-          style={styles.area}
+          style={[styles.area, { color: c.text }]}
           multiline
           value={profile}
           onChangeText={setProfile}
           placeholder="Le texte de recherche apparaîtra ici"
-          placeholderTextColor="rgba(235,235,245,0.3)"
+          placeholderTextColor={c.muted}
         />
       </Group>
 
@@ -203,9 +216,11 @@ function RechercheScreen() {
           disabled={!secteur.trim() && !profile.trim()}
           onPress={onSend}
         />
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        {status ? (
+          <Text style={[styles.status, { color: c.muted }]}>{status}</Text>
+        ) : null}
         {busy ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 8 }} />
+          <ActivityIndicator color={c.accent} style={{ marginTop: 8 }} />
         ) : null}
       </View>
     </ScrollView>
@@ -213,16 +228,13 @@ function RechercheScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingBottom: 40, gap: 10 },
-  field: { paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
+  field: { paddingHorizontal: 16, paddingVertical: 12, gap: 6 },
   fieldBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(84,84,88,0.65)",
   },
-  label: { color: colors.muted, fontSize: 13, fontWeight: "600" },
-  input: { color: colors.text, fontSize: 17, paddingVertical: 4 },
+  label: { fontSize: 13, fontWeight: "600" },
+  input: { fontSize: 17, paddingVertical: 6, minHeight: 36 },
   area: {
-    color: colors.text,
     fontSize: 16,
     minHeight: 140,
     padding: 16,
@@ -235,16 +247,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   chip: {
-    backgroundColor: "rgba(10,132,255,0.18)",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 999,
+    minHeight: 40,
+    justifyContent: "center",
   },
-  chipText: { color: colors.accent, fontSize: 13, fontWeight: "600" },
+  chipText: { fontSize: 13, fontWeight: "600" },
   pad: { paddingHorizontal: 16, gap: 10, marginTop: 4 },
-  status: { color: colors.muted, fontSize: 14, textAlign: "center" },
+  status: { fontSize: 14, textAlign: "center" },
 });
-
 
 export default function RechercheScreenGate() {
   return (

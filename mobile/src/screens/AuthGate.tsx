@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../auth/AuthContext";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 import LoginScreen from "./LoginScreen";
 import RegisterScreen from "./RegisterScreen";
 
@@ -16,6 +16,7 @@ export default function AuthGate({
   requireActivated?: boolean;
 }) {
   const { user, authReady, activated } = useAuth();
+  const c = useColors();
   const [mode, setMode] = useState<"login" | "register">("login");
 
   if (!authReady) {
@@ -25,10 +26,10 @@ export default function AuthGate({
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.bg,
+          backgroundColor: c.bg,
         }}
       >
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={c.accent} />
       </View>
     );
   }

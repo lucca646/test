@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import type { Prospect } from "../api/mailing";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_W * 0.28;
@@ -36,28 +36,29 @@ type Props = {
 };
 
 function CardFace({ prospect }: { prospect: Prospect }) {
+  const c = useColors();
   return (
     <View style={styles.cardInner}>
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[styles.title, { color: c.text }]} numberOfLines={2}>
         {prospect.entreprise || "Entreprise"}
       </Text>
-      <Text style={styles.sub} numberOfLines={2}>
+      <Text style={[styles.sub, { color: c.muted }]} numberOfLines={2}>
         {[prospect.ville, prospect.email, prospect.contact]
           .filter(Boolean)
           .join(" · ")}
       </Text>
-      <View style={styles.divider} />
-      <Text style={styles.mailLabel}>Objet</Text>
-      <Text style={styles.mailSubject} numberOfLines={2}>
+      <View style={[styles.divider, { backgroundColor: c.separator }]} />
+      <Text style={[styles.mailLabel, { color: c.muted }]}>Objet</Text>
+      <Text style={[styles.mailSubject, { color: c.text }]} numberOfLines={2}>
         {prospect.mailSubject || "(sans objet)"}
       </Text>
-      <Text style={styles.mailLabel}>Message</Text>
+      <Text style={[styles.mailLabel, { color: c.muted }]}>Message</Text>
       <ScrollView
         style={styles.bodyScroll}
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.mailBody}>
+        <Text style={[styles.mailBody, { color: c.text }]}>
           {prospect.mailBody || "Pas de corps de mail."}
         </Text>
       </ScrollView>
@@ -80,6 +81,7 @@ function StackCard({
   disabled?: boolean;
   onCommit: (dir: Direction) => void;
 }) {
+  const c = useColors();
   const pan = Gesture.Pan()
     .enabled(active && !disabled)
     .activeOffsetX([-12, 12])
@@ -110,13 +112,12 @@ function StackCard({
       const rot = interpolate(
         translateX.value,
         [-SCREEN_W, 0, SCREEN_W],
-        [-12, 0, 12],
+        [-10, 0, 10],
         Extrapolation.CLAMP,
       );
       return {
         transform: [
           { translateX: translateX.value },
-          { translateY: 0 },
           { rotate: `${rot}deg` },
           { scale: 1 },
         ],
@@ -127,11 +128,12 @@ function StackCard({
     const depth = index;
     return {
       transform: [
-        { translateX: depth * 10 },
-        { translateY: depth * 8 },
-        { scale: 1 - depth * 0.04 },
+        { translateX: depth * 8 },
+        { translateY: depth * 10 },
+        { scale: 1 - depth * 0.035 },
       ],
-      opacity: depth === 1 ? 0.72 : 0.4,
+      // Cartes arrière opaques (évite le « ghosting » de texte)
+      opacity: 1,
       zIndex: 10 - depth,
     };
   });
@@ -158,24 +160,40 @@ function StackCard({
   }));
 
   const body = (
-    <Animated.View style={[styles.card, animStyle]}>
+    <Animated.View
+      style={[
+        styles.card,
+        {
+          backgroundColor: c.cardSolid,
+          borderColor: c.border,
+        },
+        animStyle,
+      ]}
+    >
       {active ? (
         <>
           <Animated.View
             pointerEvents="none"
             style={[styles.overlay, styles.overlaySend, sendOverlay]}
           >
-            <Text style={styles.overlaySendText}>Envoyer</Text>
+            <Text style={[styles.overlaySendText, { color: c.success }]}>
+              Envoyer
+            </Text>
           </Animated.View>
           <Animated.View
             pointerEvents="none"
             style={[styles.overlay, styles.overlaySkip, skipOverlay]}
           >
-            <Text style={styles.overlaySkipText}>Passer</Text>
+            <Text style={[styles.overlaySkipText, { color: c.danger }]}>
+              Passer
+            </Text>
           </Animated.View>
+          <CardFace prospect={prospect} />
         </>
-      ) : null}
-      <CardFace prospect={prospect} />
+      ) : (
+        // Silhouette opaque — pas de texte derrière la carte active
+        <View style={[styles.backFace, { backgroundColor: c.cardSolid }]} />
+      )}
     </Animated.View>
   );
 
@@ -235,21 +253,23 @@ const styles = StyleSheet.create({
   deck: {
     flex: 1,
     marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 4,
     justifyContent: "center",
   },
   card: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 22,
-    backgroundColor: colors.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.12)",
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  backFace: {
+    flex: 1,
   },
   cardInner: {
     flex: 1,
@@ -257,28 +277,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: colors.text,
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
   },
-  sub: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  sub: { fontSize: 14, lineHeight: 20 },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(84,84,88,0.65)",
     marginVertical: 6,
   },
   mailLabel: {
-    color: colors.muted,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
-  mailSubject: { color: colors.text, fontSize: 17, fontWeight: "600" },
+  mailSubject: { fontSize: 17, fontWeight: "600" },
   bodyScroll: { flex: 1, marginTop: 2 },
   mailBody: {
-    color: "rgba(235,235,245,0.88)",
     fontSize: 15,
     lineHeight: 22,
     paddingBottom: 12,
@@ -294,24 +310,22 @@ const styles = StyleSheet.create({
   },
   overlaySend: {
     left: 18,
-    borderColor: colors.success,
-    backgroundColor: "rgba(48,209,88,0.12)",
+    borderColor: "#30d158",
+    backgroundColor: "rgba(48,209,88,0.14)",
     transform: [{ rotate: "-8deg" }],
   },
   overlaySkip: {
     right: 18,
-    borderColor: colors.danger,
-    backgroundColor: "rgba(255,69,58,0.12)",
+    borderColor: "#ff453a",
+    backgroundColor: "rgba(255,69,58,0.14)",
     transform: [{ rotate: "8deg" }],
   },
   overlaySendText: {
-    color: colors.success,
     fontWeight: "800",
     fontSize: 16,
     letterSpacing: 0.4,
   },
   overlaySkipText: {
-    color: colors.danger,
     fontWeight: "800",
     fontSize: 16,
     letterSpacing: 0.4,

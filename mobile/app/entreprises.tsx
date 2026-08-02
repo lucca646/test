@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { useAuth } from "../src/auth/AuthContext";
 import AuthGate from "../src/screens/AuthGate";
@@ -24,7 +25,7 @@ import {
 import { ApiError } from "../src/api/http";
 import { Banner, EmptyState, Segmented } from "../src/ui/Apple";
 import { ProspectDetailSheet } from "../src/ui/ProspectDetailSheet";
-import { colors } from "../src/theme";
+import { TAB_BAR_CLEARANCE, useColors } from "../src/theme";
 import {
   entreprisesHideFilterTabs,
   entreprisesHideSentTab,
@@ -44,6 +45,8 @@ type Filter = "all" | "contact" | "sent";
 function EntreprisesScreen() {
   const { user, activated } = useAuth();
   const router = useRouter();
+  const c = useColors();
+  const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<Prospect[]>([]);
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState<Filter>("all");
@@ -219,8 +222,13 @@ function EntreprisesScreen() {
   };
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.meta}>
+    <View
+      style={[
+        styles.wrap,
+        { backgroundColor: c.bg, paddingTop: Math.max(insets.top, 8) + 4 },
+      ]}
+    >
+      <Text style={[styles.meta, { color: c.muted }]}>
         {visible.length}
         {total && total !== visible.length ? ` / ${total}` : ""} entreprise
         {visible.length > 1 ? "s" : ""} · plan {userPlan(user)}
@@ -231,17 +239,20 @@ function EntreprisesScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Rechercher"
-          placeholderTextColor="rgba(235,235,245,0.35)"
+          placeholderTextColor={c.muted}
           autoCorrect={false}
           autoCapitalize="none"
           clearButtonMode="while-editing"
-          style={styles.search}
+          style={[
+            styles.search,
+            { backgroundColor: c.searchBg, color: c.text },
+          ]}
           returnKeyType="search"
         />
       </View>
 
       {!hideFilters ? (
-        <View style={{ marginBottom: 8 }}>
+        <View style={{ marginBottom: 10 }}>
           <Segmented
             value={filter}
             onChange={(id) => setFilter(id as Filter)}
@@ -262,7 +273,7 @@ function EntreprisesScreen() {
       ) : null}
 
       {loading && !rows.length ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 48 }} />
+        <ActivityIndicator color={c.accent} style={{ marginTop: 48 }} />
       ) : (
         <FlatList
           data={visible}
@@ -271,11 +282,18 @@ function EntreprisesScreen() {
             <RefreshControl
               refreshing={refreshing || (loading && rows.length > 0)}
               onRefresh={() => load({ background: true })}
-              tintColor={colors.accent}
+              tintColor={c.accent}
             />
           }
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: TAB_BAR_CLEARANCE + insets.bottom },
+          ]}
+          ItemSeparatorComponent={() => (
+            <View
+              style={[styles.separator, { backgroundColor: c.separator }]}
+            />
+          )}
           ListEmptyComponent={
             <EmptyState
               title={query.trim() ? "Aucun résultat" : "Aucune entreprise"}
@@ -325,6 +343,7 @@ function ProspectRow({
   showContacts: boolean;
   onPress: () => void;
 }) {
+  const c = useColors();
   const kind = prospectStatusKind(prospect.statut);
   const subtitleParts = [prospect.ville].filter(Boolean);
   if (showContacts) {
@@ -334,49 +353,54 @@ function ProspectRow({
     subtitleParts.push(prospect.secteur);
   }
 
+  const pillBg =
+    kind === "sent"
+      ? c.pillSentBg
+      : kind === "no_contact"
+        ? c.pillMutedBg
+        : kind === "in_progress"
+          ? c.pillWarnBg
+          : c.pillBg;
+  const pillColor =
+    kind === "sent"
+      ? c.success
+      : kind === "no_contact"
+        ? c.muted
+        : kind === "in_progress"
+          ? c.warning
+          : c.accent;
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && { backgroundColor: c.rowPressed },
+      ]}
     >
       <View style={styles.rowMain}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
+        <Text style={[styles.rowTitle, { color: c.text }]} numberOfLines={1}>
           {prospect.entreprise || "Entreprise"}
         </Text>
-        <Text style={styles.rowSub} numberOfLines={2}>
+        <Text style={[styles.rowSub, { color: c.muted }]} numberOfLines={2}>
           {subtitleParts.join(" · ") || "—"}
         </Text>
       </View>
       <View style={styles.rowRight}>
-        <View
-          style={[
-            styles.pill,
-            kind === "sent" && styles.pillSent,
-            kind === "no_contact" && styles.pillMuted,
-            kind === "in_progress" && styles.pillWarn,
-          ]}
-        >
-          <Text
-            style={[
-              styles.pillText,
-              kind === "sent" && { color: colors.success },
-              kind === "no_contact" && { color: colors.muted },
-              kind === "in_progress" && { color: colors.warning },
-            ]}
-          >
+        <View style={[styles.pill, { backgroundColor: pillBg }]}>
+          <Text style={[styles.pillText, { color: pillColor }]}>
             {prospectStatusLabel(prospect.statut)}
           </Text>
         </View>
-        <Text style={styles.chevron}>›</Text>
+        <Text style={[styles.chevron, { color: c.chevron }]}>›</Text>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.bg, paddingTop: 8 },
+  wrap: { flex: 1 },
   meta: {
-    color: colors.muted,
     fontSize: 13,
     marginHorizontal: 20,
     marginBottom: 10,
@@ -386,57 +410,51 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   search: {
-    backgroundColor: "rgba(118,118,128,0.24)",
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    color: colors.text,
+    paddingVertical: 12,
     fontSize: 17,
+    minHeight: 44,
   },
   listContent: {
-    paddingBottom: 40,
     flexGrow: 1,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
     marginLeft: 20,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    gap: 10,
-    minHeight: 64,
+    gap: 12,
+    minHeight: 76,
   },
-  rowPressed: { backgroundColor: "rgba(120,120,128,0.18)" },
-  rowMain: { flex: 1, gap: 3 },
+  rowMain: { flex: 1, gap: 4, minWidth: 0 },
   rowTitle: {
-    color: colors.text,
     fontSize: 17,
     fontWeight: "600",
     letterSpacing: -0.2,
   },
-  rowSub: { color: colors.muted, fontSize: 14, lineHeight: 18 },
-  rowRight: { alignItems: "flex-end", gap: 6, flexDirection: "row" },
-  pill: {
-    backgroundColor: "rgba(10,132,255,0.18)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    maxWidth: 120,
+  rowSub: { fontSize: 14, lineHeight: 19 },
+  rowRight: {
+    alignItems: "center",
+    gap: 8,
+    flexDirection: "row",
+    flexShrink: 0,
   },
-  pillSent: { backgroundColor: "rgba(48,209,88,0.16)" },
-  pillMuted: { backgroundColor: "rgba(120,120,128,0.22)" },
-  pillWarn: { backgroundColor: "rgba(255,214,10,0.16)" },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+    maxWidth: 118,
+  },
   pillText: {
-    color: colors.accent,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
   },
   chevron: {
-    color: "rgba(235,235,245,0.3)",
     fontSize: 22,
     marginTop: -2,
   },

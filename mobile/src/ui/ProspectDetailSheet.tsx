@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Prospect } from "../api/mailing";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 import {
   entreprisesCanToggleContactStatus,
   entreprisesShowContacts,
@@ -19,6 +19,7 @@ import {
 } from "../utils/planAccess";
 import {
   isSentStatut,
+  prospectStatusKind,
   prospectStatusLabel,
 } from "../utils/prospectStatus";
 import { Button, Group, Row } from "./Apple";
@@ -45,10 +46,28 @@ export function ProspectDetailSheet({
   onOpenEnvois,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const c = useColors();
   const showContacts = entreprisesShowContacts(user);
   const showMail = entreprisesShowMailActions(user);
   const canToggle = entreprisesCanToggleContactStatus(user);
   const p = prospect;
+  const kind = p ? prospectStatusKind(p.statut) : "contact";
+  const pillBg =
+    kind === "sent"
+      ? c.pillSentBg
+      : kind === "no_contact"
+        ? c.pillMutedBg
+        : kind === "in_progress"
+          ? c.pillWarnBg
+          : c.pillBg;
+  const pillColor =
+    kind === "sent"
+      ? c.success
+      : kind === "no_contact"
+        ? c.muted
+        : kind === "in_progress"
+          ? c.warning
+          : c.accent;
 
   return (
     <Modal
@@ -57,14 +76,30 @@ export function ProspectDetailSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.sheet, { paddingTop: 12, paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.grabber} />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: c.bg,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 16,
+          },
+        ]}
+      >
+        <View style={[styles.grabber, { backgroundColor: c.separator }]} />
         <View style={styles.header}>
-          <Text style={styles.headerTitle} numberOfLines={2}>
+          <Text
+            style={[styles.headerTitle, { color: c.text }]}
+            numberOfLines={2}
+          >
             {p?.entreprise || "Entreprise"}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12} style={styles.closeBtn}>
-            <Text style={styles.closeText}>Fermer</Text>
+          <Pressable
+            onPress={onClose}
+            hitSlop={12}
+            style={[styles.closeBtn, { backgroundColor: c.searchBg }]}
+          >
+            <Text style={[styles.closeText, { color: c.accent }]}>Fermer</Text>
           </Pressable>
         </View>
 
@@ -74,19 +109,19 @@ export function ProspectDetailSheet({
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.badgeRow}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
+              <View style={[styles.badge, { backgroundColor: pillBg }]}>
+                <Text style={[styles.badgeText, { color: pillColor }]}>
                   {prospectStatusLabel(p.statut)}
                 </Text>
               </View>
               {p.repondu === "yes" ? (
-                <View style={[styles.badge, styles.badgeOk]}>
-                  <Text style={[styles.badgeText, { color: colors.success }]}>
+                <View style={[styles.badge, { backgroundColor: c.pillSentBg }]}>
+                  <Text style={[styles.badgeText, { color: c.success }]}>
                     Répondu
                   </Text>
                 </View>
               ) : null}
-              {busy ? <ActivityIndicator color={colors.accent} /> : null}
+              {busy ? <ActivityIndicator color={c.accent} /> : null}
             </View>
 
             <Group>
@@ -98,7 +133,7 @@ export function ProspectDetailSheet({
 
             {showContacts ? (
               <>
-                <Text style={styles.section}>Contact</Text>
+                <Text style={[styles.section, { color: c.muted }]}>Contact</Text>
                 <Group>
                   <Row
                     label="Email"
@@ -123,7 +158,7 @@ export function ProspectDetailSheet({
               </>
             ) : (
               <>
-                <Text style={styles.section}>Contact</Text>
+                <Text style={[styles.section, { color: c.muted }]}>Contact</Text>
                 <Group>
                   <Row
                     label="Détails"
@@ -136,7 +171,7 @@ export function ProspectDetailSheet({
 
             {p.lien || p.notePerso || p.info ? (
               <>
-                <Text style={styles.section}>Infos</Text>
+                <Text style={[styles.section, { color: c.muted }]}>Infos</Text>
                 <Group>
                   {p.lien ? (
                     <Row
@@ -162,7 +197,7 @@ export function ProspectDetailSheet({
 
             {showMail ? (
               <>
-                <Text style={styles.section}>Mail</Text>
+                <Text style={[styles.section, { color: c.muted }]}>Mail</Text>
                 <Group>
                   <Row
                     label="Objet"
@@ -170,8 +205,16 @@ export function ProspectDetailSheet({
                     last={!p.mailBody}
                   />
                   {p.mailBody ? (
-                    <View style={styles.mailBody}>
-                      <Text style={styles.mailBodyText} numberOfLines={12}>
+                    <View
+                      style={[
+                        styles.mailBody,
+                        { borderTopColor: c.border },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.mailBodyText, { color: c.muted }]}
+                        numberOfLines={12}
+                      >
                         {p.mailBody}
                       </Text>
                     </View>
@@ -226,16 +269,12 @@ export function ProspectDetailSheet({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
+  sheet: { flex: 1 },
   grabber: {
     alignSelf: "center",
     width: 36,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "rgba(235,235,245,0.3)",
     marginBottom: 8,
   },
   header: {
@@ -247,13 +286,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    color: colors.text,
     fontSize: 22,
     fontWeight: "700",
     letterSpacing: -0.4,
   },
-  closeBtn: { paddingTop: 4 },
-  closeText: { color: colors.accent, fontSize: 17, fontWeight: "600" },
+  closeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    minHeight: 40,
+    justifyContent: "center",
+  },
+  closeText: { fontSize: 16, fontWeight: "600" },
   body: { paddingBottom: 32, gap: 4 },
   badgeRow: {
     flexDirection: "row",
@@ -261,17 +305,15 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 20,
     marginBottom: 12,
+    flexWrap: "wrap",
   },
   badge: {
-    backgroundColor: "rgba(10,132,255,0.18)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  badgeOk: { backgroundColor: "rgba(48,209,88,0.16)" },
-  badgeText: { color: colors.accent, fontSize: 12, fontWeight: "700" },
+  badgeText: { fontSize: 13, fontWeight: "700" },
   section: {
-    color: colors.muted,
     fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -284,10 +326,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
   },
   mailBodyText: {
-    color: colors.muted,
     fontSize: 15,
     lineHeight: 21,
   },

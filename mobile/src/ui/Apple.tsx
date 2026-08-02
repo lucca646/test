@@ -7,14 +7,34 @@ import {
   type ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { colors } from "../theme";
+import { useColors, type ThemeColors } from "../theme";
 
 export function SectionHeader({ title }: { title: string }) {
-  return <Text style={styles.sectionHeader}>{title}</Text>;
+  const c = useColors();
+  return (
+    <Text style={[styles.sectionHeader, { color: c.muted }]}>{title}</Text>
+  );
 }
 
-export function Group({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
-  return <View style={[styles.group, style]}>{children}</View>;
+export function Group({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: ViewStyle;
+}) {
+  const c = useColors();
+  return (
+    <View
+      style={[
+        styles.group,
+        { backgroundColor: c.card, borderColor: c.border },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export function Row({
@@ -30,13 +50,23 @@ export function Row({
   destructive?: boolean;
   last?: boolean;
 }) {
+  const c = useColors();
   const inner = (
-    <View style={[styles.row, !last && styles.rowBorder]}>
-      <Text style={[styles.rowLabel, destructive && { color: colors.danger }]}>
+    <View
+      style={[
+        styles.row,
+        !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.separator },
+      ]}
+    >
+      <Text style={[styles.rowLabel, { color: destructive ? c.danger : c.text }]}>
         {label}
       </Text>
-      {value ? <Text style={styles.rowValue}>{value}</Text> : null}
-      {onPress ? <Text style={styles.chevron}>›</Text> : null}
+      {value ? (
+        <Text style={[styles.rowValue, { color: c.muted }]} numberOfLines={2}>
+          {value}
+        </Text>
+      ) : null}
+      {onPress ? <Text style={[styles.chevron, { color: c.chevron }]}>›</Text> : null}
     </View>
   );
   if (!onPress) return inner;
@@ -65,17 +95,18 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const c = useColors();
   const bg =
     variant === "primary"
-      ? colors.accent
+      ? c.accent
       : variant === "destructive"
-        ? colors.danger
+        ? c.danger
         : variant === "tinted"
-          ? "rgba(10,132,255,0.18)"
-          : "rgba(120,120,128,0.24)";
-  const color =
-    variant === "tinted" || variant === "gray" ? colors.accent : "#fff";
-  const textColor = variant === "gray" ? colors.text : color;
+          ? c.pillBg
+          : c.searchBg;
+  const textColor =
+    variant === "tinted" || variant === "gray" ? c.accent : "#fff";
+  const grayText = variant === "gray" ? c.text : textColor;
 
   return (
     <Pressable
@@ -90,9 +121,9 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={textColor} />
+        <ActivityIndicator color={grayText} />
       ) : (
-        <Text style={[styles.btnText, { color: textColor }]}>{label}</Text>
+        <Text style={[styles.btnText, { color: grayText }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -105,10 +136,13 @@ export function EmptyState({
   title: string;
   subtitle?: string;
 }) {
+  const c = useColors();
   return (
     <View style={styles.empty}>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      {subtitle ? <Text style={styles.emptySub}>{subtitle}</Text> : null}
+      <Text style={[styles.emptyTitle, { color: c.muted }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[styles.emptySub, { color: c.muted }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
 }
@@ -122,17 +156,28 @@ export function Segmented({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const c = useColors();
   return (
-    <View style={styles.segmented}>
+    <View style={[styles.segmented, { backgroundColor: c.searchBg }]}>
       {options.map((o) => {
         const on = o.id === value;
         return (
           <Pressable
             key={o.id}
             onPress={() => onChange(o.id)}
-            style={[styles.segItem, on && styles.segOn]}
+            style={[
+              styles.segItem,
+              on && { backgroundColor: c.cardSolid },
+            ]}
           >
-            <Text style={[styles.segText, on && styles.segTextOn]}>{o.label}</Text>
+            <Text
+              style={[
+                styles.segText,
+                { color: on ? c.text : c.muted },
+              ]}
+            >
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -151,12 +196,13 @@ export function Banner({
   subtitle?: string;
   onPress?: () => void;
 }) {
+  const c = useColors();
   const bg =
     tone === "error"
       ? "rgba(255,69,58,0.14)"
       : tone === "success"
         ? "rgba(48,209,88,0.14)"
-        : "rgba(10,132,255,0.14)";
+        : c.pillBg;
   const border =
     tone === "error"
       ? "rgba(255,69,58,0.35)"
@@ -165,24 +211,28 @@ export function Banner({
         : "rgba(10,132,255,0.35)";
   const titleColor =
     tone === "error"
-      ? colors.danger
+      ? c.danger
       : tone === "success"
-        ? colors.success
-        : colors.accent;
+        ? c.success
+        : c.accent;
 
   const body = (
     <View style={[styles.banner, { backgroundColor: bg, borderColor: border }]}>
       <Text style={[styles.bannerTitle, { color: titleColor }]}>{title}</Text>
-      {subtitle ? <Text style={styles.bannerSub}>{subtitle}</Text> : null}
+      {subtitle ? (
+        <Text style={[styles.bannerSub, { color: c.muted }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
   if (!onPress) return body;
   return <Pressable onPress={onPress}>{body}</Pressable>;
 }
 
+/** @deprecated use useColors() */
+export type { ThemeColors };
+
 const styles = StyleSheet.create({
   sectionHeader: {
-    color: "rgba(235,235,245,0.6)",
     fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
@@ -193,25 +243,21 @@ const styles = StyleSheet.create({
   },
   group: {
     marginHorizontal: 16,
-    backgroundColor: "rgba(28,28,30,0.92)",
     borderRadius: 14,
     overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   row: {
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  rowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(84,84,88,0.65)",
-  },
-  rowLabel: { flex: 1, color: "#fff", fontSize: 17 },
-  rowValue: { color: "rgba(235,235,245,0.6)", fontSize: 17, maxWidth: "55%" },
-  chevron: { color: "rgba(235,235,245,0.3)", fontSize: 22, marginTop: -2 },
+  rowLabel: { flex: 1, fontSize: 17 },
+  rowValue: { fontSize: 16, maxWidth: "52%", textAlign: "right" },
+  chevron: { fontSize: 22, marginTop: -2 },
   btn: {
     borderRadius: 14,
     paddingVertical: 14,
@@ -227,37 +273,31 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   emptyTitle: {
-    color: "rgba(235,235,245,0.6)",
     fontSize: 17,
     fontWeight: "600",
     textAlign: "center",
   },
   emptySub: {
-    color: "rgba(235,235,245,0.4)",
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
   },
   segmented: {
     flexDirection: "row",
-    backgroundColor: "rgba(118,118,128,0.24)",
     borderRadius: 10,
-    padding: 2,
+    padding: 3,
     marginHorizontal: 16,
   },
   segItem: {
     flex: 1,
-    paddingVertical: 7,
+    paddingVertical: 9,
     borderRadius: 8,
     alignItems: "center",
   },
-  segOn: { backgroundColor: "rgba(99,99,102,0.9)" },
   segText: {
-    color: "#fff",
     fontSize: 13,
     fontWeight: "600",
   },
-  segTextOn: { color: "#fff" },
   banner: {
     marginHorizontal: 16,
     borderRadius: 14,
@@ -266,5 +306,5 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   bannerTitle: { fontSize: 15, fontWeight: "700" },
-  bannerSub: { color: "rgba(235,235,245,0.6)", fontSize: 13, lineHeight: 18 },
+  bannerSub: { fontSize: 13, lineHeight: 18 },
 });

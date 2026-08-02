@@ -3,14 +3,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../auth/AuthContext";
 import { Button } from "../ui/Apple";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 
 type Props = {
   onGoLogin?: () => void;
@@ -18,6 +20,8 @@ type Props = {
 
 export default function RegisterScreen({ onGoLogin }: Props) {
   const { register } = useAuth();
+  const c = useColors();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -46,112 +50,140 @@ export default function RegisterScreen({ onGoLogin }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.wrap}
+      style={{ flex: 1, backgroundColor: c.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Text style={styles.brand}>COR·ALT</Text>
-      <Text style={styles.sub}>Créer un compte</Text>
+      <ScrollView
+        contentContainerStyle={[
+          styles.wrap,
+          {
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 24,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={[styles.brand, { color: c.text }]}>COR·ALT</Text>
+        <Text style={[styles.sub, { color: c.muted }]}>Créer un compte</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Nom</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholderTextColor="rgba(235,235,245,0.3)"
-          placeholder="Prénom Nom"
-        />
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor="rgba(235,235,245,0.3)"
-          placeholder="vous@email.fr"
-        />
-        <Text style={styles.label}>Téléphone</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-          placeholderTextColor="rgba(235,235,245,0.3)"
-          placeholder="06…"
-        />
-        <Text style={styles.label}>Mot de passe</Text>
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          placeholderTextColor="rgba(235,235,245,0.3)"
-          placeholder="••••••••"
-        />
-        <Text style={styles.label}>Code invitation</Text>
-        <TextInput
-          style={styles.input}
-          autoCapitalize="characters"
-          value={invite}
-          onChangeText={setInvite}
-          placeholderTextColor="rgba(235,235,245,0.3)"
-          placeholder="Optionnel"
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button
-          label="Créer le compte"
-          loading={busy}
-          disabled={!name || !email || !password}
-          onPress={onSubmit}
-        />
-      </View>
+        <View style={[styles.card, { backgroundColor: c.card }]}>
+          <Text style={[styles.label, { color: c.muted }]}>Nom</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { backgroundColor: c.searchBg, color: c.text },
+            ]}
+            value={name}
+            onChangeText={setName}
+            placeholderTextColor={c.muted}
+            placeholder="Prénom Nom"
+          />
+          <Text style={[styles.label, { color: c.muted }]}>Email</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { backgroundColor: c.searchBg, color: c.text },
+            ]}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            placeholderTextColor={c.muted}
+            placeholder="vous@email.fr"
+          />
+          <Text style={[styles.label, { color: c.muted }]}>Téléphone</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { backgroundColor: c.searchBg, color: c.text },
+            ]}
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
+            placeholderTextColor={c.muted}
+            placeholder="06…"
+          />
+          <Text style={[styles.label, { color: c.muted }]}>Mot de passe</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { backgroundColor: c.searchBg, color: c.text },
+            ]}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            placeholderTextColor={c.muted}
+            placeholder="••••••••"
+          />
+          <Text style={[styles.label, { color: c.muted }]}>
+            Code invitation
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              { backgroundColor: c.searchBg, color: c.text },
+            ]}
+            autoCapitalize="characters"
+            value={invite}
+            onChangeText={setInvite}
+            placeholderTextColor={c.muted}
+            placeholder="Optionnel"
+          />
+          {error ? (
+            <Text style={[styles.error, { color: c.danger }]}>{error}</Text>
+          ) : null}
+          <Button
+            label="Créer le compte"
+            loading={busy}
+            disabled={!name || !email || !password}
+            onPress={onSubmit}
+          />
+        </View>
 
-      {onGoLogin ? (
-        <Pressable onPress={onGoLogin}>
-          <Text style={styles.link}>Déjà un compte ? Connexion</Text>
-        </Pressable>
-      ) : null}
+        {onGoLogin ? (
+          <Pressable onPress={onGoLogin} hitSlop={8}>
+            <Text style={[styles.link, { color: c.accent }]}>
+              Déjà un compte ? Connexion
+            </Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
-    padding: 24,
-    backgroundColor: colors.bg,
+    paddingHorizontal: 24,
     gap: 14,
   },
   brand: {
-    color: colors.text,
     fontSize: 40,
     fontWeight: "800",
     letterSpacing: -1.2,
   },
-  sub: { color: colors.muted, fontSize: 14, marginBottom: 8 },
+  sub: { fontSize: 14, marginBottom: 8 },
   card: {
-    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 18,
     gap: 10,
   },
-  label: { color: colors.muted, fontSize: 13, fontWeight: "600" },
+  label: { fontSize: 13, fontWeight: "600" },
   input: {
-    backgroundColor: "rgba(0,0,0,0.35)",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    color: colors.text,
     fontSize: 17,
+    minHeight: 48,
   },
-  error: { color: colors.danger, fontSize: 14 },
+  error: { fontSize: 14 },
   link: {
-    color: colors.accent,
     textAlign: "center",
     fontWeight: "600",
     fontSize: 16,
     marginTop: 8,
+    paddingVertical: 8,
   },
 });

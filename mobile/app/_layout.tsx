@@ -4,44 +4,74 @@ import {
   Icon,
   Label,
 } from "expo-router/unstable-native-tabs";
-import { DynamicColorIOS, Platform } from "react-native";
+import { DynamicColorIOS, Platform, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ThemeProvider, DarkTheme } from "@react-navigation/native";
+import {
+  ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+} from "@react-navigation/native";
 import { NAV_TINT } from "app-nav";
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import { AuthProvider } from "../src/auth/AuthContext";
 import { applyOtaUpdateIfAny } from "../lib/ota";
-import { colors } from "../src/theme";
+import { useColors } from "../src/theme";
 
 /**
- * Architecture OTA-stable (= binaire TestFlight) :
- * NativeTabs TOUJOURS à la racine — jamais Stack/(auth) qui démonte UITabBar.
- * Auth gérée dans chaque écran via AuthGate.
+ * NativeTabs racine — thème = Appearance système (jour/nuit).
+ * Pas de role="search" : la loupe système chevauche Profil.
  */
 export default function RootLayout() {
   useEffect(() => {
     void applyOtaUpdateIfAny();
   }, []);
 
+  const scheme = useColorScheme();
+  const c = useColors();
+  const isDark = scheme !== "light";
+
   const tint =
     Platform.OS === "ios"
       ? DynamicColorIOS({ light: NAV_TINT, dark: NAV_TINT })
       : NAV_TINT;
 
+  const navTheme = isDark
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          primary: c.accent,
+          background: c.bg,
+          card: c.card,
+          text: c.text,
+          border: c.border,
+        },
+      }
+    : {
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          primary: c.accent,
+          background: c.bg,
+          card: c.card,
+          text: c.text,
+          border: c.border,
+        },
+      };
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.bg }}>
       <AppErrorBoundary label="Root">
         <AuthProvider>
-          <StatusBar style="light" />
-          <ThemeProvider value={DarkTheme}>
+          <StatusBar style={c.statusBar} />
+          <ThemeProvider value={navTheme}>
             <NativeTabs
               tintColor={tint}
               labelStyle={{ fontSize: 10, fontWeight: "600" }}
-              blurEffect="systemMaterialDark"
+              blurEffect={c.tabBlur}
               disableTransparentOnScrollEdge
             >
-              {/* index.tsx redirige coralt:/// → /entreprises (pas un onglet) */}
               <NativeTabs.Trigger name="index" hidden>
                 <Label> </Label>
                 <Icon sf="building.2" />
@@ -54,9 +84,15 @@ export default function RootLayout() {
                 />
               </NativeTabs.Trigger>
 
-              <NativeTabs.Trigger name="recherche" role="search">
+              {/* Pas de role="search" — évite le gros bouton loupe qui mange Profil */}
+              <NativeTabs.Trigger name="recherche">
                 <Label>Recherche</Label>
-                <Icon sf="magnifyingglass" />
+                <Icon
+                  sf={{
+                    default: "magnifyingglass",
+                    selected: "magnifyingglass.circle.fill",
+                  }}
+                />
               </NativeTabs.Trigger>
 
               <NativeTabs.Trigger name="envois">
