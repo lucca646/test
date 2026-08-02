@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { HOME } from "app-nav";
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import TabScreen from "../components/TabScreen";
 import DynamicIslandPlayground, {
@@ -13,10 +14,10 @@ export default function TodayTab() {
 
   return (
     <TabScreen
-      kicker="OTA NAV · TEINTE + BADGE + ICÔNES"
-      title="Aujourd'hui"
-      body="Barre modifiée sans rebuild : tint cyan, icône soleil, badge OTA sur Apps. Si tu vois ça, l’OTA a marché."
-      tint={["#FF453A", "#5E5CE6"]}
+      kicker={HOME.kicker}
+      title={HOME.title}
+      body={HOME.body}
+      tint={HOME.tint as [string, string]}
     >
       <View
         style={[

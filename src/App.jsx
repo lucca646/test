@@ -60,12 +60,10 @@ function LiveWebShell() {
 
   const ActivePage = PAGES[activePath] || TodayPage;
 
-  const tabCount = 4; // synced via app-nav visible tabs
-
   return (
     <div
       className="site is-live-web"
-      style={{ "--nav-count": tabCount }}
+      style={{ "--nav-count": visibleTabs().length }}
     >
       <header className="wa-topbar">
         <span className="wa-topbar-brand">Coraia</span>

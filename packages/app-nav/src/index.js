@@ -4,3 +4,4 @@ export {
   allTabs,
   visibleTabs,
 } from "./tabs.js";
+export { HOME } from "./home.js";

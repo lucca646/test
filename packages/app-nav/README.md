@@ -1,9 +1,11 @@
 # app-nav
 
-**Source unique** des onglets (web PWA + app Expo).
+Source unique **partagée** web + iOS.
 
-```js
-import { APP_TABS, visibleTabs, NAV_TINT } from "app-nav";
-```
+| Partagé | Pas partagé (adaptateurs) |
+|---------|---------------------------|
+| `APP_TABS` (ordre, labels, hidden, badge, icônes) | Chrome : `UITabBar` iOS vs CSS web |
+| `NAV_TINT` | Pages riches (DeviceLab, jeux…) |
+| `HOME` (titre / texte Aujourd’hui) | Lab `?lab=1` |
 
-Pour masquer Recherche partout : `hidden: true` dans `src/tabs.js`.
+Modifier `src/tabs.js` ou `src/home.js` → les deux clients suivent (OTA / Vite).
