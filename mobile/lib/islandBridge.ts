@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import { createIslandBridgeClient } from "island-bridge/client";
+import { isIslandMode } from "island-bridge/protocol";
 import type { IslandMode } from "./islandTypes";
 
 export type BridgeCommand = {
@@ -10,17 +11,8 @@ export type BridgeCommand = {
   ms?: number;
 };
 
-const MODES: IslandMode[] = [
-  "timer",
-  "music",
-  "progress",
-  "focus",
-  "breathe",
-  "score",
-];
-
 export function isBridgeMode(value: unknown): value is IslandMode {
-  return typeof value === "string" && (MODES as string[]).includes(value);
+  return isIslandMode(value);
 }
 
 /** URL WS : EXPO_PUBLIC_ISLAND_BRIDGE_URL ou extra.islandBridgeWs */
@@ -37,6 +29,7 @@ export function connectIslandBridge(opts: {
   onCommand: (cmd: BridgeCommand) => void;
   onStatus?: (s: string) => void;
   onPeers?: (n: number) => void;
+  onWelcome?: (msg: object) => void;
 }) {
   const url = resolveIslandBridgeUrl();
   if (!url) {
@@ -53,5 +46,6 @@ export function connectIslandBridge(opts: {
     onCommand: opts.onCommand,
     onStatus: opts.onStatus,
     onPeers: opts.onPeers,
+    onWelcome: opts.onWelcome,
   });
 }

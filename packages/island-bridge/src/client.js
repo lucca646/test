@@ -1,3 +1,5 @@
+import { PROTOCOL_VERSION, DEFAULT_PEER_CAPABILITIES } from "./protocol.js";
+
 /**
  * Client WebSocket universel (navigateur + React Native).
  *
@@ -5,9 +7,11 @@
  *   url: string,
  *   platform?: string,
  *   role?: string,
+ *   capabilities?: object,
  *   onCommand?: (cmd: object) => void,
  *   onStatus?: (s: string) => void,
  *   onPeers?: (n: number) => void,
+ *   onWelcome?: (msg: object) => void,
  * }} opts
  */
 export function createIslandBridgeClient(opts) {
@@ -15,15 +19,19 @@ export function createIslandBridgeClient(opts) {
     url,
     platform = "unknown",
     role = "peer",
+    capabilities = DEFAULT_PEER_CAPABILITIES,
     onCommand,
     onStatus,
     onPeers,
+    onWelcome,
   } = opts;
 
   let ws = null;
   let closed = false;
   let retry = 0;
   let timer = null;
+  /** @type {object | null} */
+  let welcome = null;
 
   const status = (s) => onStatus?.(s);
 
@@ -44,6 +52,8 @@ export function createIslandBridgeClient(opts) {
         type: "hello",
         platform,
         role,
+        protocolVersion: PROTOCOL_VERSION,
+        capabilities,
         at: Date.now(),
       });
     };
@@ -55,7 +65,15 @@ export function createIslandBridgeClient(opts) {
       } catch {
         return;
       }
-      if (msg.type === "command" && msg.command) {
+      if (msg.type === "welcome") {
+        welcome = msg;
+        onWelcome?.(msg);
+        status(
+          `Welcome · protocol v${msg.protocolVersion ?? "?"} · ${msg.peers ?? 0} peer(s)`,
+        );
+      } else if (msg.type === "unsupported") {
+        status(msg.message ?? "protocole non supporté");
+      } else if (msg.type === "command" && msg.command) {
         onCommand?.(msg.command);
       } else if (msg.type === "peers") {
         onPeers?.(msg.count ?? 0);
@@ -68,6 +86,7 @@ export function createIslandBridgeClient(opts) {
 
     ws.onclose = () => {
       ws = null;
+      welcome = null;
       if (!closed) {
         status("Déconnecté — reconnexion…");
         scheduleReconnect();
@@ -105,6 +124,10 @@ export function createIslandBridgeClient(opts) {
     send({ type: "publish", command });
   }
 
+  function getWelcome() {
+    return welcome;
+  }
+
   function close() {
     closed = true;
     if (timer) clearTimeout(timer);
@@ -115,11 +138,12 @@ export function createIslandBridgeClient(opts) {
       /* ignore */
     }
     ws = null;
+    welcome = null;
   }
 
   connect();
 
-  return { runScript, publishCommand, close, send };
+  return { runScript, publishCommand, close, send, getWelcome };
 }
 
 /** URL WS par défaut (dev local). */

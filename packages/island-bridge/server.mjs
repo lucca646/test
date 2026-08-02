@@ -16,6 +16,15 @@
 import http from "node:http";
 import { WebSocketServer } from "ws";
 import { interpret, runCommands } from "./src/interpret.js";
+import {
+  PROTOCOL_VERSION,
+  MIN_PROTOCOL_VERSION,
+  ISLAND_MODES,
+  PEER_OPS,
+  normalizeCommand,
+  buildWelcome,
+  assertCompatible,
+} from "./src/protocol.js";
 
 const PORT = Number(process.env.ISLAND_BRIDGE_PORT || process.env.PORT || 8792);
 
@@ -108,6 +117,10 @@ const server = http.createServer(async (req, res) => {
       bridge: "island",
       peers: peers.size,
       port: PORT,
+      protocolVersion: PROTOCOL_VERSION,
+      minProtocolVersion: MIN_PROTOCOL_VERSION,
+      modes: ISLAND_MODES,
+      ops: PEER_OPS,
     });
     return;
   }
@@ -163,10 +176,34 @@ wss.on("connection", (ws) => {
     }
 
     if (msg.type === "hello") {
+      ws.meta = {
+        platform: msg.platform || "?",
+        role: msg.role || "peer",
+        protocolVersion: msg.protocolVersion,
+        capabilities: msg.capabilities,
+        at: msg.at,
+      };
+
+      const compat = assertCompatible(msg.protocolVersion);
+      if (!compat.ok) {
+        console.warn(
+          `[island-bridge] peer incompatible (${ws.meta.platform}): ${compat.message}`,
+        );
+        ws.send(
+          JSON.stringify({
+            type: "unsupported",
+            message: compat.message,
+            protocolVersion: PROTOCOL_VERSION,
+            minProtocolVersion: MIN_PROTOCOL_VERSION,
+          }),
+        );
+      }
+
+      ws.send(JSON.stringify(buildWelcome({ peers: peers.size })));
       ws.send(
         JSON.stringify({
           type: "status",
-          message: `Peer ${msg.platform || "?"} · rôle ${msg.role || "peer"}`,
+          message: `Peer ${ws.meta.platform} · rôle ${ws.meta.role}`,
         }),
       );
       return;
@@ -187,10 +224,25 @@ wss.on("connection", (ws) => {
     }
 
     if (msg.type === "publish" && msg.command) {
-      broadcast({ type: "command", command: msg.command, origin: "peer" }, ws);
+      const normalized = normalizeCommand(msg.command);
+      if (normalized.error) {
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: normalized.error,
+          }),
+        );
+        return;
+      }
+      broadcast(
+        { type: "command", command: normalized.value, origin: "peer" },
+        ws,
+      );
       // aussi s’appliquer côté émetteur si demandé
       if (msg.echoSelf) {
-        ws.send(JSON.stringify({ type: "command", command: msg.command }));
+        ws.send(
+          JSON.stringify({ type: "command", command: normalized.value }),
+        );
       }
       return;
     }
@@ -206,4 +258,7 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`[island-bridge] http://0.0.0.0:${PORT}`);
   console.log(`[island-bridge] ws://0.0.0.0:${PORT}/ws`);
   console.log(`[island-bridge] POST /bridge/run  { "script": "mode score\\nstart" }`);
+  console.log(
+    `[island-bridge] protocol v${PROTOCOL_VERSION} (min v${MIN_PROTOCOL_VERSION})`,
+  );
 });

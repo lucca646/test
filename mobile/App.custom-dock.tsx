@@ -6,6 +6,11 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import LiquidGlassDock, { type DockTab } from "./components/LiquidGlassDock";
 
+/**
+ * @deprecated Entrée Expo Go expérimentale — NE PAS diverger du catalogue.
+ * Production iOS = NativeTabs / UITabBar via app-nav (`mobile/app/_layout.tsx`).
+ * Pour tester le dock custom, dériver depuis `visibleTabs()` + `tab.ion`.
+ */
 const TABS: DockTab[] = [
   { id: "today", label: "Aujourd'hui", icon: "today-outline", iconActive: "today" },
   { id: "games", label: "Jeux", icon: "rocket-outline", iconActive: "rocket" },

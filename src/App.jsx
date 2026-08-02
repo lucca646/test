@@ -7,7 +7,7 @@ import {
 import PlatformSwitcher from "./components/PlatformSwitcher.jsx";
 import DeviceFrame from "./components/DeviceFrame.jsx";
 import AppTabbar from "./components/AppTabbar.jsx";
-import { visibleTabs } from "app-nav";
+import { allTabs, normalizeWebPath, visibleTabs } from "app-nav";
 import SiteBottomNav from "./components/SiteBottomNav.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
 import GamesPage from "./pages/GamesPage.jsx";
@@ -16,31 +16,28 @@ import ArcadePage from "./pages/ArcadePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import "./styles/site.css";
 
-const PAGES = {
-  "/": TodayPage,
-  "/games/": GamesPage,
-  "/apps/": AppsPage,
-  "/arcade/": ArcadePage,
-  "/search/": SearchPage,
+/** Composants host — branchés par id catalogue (pas une 2ᵉ liste de paths). */
+const PAGE_BY_ID = {
+  today: TodayPage,
+  games: GamesPage,
+  apps: AppsPage,
+  arcade: ArcadePage,
+  search: SearchPage,
 };
 
-function normalizePath(path) {
-  if (!path || path === "") return "/";
-  const map = {
-    "/games": "/games/",
-    "/apps": "/apps/",
-    "/arcade": "/arcade/",
-    "/search": "/search/",
-    "/settings": "/search/",
-    "/settings/": "/search/",
+function pageForPath(path) {
+  const tabs = allTabs();
+  const normalized = normalizeWebPath(path, tabs);
+  const tab = tabs.find((t) => t.path === normalized);
+  return {
+    path: normalized,
+    Page: (tab && PAGE_BY_ID[tab.id]) || TodayPage,
   };
-  if (map[path]) return map[path];
-  return PAGES[path] ? path : "/";
 }
 
 function LiveWebShell() {
-  const [activePath, setActivePath] = useState(() =>
-    normalizePath(window.location.pathname),
+  const [activePath, setActivePath] = useState(
+    () => pageForPath(window.location.pathname).path,
   );
 
   useEffect(() => {
@@ -51,14 +48,14 @@ function LiveWebShell() {
   }, []);
 
   const selectTab = useCallback((path) => {
-    const next = normalizePath(path);
+    const next = pageForPath(path).path;
     setActivePath(next);
     const url = new URL(window.location.href);
     url.pathname = next === "/" ? "/" : next;
     window.history.replaceState({}, "", url);
   }, []);
 
-  const ActivePage = PAGES[activePath] || TodayPage;
+  const { Page: ActivePage } = pageForPath(activePath);
 
   return (
     <div
@@ -78,8 +75,8 @@ function LiveWebShell() {
 
 function LabShell() {
   const { platform, meta, lab } = usePlatform();
-  const [activePath, setActivePath] = useState(() =>
-    normalizePath(window.location.pathname),
+  const [activePath, setActivePath] = useState(
+    () => pageForPath(window.location.pathname).path,
   );
 
   useEffect(() => {
@@ -90,14 +87,14 @@ function LabShell() {
   }, [platform]);
 
   const selectTab = useCallback((path) => {
-    const next = normalizePath(path);
+    const next = pageForPath(path).path;
     setActivePath(next);
     const url = new URL(window.location.href);
     url.pathname = next === "/" ? "/" : next;
     window.history.replaceState({}, "", url);
   }, []);
 
-  const ActivePage = PAGES[activePath] || TodayPage;
+  const { Page: ActivePage } = pageForPath(activePath);
   const nav = <AppTabbar activePath={activePath} onSelect={selectTab} />;
 
   return (

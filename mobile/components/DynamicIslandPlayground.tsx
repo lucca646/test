@@ -272,7 +272,7 @@ export default function DynamicIslandPlayground({ mode, onChange }: Props) {
             setStatus(cmd.message || "echo");
             break;
           default:
-            break;
+            setStatus(`Bridge · op non supportée « ${cmd.op} »`);
         }
       },
     });

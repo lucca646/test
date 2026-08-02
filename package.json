@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "mobile": "npm --prefix mobile start",
     "mobile:tunnel": "npm --prefix mobile exec -- expo start --tunnel",
-    "bridge:island": "npm --prefix packages/island-bridge start"
+    "bridge:island": "npm --prefix packages/island-bridge start",
+    "check:compat": "node packages/app-nav/scripts/check.mjs && node packages/island-bridge/scripts/check.mjs"
   },
   "dependencies": {
     "framework7": "^9.1.2",

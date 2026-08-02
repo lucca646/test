@@ -1,9 +1,9 @@
 /**
- * Source UNIQUE de la barre d’onglets — web + iOS.
+ * Source UNIQUE de la barre d’onglets — web + iOS (NativeTabs / UITabBar).
  * Modifier ici → les deux clients suivent (OTA JS / Vite HMR).
  *
  * `hidden: true` retire l’onglet de la barre partout, sans supprimer la route.
- * `side` pilote le split G/D (web CSS + dock iOS custom).
+ * `side` = split web uniquement (iOS reste UITabBar Apple).
  */
 
 /** Teinte sélection */
@@ -120,4 +120,14 @@ export function tabsBySide() {
 /** Tous les onglets (routes natives, y compris hidden) */
 export function allTabs() {
   return APP_TABS;
+}
+
+// Schema contract — see NAV_SCHEMA_VERSION in schema.js (validated by scripts/check.mjs).
+import { validateNavCatalog, NAV_SCHEMA_VERSION } from "./schema.js";
+
+const _catalogCheck = validateNavCatalog(APP_TABS);
+if (!_catalogCheck.ok) {
+  console.warn(
+    `[app-nav] Invalid APP_TABS (schema v${NAV_SCHEMA_VERSION}):\n${_catalogCheck.errors.map((e) => `  - ${e}`).join("\n")}`,
+  );
 }

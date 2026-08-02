@@ -1,36 +1,13 @@
-import { tabsBySide } from "app-nav";
-import {
-  Today,
-  TodayFill,
-  Rocket,
-  RocketFill,
-  Layers,
-  LayersFill,
-  Gamecontroller,
-  GamecontrollerFill,
-  Search,
-} from "framework7-icons/react/framework7-icons-react.esm.js";
+import { tabsBySide, getCapabilities } from "app-nav";
+import { resolveF7Icons } from "../nav/f7IconMap.js";
 
-const F7 = {
-  Today,
-  TodayFill,
-  Rocket,
-  RocketFill,
-  Layers,
-  LayersFill,
-  Gamecontroller,
-  GamecontrollerFill,
-  Search,
-};
-
-function NavItem({ tab, activePath, onSelect }) {
+function NavItem({ tab, activePath, onSelect, showBadge }) {
   const on =
     tab.path === "/"
       ? activePath === "/"
       : activePath.startsWith(tab.path.replace(/\/$/, ""));
-  const Def = F7[tab.f7.default] || Search;
-  const Act = F7[tab.f7.active] || Def;
-  const Icon = on ? Act : Def;
+  const { Default, Active } = resolveF7Icons(tab);
+  const Icon = on ? Active : Default;
 
   return (
     <button
@@ -41,6 +18,9 @@ function NavItem({ tab, activePath, onSelect }) {
     >
       <span className="wa-bottom-icon" aria-hidden>
         <Icon />
+        {showBadge && tab.badge ? (
+          <span className="wa-bottom-badge">{tab.badge}</span>
+        ) : null}
       </span>
       <span className="wa-bottom-label">{tab.short || tab.label}</span>
     </button>
@@ -48,11 +28,11 @@ function NavItem({ tab, activePath, onSelect }) {
 }
 
 /**
- * Barre bas web : deux pilules (gauche / droite), groups depuis app-nav.side.
- * iOS reste sur UITabBar (une barre) — split natif = dock custom + rebuild.
+ * Barre bas web split — interprète app-nav.side via capabilities web-live.
  */
 export default function SiteBottomNav({ activePath, onSelect }) {
   const { left, right } = tabsBySide();
+  const caps = getCapabilities("web-live");
 
   return (
     <nav className="wa-bottom-nav" aria-label="Navigation">
@@ -63,6 +43,7 @@ export default function SiteBottomNav({ activePath, onSelect }) {
             tab={tab}
             activePath={activePath}
             onSelect={onSelect}
+            showBadge={Boolean(caps?.badge)}
           />
         ))}
       </div>
@@ -73,6 +54,7 @@ export default function SiteBottomNav({ activePath, onSelect }) {
             tab={tab}
             activePath={activePath}
             onSelect={onSelect}
+            showBadge={Boolean(caps?.badge)}
           />
         ))}
       </div>

@@ -6,20 +6,21 @@ import {
   Badge,
 } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
-import { APP_TABS, NAV_TINT } from "app-nav";
 import { useAppTheme } from "../lib/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
+import { mapIosNativeTabs } from "../adapters/iosNativeTabs";
 
 /**
- * UITabBar native Apple — onglets depuis packages/app-nav (JS unique web + iOS).
- * Modifier APP_TABS / hidden → OTA des deux côtés.
+ * UITabBar native Apple — données via adaptateur app-nav → toNativeTriggers.
+ * Le chrome reste UIKit ; seul le catalogue JS est partagé.
  */
 export default function RootLayout() {
   const theme = useAppTheme();
-  const tint =
+  const { tint, triggers } = mapIosNativeTabs();
+  const tintColor =
     Platform.OS === "ios"
-      ? DynamicColorIOS({ light: NAV_TINT, dark: NAV_TINT })
-      : NAV_TINT;
+      ? DynamicColorIOS({ light: tint, dark: tint })
+      : tint;
 
   useEffect(() => {
     void applyOtaUpdateIfAny();
@@ -27,7 +28,7 @@ export default function RootLayout() {
 
   return (
     <NativeTabs
-      tintColor={tint}
+      tintColor={tintColor}
       labelStyle={{
         fontSize: 10,
         fontWeight: "700",
@@ -38,16 +39,15 @@ export default function RootLayout() {
       blurEffect={theme.tabBlur}
       disableTransparentOnScrollEdge
     >
-      {APP_TABS.map((tab) => (
+      {triggers.map((tab) => (
         <NativeTabs.Trigger
-          key={tab.routeName}
-          name={tab.routeName}
-          role={tab.role as "search" | undefined}
-          hidden={Boolean(tab.hidden)}
+          key={tab.name}
+          name={tab.name}
+          role={tab.role}
+          hidden={tab.hidden}
         >
           <Label>{tab.label}</Label>
           {tab.badge ? <Badge>{tab.badge}</Badge> : null}
-          {/* sf symbols typés côté Expo — cast depuis le catalogue partagé */}
           <Icon sf={tab.sf as never} />
         </NativeTabs.Trigger>
       ))}

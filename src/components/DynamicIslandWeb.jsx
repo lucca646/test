@@ -94,17 +94,18 @@ export default function DynamicIslandWeb({ onBind } = {}) {
     setPulse(true);
   };
 
-  const onUpdate = () => {
+  const onUpdate = (delta = 1) => {
     if (!apiRef.current.running) {
       setStatus("Start d’abord pour simuler les updates.");
       return;
     }
+    const step = Number(delta) > 0 ? Number(delta) : 1;
     setTick((n) => {
-      const next = n + 1;
+      const next = n + step;
       setStatus(`Update #${next} · web`);
       return next;
     });
-    setProgress((p) => Math.min(0.95, p + 0.14));
+    setProgress((p) => Math.min(0.95, p + 0.14 * step));
     setPulse(true);
   };
 
@@ -134,9 +135,12 @@ export default function DynamicIslandWeb({ onBind } = {}) {
             setStatus("Bridge · start");
             break;
           case "update":
+            onUpdate(1);
+            setStatus("Bridge · update");
+            break;
           case "phase":
-            onUpdate();
-            setStatus(`Bridge · ${cmd.op}`);
+            onUpdate(cmd.delta && cmd.delta > 1 ? cmd.delta : 1);
+            setStatus(`Bridge · phase Δ${cmd.delta || 1}`);
             break;
           case "stop":
             onStop();
@@ -145,7 +149,7 @@ export default function DynamicIslandWeb({ onBind } = {}) {
             setStatus(cmd.message || "echo");
             break;
           default:
-            break;
+            setStatus(`Bridge · op non supportée « ${cmd.op} »`);
         }
       },
     });

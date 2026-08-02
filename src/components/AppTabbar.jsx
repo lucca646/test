@@ -1,49 +1,57 @@
 import { LiquidGlassNav } from "liquid-glass-nav";
-import { visibleTabs } from "app-nav";
-import {
-  Today,
-  TodayFill,
-  Rocket,
-  RocketFill,
-  Layers,
-  LayersFill,
-  Gamecontroller,
-  GamecontrollerFill,
-  Search,
-} from "framework7-icons/react/framework7-icons-react.esm.js";
+import { visibleTabs, getCapabilities, iconPair } from "app-nav";
+import { resolveF7Icons } from "../nav/f7IconMap.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
-const F7 = {
-  Today,
-  TodayFill,
-  Rocket,
-  RocketFill,
-  Layers,
-  LayersFill,
-  Gamecontroller,
-  GamecontrollerFill,
-  Search,
-};
+/** Items lab — icônes selon capabilities de la plateforme. */
+function itemsFromSharedNav(platform) {
+  const caps = getCapabilities(
+    platform === "android"
+      ? "web-lab-android"
+      : platform === "web"
+        ? "web-lab-web"
+        : "web-lab-ios",
+  );
+  const iconSet = caps?.icons || "f7";
 
-/** Items = source unique packages/app-nav (même JS que NativeTabs iOS). */
-function itemsFromSharedNav() {
   return visibleTabs().map((tab) => {
-    const Def = F7[tab.f7.default] || Search;
-    const Act = F7[tab.f7.active] || Def;
+    if (iconSet === "ion") {
+      const pair = iconPair(tab, "ion");
+      // Lab Android : on garde un rendu texte/glyph via data-attr (pas de RN Ionicons dans Vite)
+      return {
+        id: tab.path,
+        label: tab.label,
+        short: tab.short,
+        badge: tab.badge,
+        icon: (
+          <span className="m3-ion" data-ion={pair.default} aria-hidden>
+            ◆
+          </span>
+        ),
+        iconActive: (
+          <span className="m3-ion is-on" data-ion={pair.active} aria-hidden>
+            ◆
+          </span>
+        ),
+      };
+    }
+
+    const { Default, Active } = resolveF7Icons(tab);
     return {
       id: tab.path,
       label: tab.label,
       short: tab.short,
-      icon: <Def className="w-6 h-6" />,
-      iconActive: <Act className="w-6 h-6" />,
+      badge: tab.badge,
+      icon: <Default className="w-6 h-6" />,
+      iconActive: <Active className="w-6 h-6" />,
     };
   });
 }
 
-/** Même items — rendu nav selon plateforme */
+/** Chrome lab — chaque plateforme interprète le même catalogue. */
 export default function AppTabbar({ activePath, onSelect }) {
   const { platform, meta } = usePlatform();
-  const items = itemsFromSharedNav();
+  const items = itemsFromSharedNav(platform);
 
   if (platform === "android") {
     return (

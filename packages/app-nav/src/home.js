@@ -1,7 +1,11 @@
 /**
  * Contenu partagé « Aujourd’hui » — web + iOS doivent lire ça
  * (pas seulement la liste d’onglets).
+ *
+ * HOME_SCHEMA_VERSION — bump when kicker/title/body/tint shape changes.
  */
+export const HOME_SCHEMA_VERSION = 1;
+
 export const HOME = {
   kicker: "CORAIA · GLASS",
   title: "Aujourd'hui",

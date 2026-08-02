@@ -1,11 +1,19 @@
 {
   "name": "app-nav",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./tabs": "./src/tabs.js"
+    "./tabs": "./src/tabs.js",
+    "./schema": "./src/schema.js",
+    "./capabilities": "./src/capabilities.js",
+    "./icons": "./src/icons.js",
+    "./adapters/native": "./src/adapters/native.js",
+    "./adapters/web": "./src/adapters/web.js"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs"
   }
 }

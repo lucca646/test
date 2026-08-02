@@ -26,11 +26,21 @@ update
 stop
 ```
 
+## Protocole (v1)
+
+Handshake WebSocket :
+
+1. Client → `hello` avec `protocolVersion` + `capabilities`
+2. Serveur → `welcome` (`protocolVersion`, `minProtocolVersion`, `modes`, `ops`, `peers`)
+3. Si version incompatible → `unsupported` (connexion maintenue, commandes refusées côté publish)
+
+**Politique unknown-op** : les commandes JSON (`publish`) passent par `normalizeCommand` — op ou mode inconnu → `error` côté émetteur, pas de broadcast.
+
 ## API
 
 | Route | Rôle |
 |-------|------|
-| `GET /bridge/health` | Santé + nb peers |
+| `GET /bridge/health` | Santé + nb peers + protocolVersion/modes/ops |
 | `POST /bridge/run` | Interprète + broadcast |
 | `WS /ws` | Clients web / Expo |
 

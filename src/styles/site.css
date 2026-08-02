@@ -101,10 +101,26 @@
 }
 
 .wa-bottom-icon {
+  position: relative;
   display: grid;
   place-items: center;
   width: 1.55rem;
   height: 1.55rem;
+}
+
+.wa-bottom-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.85rem;
+  min-width: 1.15rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 999px;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .wa-bottom-icon svg {

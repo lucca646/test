@@ -6,12 +6,14 @@ import {
 
 /**
  * Connecte la PWA au bridge interprète (même bus que l’iPhone).
+ * Handshake protocolVersion via welcome.
  */
 export function useIslandBridge({ enabled = true, onCommand } = {}) {
   const [status, setStatus] = useState(
     enabled ? "Bridge · connexion…" : "Bridge off",
   );
   const [peers, setPeers] = useState(0);
+  const [protocolVersion, setProtocolVersion] = useState(null);
   const clientRef = useRef(null);
   const onCommandRef = useRef(onCommand);
   onCommandRef.current = onCommand;
@@ -30,6 +32,9 @@ export function useIslandBridge({ enabled = true, onCommand } = {}) {
       onCommand: (cmd) => onCommandRef.current?.(cmd),
       onStatus: setStatus,
       onPeers: setPeers,
+      onWelcome: (msg) => {
+        setProtocolVersion(msg.protocolVersion ?? null);
+      },
     });
     clientRef.current = client;
 
@@ -42,6 +47,7 @@ export function useIslandBridge({ enabled = true, onCommand } = {}) {
   return {
     status,
     peers,
+    protocolVersion,
     runScript: (script) => clientRef.current?.runScript(script),
     publishCommand: (command) => clientRef.current?.publishCommand(command),
   };

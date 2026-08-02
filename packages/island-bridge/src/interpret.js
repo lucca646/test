@@ -1,4 +1,8 @@
-import { ISLAND_MODES, isIslandMode } from "./protocol.js";
+import {
+  ISLAND_MODES,
+  isIslandMode,
+  normalizeCommand,
+} from "./protocol.js";
 
 /**
  * Interprète un mini-script JS/DSL → commandes bridge.
@@ -107,46 +111,6 @@ export function interpret(source) {
   }
 
   return { commands, errors };
-}
-
-function normalizeCommand(obj, lineNo) {
-  if (!obj || typeof obj !== "object" || typeof obj.op !== "string") {
-    return { error: "objet commande invalide (op requis)" };
-  }
-  const op = obj.op.toLowerCase();
-  if (op === "mode") {
-    if (!isIslandMode(obj.mode)) {
-      return { error: `mode invalide « ${obj.mode} »` };
-    }
-    return { value: { op: "mode", mode: obj.mode, line: lineNo } };
-  }
-  if (op === "start" || op === "update" || op === "stop" || op === "nop") {
-    return { value: { op, line: lineNo } };
-  }
-  if (op === "phase") {
-    return {
-      value: {
-        op: "phase",
-        delta: Number(obj.delta) || 1,
-        line: lineNo,
-      },
-    };
-  }
-  if (op === "wait") {
-    return {
-      value: {
-        op: "wait",
-        ms: Math.min(Math.max(0, Number(obj.ms) || 0), 30_000),
-        line: lineNo,
-      },
-    };
-  }
-  if (op === "echo") {
-    return {
-      value: { op: "echo", message: String(obj.message ?? ""), line: lineNo },
-    };
-  }
-  return { error: `op inconnue « ${obj.op} »` };
 }
 
 /**
