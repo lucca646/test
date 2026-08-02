@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Modal,
   Pressable,
@@ -22,7 +23,7 @@ import {
   prospectStatusKind,
   prospectStatusLabel,
 } from "../utils/prospectStatus";
-import { Button, Group, Row, StatusPill } from "./Apple";
+import { Button, Group, Row } from "./Apple";
 
 type Props = {
   prospect: Prospect | null;
@@ -51,7 +52,32 @@ export function ProspectDetailSheet({
   const showMail = entreprisesShowMailActions(user);
   const canToggle = entreprisesCanToggleContactStatus(user);
   const p = prospect;
-  const kind = p ? prospectStatusKind(p.statut) : "contact";
+  const kind = p ? prospectStatusKind(p.statut) : "validate";
+  const statusColor =
+    kind === "sent"
+      ? c.success
+      : kind === "in_progress"
+        ? c.warning
+        : c.accent;
+
+  const openMore = () => {
+    if (!p) return;
+    const buttons: {
+      text: string;
+      style?: "cancel" | "destructive" | "default";
+      onPress?: () => void;
+    }[] = [];
+    if (onOpenEnvois) {
+      buttons.push({ text: "Ouvrir Envois", onPress: onOpenEnvois });
+    }
+    buttons.push({
+      text: "Supprimer",
+      style: "destructive",
+      onPress: () => onDelete(p),
+    });
+    buttons.push({ text: "Annuler", style: "cancel" });
+    Alert.alert(p.entreprise || "Entreprise", undefined, buttons);
+  };
 
   return (
     <Modal
@@ -63,12 +89,28 @@ export function ProspectDetailSheet({
       <View style={[styles.sheet, { backgroundColor: c.bg }]}>
         <View style={[styles.grabber, { backgroundColor: c.separator }]} />
         <View style={styles.header}>
-          <Text
-            style={[styles.headerTitle, { color: c.text }]}
-            numberOfLines={2}
-          >
-            {p?.entreprise || "Entreprise"}
-          </Text>
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text
+              style={[styles.headerTitle, { color: c.text }]}
+              numberOfLines={2}
+            >
+              {p?.entreprise || "Entreprise"}
+            </Text>
+            {p ? (
+              <View style={styles.statusLine}>
+                <View style={[styles.dot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.statusText, { color: statusColor }]}>
+                  {prospectStatusLabel(p.statut)}
+                </Text>
+                {p.repondu === "yes" ? (
+                  <Text style={{ color: c.success, fontSize: 13, fontWeight: "600" }}>
+                    · Répondu
+                  </Text>
+                ) : null}
+                {busy ? <ActivityIndicator color={c.accent} /> : null}
+              </View>
+            ) : null}
+          </View>
           <Pressable
             onPress={onClose}
             hitSlop={12}
@@ -85,24 +127,6 @@ export function ProspectDetailSheet({
               contentContainerStyle={styles.body}
               keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.badgeRow}>
-                <StatusPill
-                  kind={kind}
-                  label={prospectStatusLabel(p.statut)}
-                />
-                {p.repondu === "yes" ? (
-                  <StatusPill kind="sent" label="Répondu" />
-                ) : null}
-                {busy ? <ActivityIndicator color={c.accent} /> : null}
-              </View>
-
-              <Group>
-                <Row label="Ville" value={p.ville || "—"} />
-                <Row label="Adresse" value={p.adresse || "—"} />
-                <Row label="Secteur" value={p.secteur || "—"} />
-                <Row label="Taille" value={p.taille || "—"} last />
-              </Group>
-
               {showContacts ? (
                 <>
                   <Text style={[styles.section, { color: c.muted }]}>
@@ -147,7 +171,7 @@ export function ProspectDetailSheet({
                 </>
               )}
 
-              {p.lien || p.notePerso || p.info ? (
+              {(p.lien || p.notePerso || p.info) && (
                 <>
                   <Text style={[styles.section, { color: c.muted }]}>
                     Infos
@@ -174,7 +198,17 @@ export function ProspectDetailSheet({
                     ) : null}
                   </Group>
                 </>
-              ) : null}
+              )}
+
+              <Text style={[styles.section, { color: c.muted }]}>
+                Identité
+              </Text>
+              <Group>
+                <Row label="Ville" value={p.ville || "—"} />
+                <Row label="Adresse" value={p.adresse || "—"} />
+                <Row label="Secteur" value={p.secteur || "—"} />
+                <Row label="Taille" value={p.taille || "—"} last />
+              </Group>
 
               {showMail ? (
                 <>
@@ -194,7 +228,7 @@ export function ProspectDetailSheet({
                       >
                         <Text
                           style={[styles.mailBodyText, { color: c.muted }]}
-                          numberOfLines={12}
+                          numberOfLines={10}
                         >
                           {p.mailBody}
                         </Text>
@@ -227,7 +261,7 @@ export function ProspectDetailSheet({
                 <Button
                   label={
                     isSentStatut(p.statut)
-                      ? "Marquer à contacter"
+                      ? "Remettre à contacter"
                       : "Marquer envoyé"
                   }
                   variant="gray"
@@ -235,22 +269,11 @@ export function ProspectDetailSheet({
                   onPress={() => onToggleStatus(p)}
                 />
               ) : null}
-              {showMail && onOpenEnvois ? (
-                <Button
-                  label="Ouvrir Envois"
-                  variant="tinted"
-                  disabled={busy}
-                  onPress={onOpenEnvois}
-                />
-              ) : null}
-              <View style={{ marginTop: 8 }}>
-                <Button
-                  label="Supprimer"
-                  variant="destructive"
-                  disabled={busy}
-                  onPress={() => onDelete(p)}
-                />
-              </View>
+              <Pressable onPress={openMore} hitSlop={8} style={styles.moreLink}>
+                <Text style={{ color: c.accent, fontSize: 16, fontWeight: "600" }}>
+                  Plus…
+                </Text>
+              </Pressable>
             </View>
           </>
         )}
@@ -276,11 +299,17 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "700",
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
   },
+  statusLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 13, fontWeight: "600" },
   closeBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -290,15 +319,7 @@ const styles = StyleSheet.create({
   },
   closeText: { fontSize: 16, fontWeight: "600" },
   scroll: { flex: 1 },
-  body: { paddingBottom: 24, gap: 4 },
-  badgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    flexWrap: "wrap",
-  },
+  body: { paddingBottom: 24 },
   section: {
     fontSize: 13,
     fontWeight: "600",
@@ -313,14 +334,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  mailBodyText: {
-    fontSize: 15,
-    lineHeight: 21,
-  },
+  mailBodyText: { fontSize: 15, lineHeight: 21 },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  moreLink: {
+    alignItems: "center",
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
   },
 });

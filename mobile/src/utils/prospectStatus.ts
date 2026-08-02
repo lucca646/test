@@ -45,6 +45,22 @@ export function isNoContactStatut(statut?: string | null) {
   return prospectStatusKind(statut) === "no_contact";
 }
 
+/** Ligne secondaire inbox : contact utile d’abord, sinon ville. */
+export function prospectRowSecondary(
+  p: {
+    contact?: string;
+    email?: string;
+    ville?: string;
+  },
+  showContacts: boolean,
+): string {
+  if (showContacts) {
+    if (p.contact?.trim()) return p.contact.trim();
+    if (p.email?.trim()) return p.email.trim();
+  }
+  return p.ville?.trim() || "—";
+}
+
 /** Recherche textuelle (tokens, sans accents). */
 export function prospectMatchesQuery(
   p: {

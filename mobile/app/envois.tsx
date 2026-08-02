@@ -18,13 +18,12 @@ import {
   type Prospect,
 } from "../src/api/mailing";
 import { ApiError } from "../src/api/http";
-import { Banner, Button, EmptyState } from "../src/ui/Apple";
+import { Banner, EmptyState } from "../src/ui/Apple";
 import SwipeDeck from "../src/ui/SwipeDeck";
 import { hasEnvoisAccess } from "../src/utils/planAccess";
 import { TAB_BAR_CLEARANCE, useColors } from "../src/theme";
 
 const PAGE_SIZE = 10;
-/** Quand il reste ≤ N cartes, précharge la page suivante. */
 const PREFETCH_AT = 4;
 
 function prospectKey(p: Prospect) {
@@ -77,9 +76,9 @@ function EnvoisScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setError("Session expirée. Reconnectez-vous.");
-      } else {
-        setError(e instanceof Error ? e.message : String(e));
+        return;
       }
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -101,7 +100,7 @@ function EnvoisScreen() {
       offsetRef.current = data.nextOffset;
       hasMoreRef.current = data.has_more;
     } catch {
-      /* ignore prefetch errors */
+      /* silencieux */
     } finally {
       fetchingMoreRef.current = false;
       setLoadingMore(false);
@@ -110,8 +109,8 @@ function EnvoisScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (canSwipe) loadInitial();
-    }, [canSwipe, loadInitial]),
+      if (canSwipe) void loadInitial();
+    }, [loadInitial, canSwipe]),
   );
 
   useEffect(() => {
@@ -139,38 +138,44 @@ function EnvoisScreen() {
   }
 
   const current = deck[0];
+  const advance = () => setDeck((d) => d.slice(1));
 
-  const send = async (p: Prospect) => {
-    if (!p.row_index || !user?.email) return;
-    setBusy("send");
-    try {
-      await sendProspectMail({
-        email: user.email,
-        row_index: p.row_index,
-        subject: p.mailSubject || `Candidature — ${p.entreprise || ""}`,
-        body: p.mailBody || "",
-        target_email: p.email,
-      });
-      setDeck((d) => d.slice(1));
-    } catch (e) {
-      Alert.alert("Envoi", e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const skip = async (p: Prospect) => {
-    if (!p.row_index || !user?.email) return;
+  const skip = async (p: Prospect = current!) => {
+    if (!p?.row_index || !user?.email) return;
     setBusy("skip");
+    setError(null);
     try {
       await updateProspectStatus({
         email: user.email,
         row_index: p.row_index,
         action: "no_contact",
       });
-      setDeck((d) => d.slice(1));
+      advance();
     } catch (e) {
-      Alert.alert("Erreur", e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const send = async (p: Prospect = current!) => {
+    if (!p?.row_index || !user?.email) return;
+    setBusy("send");
+    setError(null);
+    try {
+      await sendProspectMail({
+        email: user.email,
+        row_index: p.row_index,
+        subject: p.mailSubject || "",
+        body: p.mailBody || "",
+        target_email: p.email,
+      });
+      advance();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const gmail = /gmail|oauth|token|autoris/i.test(msg);
+      setError(gmail ? `Gmail : ${msg}` : msg);
+      // carte reste — pas d'advance
     } finally {
       setBusy(null);
     }
@@ -179,6 +184,7 @@ function EnvoisScreen() {
   const regen = async () => {
     if (!current?.row_index || !user?.email) return;
     setBusy("regen");
+    setError(null);
     try {
       const data = await regenerateMail({
         email: user.email,
@@ -217,124 +223,84 @@ function EnvoisScreen() {
         },
       ]}
     >
-      <Text style={[styles.largeTitle, { color: c.text }]}>Envois</Text>
-      <View style={styles.metaRow}>
-        <Text style={[styles.meta, { color: c.muted }]}>
-          {deck.length}
-          {total > deck.length ? ` / ${total}` : ""} carte
-          {deck.length > 1 ? "s" : ""}
-        </Text>
-        {loadingMore ? (
-          <Text style={[styles.metaHint, { color: c.accent }]}>
-            Chargement…
-          </Text>
-        ) : null}
+      <View style={styles.header}>
+        <Text style={[styles.largeTitle, { color: c.text }]}>Envois</Text>
+        <View style={[styles.counter, { backgroundColor: c.searchBg }]}>
+          {loadingMore ? (
+            <ActivityIndicator color={c.accent} size="small" />
+          ) : (
+            <Text style={[styles.counterText, { color: c.text }]}>
+              {deck.length}
+              {total > deck.length ? `/${total}` : ""}
+            </Text>
+          )}
+        </View>
       </View>
 
       {error ? (
         <Banner
           tone="error"
           title={error}
-          subtitle="Toucher pour réessayer"
-          onPress={loadInitial}
+          subtitle="Toucher pour réessayer l’envoi"
+          onPress={() => {
+            if (current) void send(current);
+            else void loadInitial();
+          }}
         />
       ) : null}
 
-      {loading ? (
-        <ActivityIndicator color={c.accent} style={{ marginTop: 48 }} />
-      ) : current ? (
-        <>
+      <View style={styles.stage}>
+        {loading ? (
+          <ActivityIndicator color={c.accent} />
+        ) : current ? (
           <SwipeDeck
             prospects={deck}
             disabled={!!busy}
+            busy={busy}
             onSend={send}
             onSkip={skip}
+            onRegen={regen}
           />
-          <View style={styles.actions}>
-            <View style={[styles.actionBtn, { flex: 0.9 }]}>
-              <Button
-                label="Passer"
-                variant="gray"
-                loading={busy === "skip"}
-                disabled={!!busy}
-                onPress={() => skip(current)}
-              />
-            </View>
-            <View style={[styles.actionBtn, { flex: 0.75 }]}>
-              <Button
-                label="Regen"
-                variant="tinted"
-                size="sm"
-                loading={busy === "regen"}
-                disabled={!!busy}
-                onPress={regen}
-              />
-            </View>
-            <View style={[styles.actionBtn, { flex: 1.15 }]}>
-              <Button
-                label="Envoyer"
-                loading={busy === "send"}
-                disabled={!!busy}
-                onPress={() => send(current)}
-              />
-            </View>
-          </View>
-          {!busy ? (
-            <Text style={[styles.hint, { color: c.muted }]}>
-              Glisse à droite pour envoyer · à gauche pour passer
-            </Text>
-          ) : (
-            <View style={{ height: 14 }} />
-          )}
-        </>
-      ) : (
-        <EmptyState
-          title="File vide"
-          subtitle={
-            hasMoreRef.current
-              ? "Chargement de la suite…"
-              : "Plus de candidatures prêtes. Reviens après une recherche."
-          }
-        />
-      )}
+        ) : (
+          <EmptyState
+            title="File vide"
+            subtitle={
+              hasMoreRef.current
+                ? "Chargement de la suite…"
+                : "Plus de candidatures prêtes. Reviens après une recherche."
+            }
+          />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
-  largeTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    letterSpacing: -0.6,
-    marginHorizontal: 20,
-    marginBottom: 4,
-  },
-  metaRow: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 20,
-    marginBottom: 4,
-    minHeight: 22,
+    marginBottom: 8,
+    minHeight: 36,
   },
-  meta: { fontSize: 13 },
-  metaHint: { fontSize: 12, fontWeight: "600" },
-  actions: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
+  largeTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+  },
+  counter: {
+    minWidth: 52,
+    height: 32,
+    borderRadius: 16,
+    paddingHorizontal: 12,
     alignItems: "center",
+    justifyContent: "center",
   },
-  actionBtn: { minHeight: 52 },
-  hint: {
-    fontSize: 11,
-    lineHeight: 14,
-    textAlign: "center",
-    paddingHorizontal: 20,
-  },
+  counterText: { fontSize: 14, fontWeight: "700" },
+  stage: { flex: 1, justifyContent: "center" },
 });
 
 export default function EnvoisScreenGate() {
