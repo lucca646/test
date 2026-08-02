@@ -46,7 +46,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Barre bas : une pilule (parité visuelle avec UITabBar iOS) */
+/* Barre bas web : deux pilules (gauche / droite) */
 .wa-bottom-nav {
   position: fixed;
   left: 0;
@@ -54,18 +54,21 @@
   bottom: 0;
   z-index: 50;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.65rem;
   padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
   background: transparent;
   border: 0;
 }
 
-.wa-bottom-pill {
+.wa-bottom-group {
   pointer-events: auto;
   display: grid;
-  grid-template-columns: repeat(var(--nav-count, 4), minmax(0, 1fr));
-  width: min(100%, 26rem);
+  grid-template-columns: repeat(var(--nav-count, 2), minmax(0, 1fr));
+  flex: 1 1 0;
+  max-width: 11.5rem;
   gap: 0;
   padding: 0.3rem;
   border-radius: 1.25rem;

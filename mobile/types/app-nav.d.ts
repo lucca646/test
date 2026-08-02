@@ -10,6 +10,7 @@ declare module "app-nav" {
     badge?: string | null;
     role?: string;
     hidden?: boolean;
+    side?: "left" | "right";
   };
 
   export const APP_TABS: AppTab[];
@@ -21,5 +22,6 @@ declare module "app-nav" {
     tint: [string, string] | string[];
   };
   export function visibleTabs(): AppTab[];
+  export function tabsBySide(): { left: AppTab[]; right: AppTab[] };
   export function allTabs(): AppTab[];
 }

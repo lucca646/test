@@ -20,6 +20,7 @@ export const NAV_TINT = "#64D2FF";
  *   badge?: string | null,
  *   role?: string,
  *   hidden?: boolean,
+ *   side?: "left" | "right",
  * }} AppTab
  */
 
@@ -35,6 +36,7 @@ export const APP_TABS = [
     f7: { default: "Today", active: "TodayFill" },
     badge: null,
     hidden: false,
+    side: "left",
   },
   {
     id: "games",
@@ -46,6 +48,7 @@ export const APP_TABS = [
     f7: { default: "Rocket", active: "RocketFill" },
     badge: null,
     hidden: false,
+    side: "left",
   },
   {
     id: "arcade",
@@ -57,6 +60,7 @@ export const APP_TABS = [
     f7: { default: "Gamecontroller", active: "GamecontrollerFill" },
     badge: null,
     hidden: false,
+    side: "right",
   },
   {
     id: "apps",
@@ -71,6 +75,7 @@ export const APP_TABS = [
     f7: { default: "Layers", active: "LayersFill" },
     badge: "OTA",
     hidden: false,
+    side: "right",
   },
   {
     id: "search",
@@ -87,12 +92,22 @@ export const APP_TABS = [
     badge: null,
     /** false = visible partout ; true = masqué web + iOS */
     hidden: true,
+    side: "right",
   },
 ];
 
 /** Onglets affichés dans la barre */
 export function visibleTabs() {
   return APP_TABS.filter((t) => !t.hidden);
+}
+
+/** Groupes gauche / droite pour la barre web split */
+export function tabsBySide() {
+  const tabs = visibleTabs();
+  return {
+    left: tabs.filter((t) => (t.side || "left") === "left"),
+    right: tabs.filter((t) => t.side === "right"),
+  };
 }
 
 /** Tous les onglets (routes natives, y compris hidden) */
