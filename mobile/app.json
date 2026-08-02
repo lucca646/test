@@ -71,6 +71,8 @@
     "owner": "luccar2956s-team",
     "extra": {
       "router": {},
+      "apiUrl": "https://cal.coraia.eu",
+      "bridgeUrl": "https://cal.coraia.eu",
       "eas": {
         "build": {
           "experimental": {

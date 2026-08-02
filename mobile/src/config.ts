@@ -9,12 +9,13 @@ export const API_URL = (
 
 /**
  * Bridge session (lit Set-Cookie serveur → JSON).
- * Requis sur Expo Go : le cookie HttpOnly n’est pas exposé au JS.
+ * Requis sur mobile : le cookie HttpOnly n’est pas exposé au JS.
+ * Prod : même host que l’API (`/bridge/*` → :8791).
  */
 export const BRIDGE_URL = (
   process.env.EXPO_PUBLIC_BRIDGE_URL ||
   Constants.expoConfig?.extra?.bridgeUrl ||
-  ""
+  "https://cal.coraia.eu"
 ).replace(/\/$/, "");
 
 export const APP_ENV =
