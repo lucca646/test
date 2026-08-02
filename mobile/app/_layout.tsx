@@ -41,6 +41,12 @@ export default function RootLayout() {
               blurEffect="systemMaterialDark"
               disableTransparentOnScrollEdge
             >
+              {/* index.tsx redirige coralt:/// → /entreprises (pas un onglet) */}
+              <NativeTabs.Trigger name="index" hidden>
+                <Label> </Label>
+                <Icon sf="building.2" />
+              </NativeTabs.Trigger>
+
               <NativeTabs.Trigger name="entreprises">
                 <Label>Entreprises</Label>
                 <Icon
