@@ -24,7 +24,7 @@ Le bridge (`bridge/server.mjs`) est requis sur Expo Go : RN ne gère pas bien le
 |--------|------|
 | `app/(auth)/` | Login / register |
 | `app/(app)/` | NativeTabs COR·ALT |
-| `src/api/` | Client HTTP + session SecureStore |
+| `src/api/` | Client HTTP + session (mémoire process tant que SecureStore absent du binaire) |
 | `src/auth/` | AuthContext |
 | `packages/app-nav` | Catalogue onglets partagé web lab + iOS |
 

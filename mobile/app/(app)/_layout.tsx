@@ -1,4 +1,5 @@
-import { Redirect } from "expo-router";
+import { useEffect, useRef } from "react";
+import { useRouter } from "expo-router";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { ThemeProvider, DarkTheme } from "@react-navigation/native";
 import { ActivityIndicator, DynamicColorIOS, Platform, View } from "react-native";
@@ -9,13 +10,32 @@ import { colors } from "../../src/theme";
 
 /**
  * UITabBar Apple via NativeTabs — onglets COR·ALT.
- * Catalogue labels/icônes aligné app-nav ; gates auth/plan ici.
- * iOS 26+ (Dev Client Xcode 26) → Liquid Glass système.
+ *
+ * Important OTA / native crash :
+ * - Ne JAMAIS démonter `<NativeTabs>` après le 1er montage (logout →
+ *   spinner/Redirect à la place du UITabBarController = crash fréquent).
+ * - Gates auth via `router.replace` ; onglets `hidden` pour le plan.
+ * - `recherche` toujours visible (évite focusedIndex = -1).
+ * Props alignées sur le layout playground validé (blurEffect, pas minimizeBehavior).
  */
 export default function AppTabsLayout() {
   const { user, authReady, activated } = useAuth();
+  const router = useRouter();
+  const tabsEverMounted = useRef(false);
 
-  if (!authReady) {
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) {
+      router.replace("/(auth)/login");
+    }
+  }, [authReady, user, router]);
+
+  if (authReady && user) {
+    tabsEverMounted.current = true;
+  }
+
+  // Spinner seulement AVANT le 1er montage NativeTabs (cold entry).
+  if (!tabsEverMounted.current && (!authReady || !user)) {
     return (
       <View
         style={{
@@ -29,7 +49,6 @@ export default function AppTabsLayout() {
       </View>
     );
   }
-  if (!user) return <Redirect href="/(auth)/login" />;
 
   const envois = hasEnvoisAccess(user);
   const tint =
@@ -42,7 +61,8 @@ export default function AppTabsLayout() {
       <NativeTabs
         tintColor={tint}
         labelStyle={{ fontSize: 10, fontWeight: "600" }}
-        minimizeBehavior="onScrollDown"
+        blurEffect="systemMaterialDark"
+        disableTransparentOnScrollEdge
       >
         <NativeTabs.Trigger name="entreprises" hidden={!activated}>
           <Label>Entreprises</Label>

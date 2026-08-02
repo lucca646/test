@@ -24,7 +24,7 @@ type ApiFetchOptions = RequestInit & { timeoutMs?: number };
  * Appels API COR·ALT.
  *
  * Sur Expo Go, le header Cookie est souvent strippé par RN.
- * → on passe par le bridge avec X-Coralt-Session (SecureStore).
+ * → bridge + header X-Coralt-Session (session mémoire process, OTA-safe).
  */
 export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
   const { timeoutMs, headers: optHeaders, ...fetchOptions } = options;
