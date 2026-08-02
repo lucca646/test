@@ -1,60 +1,56 @@
 import { useEffect } from "react";
-import { Tabs } from "expo-router";
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { APP_TABS } from "app-nav";
-import SplitDock from "../components/SplitDock";
+import {
+  NativeTabs,
+  Icon,
+  Label,
+  Badge,
+} from "expo-router/unstable-native-tabs";
+import { DynamicColorIOS, Platform } from "react-native";
+import { APP_TABS, NAV_TINT } from "app-nav";
+import { useAppTheme } from "../lib/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 
-function SplitTabBar({ state, navigation }: BottomTabBarProps) {
-  const activeRoute = state.routes[state.index]?.name ?? "index";
-
-  return (
-    <SplitDock
-      activeRoute={activeRoute}
-      onSelect={(routeName) => {
-        const route = state.routes.find((r) => r.name === routeName);
-        if (!route) return;
-        const event = navigation.emit({
-          type: "tabPress",
-          target: route.key,
-          canPreventDefault: true,
-        });
-        if (!event.defaultPrevented) {
-          navigation.navigate(routeName);
-        }
-      }}
-    />
-  );
-}
-
 /**
- * Tabs JS + dock split G/D (pas UITabBar).
- * Onglets / sides depuis packages/app-nav — OTA web + iOS.
+ * UITabBar native Apple — onglets depuis packages/app-nav (JS unique web + iOS).
+ * Modifier APP_TABS / hidden → OTA des deux côtés.
  */
 export default function RootLayout() {
+  const theme = useAppTheme();
+  const tint =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({ light: NAV_TINT, dark: NAV_TINT })
+      : NAV_TINT;
+
   useEffect(() => {
     void applyOtaUpdateIfAny();
   }, []);
 
   return (
-    <Tabs
-      tabBar={(props) => <SplitTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-        // Le dock custom est absolute ; on réserve l’espace contenu.
-        sceneStyle: { paddingBottom: 88 },
+    <NativeTabs
+      tintColor={tint}
+      labelStyle={{
+        fontSize: 10,
+        fontWeight: "700",
+        color: theme.isDark
+          ? "rgba(235,235,245,0.72)"
+          : "rgba(60,60,67,0.72)",
       }}
+      blurEffect={theme.tabBlur}
+      disableTransparentOnScrollEdge
     >
       {APP_TABS.map((tab) => (
-        <Tabs.Screen
+        <NativeTabs.Trigger
           key={tab.routeName}
           name={tab.routeName}
-          options={{
-            title: tab.label,
-            href: tab.hidden ? null : undefined,
-          }}
-        />
+          role={tab.role as "search" | undefined}
+          hidden={Boolean(tab.hidden)}
+        >
+          <Label>{tab.label}</Label>
+          {tab.badge ? <Badge>{tab.badge}</Badge> : null}
+          {/* sf symbols typés côté Expo — cast depuis le catalogue partagé */}
+          <Icon sf={tab.sf as never} />
+        </NativeTabs.Trigger>
       ))}
-    </Tabs>
+    </NativeTabs>
   );
 }

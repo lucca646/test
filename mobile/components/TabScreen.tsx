@@ -14,9 +14,9 @@ type Props = {
   hideFooter?: boolean;
 };
 
-/** Contenu d’onglet — nav = dock split JS (layout parent). */
+/** Contenu d’onglet — la nav est la UITabBar native Apple (layout parent). */
 export default function TabScreen({
-  kicker = "CORAIA · GLASS",
+  kicker = "UITABBAR · NATIVE iOS",
   title,
   body,
   tint,
@@ -69,8 +69,8 @@ export default function TabScreen({
               Mode {theme.isDark ? "nuit" : "jour"} · système
             </Text>
             <Text style={[styles.cardBody, { color: theme.textMuted }]}>
-              L’UI suit Réglages → Affichage et luminosité. Dock split
-              gauche/droite (même modèle que la webapp) + blur adaptatif.
+              L’UI suit Réglages → Affichage et luminosité. NativeTabs /
+              UITabBar + blur matériau adaptatif.
             </Text>
           </View>
         ) : null}
@@ -81,7 +81,7 @@ export default function TabScreen({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 16, paddingBottom: 110, gap: 16 },
+  content: { padding: 16, paddingBottom: 32, gap: 16 },
   hero: {
     borderRadius: 28,
     padding: 22,

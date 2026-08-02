@@ -108,7 +108,7 @@ export function visibleTabs() {
   return APP_TABS.filter((t) => !t.hidden);
 }
 
-/** Groupes gauche / droite (web + dock iOS) */
+/** Groupes gauche / droite — web uniquement */
 export function tabsBySide() {
   const tabs = visibleTabs();
   return {
