@@ -1,14 +1,13 @@
 /**
- * Contenu partagé « Aujourd’hui » — web + iOS doivent lire ça
- * (pas seulement la liste d’onglets).
+ * Contenu partagé accueil COR·ALT — web lab + iOS.
  *
  * HOME_SCHEMA_VERSION — bump when kicker/title/body/tint shape changes.
  */
-export const HOME_SCHEMA_VERSION = 1;
+export const HOME_SCHEMA_VERSION = 2;
 
 export const HOME = {
-  kicker: "CORAIA · GLASS",
-  title: "Aujourd'hui",
-  body: "Playground île + nav partagée (app-nav). Même base web et iOS.",
-  tint: ["#FF453A", "#5E5CE6"],
+  kicker: "COR·ALT",
+  title: "Candidatures",
+  body: "Réplique iOS COR·ALT dans Coraia Glass — Entreprises, Recherche, Envois, Profil.",
+  tint: ["#0a84ff", "#64D2FF"],
 };

@@ -14,9 +14,10 @@ export const CAPABILITIES = {
     chrome: "split-bottom",
     icons: "f7",
     side: true,
-    centerPromoted: true,
+    /** Plus de caméra centrale — nav COR·ALT 2+2 */
+    centerPromoted: false,
     badge: true,
-    island: true,
+    island: false,
     nativeTabBar: false,
   },
   "web-lab-ios": {

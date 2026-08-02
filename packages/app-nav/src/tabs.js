@@ -1,13 +1,13 @@
 /**
- * Source UNIQUE de la barre d’onglets — web + iOS (NativeTabs / UITabBar).
- * Modifier ici → les deux clients suivent (OTA JS / Vite HMR).
+ * Source UNIQUE de la barre d’onglets — web lab + iOS (NativeTabs / UITabBar).
+ * Catalogue COR·ALT — Accueil (plan du jour) en premier.
  *
  * `hidden: true` retire l’onglet de la barre partout, sans supprimer la route.
  * `side` = split web uniquement (iOS reste UITabBar Apple).
  */
 
-/** Teinte sélection */
-export const NAV_TINT = "#64D2FF";
+/** Teinte sélection — bleu système iOS / dock validé */
+export const NAV_TINT = "#0a84ff";
 
 /**
  * @typedef {{
@@ -29,103 +29,75 @@ export const NAV_TINT = "#64D2FF";
 /** @type {AppTab[]} */
 export const APP_TABS = [
   {
-    id: "today",
-    path: "/",
-    routeName: "index",
-    label: "Aujourd'hui",
-    short: "Today",
-    sf: { default: "sun.max", selected: "sun.max.fill" },
-    f7: { default: "Today", active: "TodayFill" },
-    ion: { default: "sunny-outline", active: "sunny" },
+    id: "accueil",
+    path: "/accueil/",
+    routeName: "accueil",
+    label: "Accueil",
+    short: "Accueil",
+    sf: { default: "house", selected: "house.fill" },
+    f7: { default: "House", active: "HouseFill" },
+    ion: { default: "home-outline", active: "home" },
     badge: null,
     hidden: false,
     side: "left",
   },
   {
-    id: "games",
-    path: "/games/",
-    routeName: "games",
-    label: "Jeux",
-    short: "Jeux",
-    sf: { default: "flame", selected: "flame.fill" },
-    f7: { default: "Rocket", active: "RocketFill" },
-    ion: { default: "flame-outline", active: "flame" },
-    badge: null,
-    hidden: false,
-    side: "left",
-  },
-  {
-    id: "actu",
-    path: "/actu/",
-    routeName: "actu",
-    label: "Actu",
-    short: "Actu",
-    sf: { default: "newspaper", selected: "newspaper.fill" },
-    f7: { default: "DocText", active: "DocTextFill" },
-    ion: { default: "newspaper-outline", active: "newspaper" },
-    badge: null,
-    hidden: false,
-    side: "left",
-  },
-  {
-    id: "camera",
-    path: "/camera/",
-    routeName: "camera",
-    label: "Caméra",
-    short: "Cam",
-    sf: { default: "camera", selected: "camera.fill" },
-    f7: { default: "Camera", active: "CameraFill" },
-    ion: { default: "camera-outline", active: "camera" },
-    badge: null,
-    hidden: false,
-    /** BeReal-style : bouton central blanc plus grand (web) */
-    side: "center",
-  },
-  {
-    id: "arcade",
-    path: "/arcade/",
-    routeName: "arcade",
-    label: "Arcade",
-    short: "Arcade",
-    sf: { default: "gamecontroller", selected: "gamecontroller.fill" },
-    f7: { default: "Gamecontroller", active: "GamecontrollerFill" },
-    ion: { default: "game-controller-outline", active: "game-controller" },
-    badge: null,
-    hidden: false,
-    side: "right",
-  },
-  {
-    id: "apps",
-    path: "/apps/",
-    routeName: "apps",
-    label: "Apps",
-    short: "Apps",
+    id: "envois",
+    path: "/envois/",
+    routeName: "envois",
+    label: "Envois",
+    short: "Envois",
     sf: {
-      default: "square.stack.3d.up",
-      selected: "square.stack.3d.up.fill",
+      default: "paperplane",
+      selected: "paperplane.fill",
     },
+    f7: { default: "Paperplane", active: "PaperplaneFill" },
+    ion: { default: "paper-plane-outline", active: "paper-plane" },
+    badge: null,
+    hidden: false,
+    side: "left",
+  },
+  {
+    id: "entreprises",
+    path: "/entreprises/",
+    routeName: "entreprises",
+    label: "Liste",
+    short: "Liste",
+    sf: { default: "building.2", selected: "building.2.fill" },
     f7: { default: "Layers", active: "LayersFill" },
-    ion: { default: "layers-outline", active: "layers" },
-    badge: "OTA",
+    ion: { default: "business-outline", active: "business" },
+    badge: null,
     hidden: false,
     side: "right",
   },
   {
-    id: "search",
-    path: "/search/",
-    routeName: "search",
+    id: "recherche",
+    path: "/recherche/",
+    routeName: "recherche",
     label: "Recherche",
-    short: "Search",
-    sf: {
-      default: "magnifyingglass",
-      selected: "magnifyingglass.circle.fill",
-    },
+    short: "Recherche",
+    sf: "magnifyingglass",
     f7: { default: "Search", active: "Search" },
     ion: { default: "search-outline", active: "search" },
-    role: "search",
     badge: null,
-    /** false = visible partout ; true = masqué web + iOS */
+    /** Hors barre — accessible depuis Accueil */
     hidden: true,
+    side: "left",
+  },
+  {
+    id: "parametres",
+    path: "/parametres/",
+    routeName: "parametres",
+    label: "Profil",
+    short: "Profil",
+    sf: {
+      default: "person.crop.circle",
+      selected: "person.crop.circle.fill",
+    },
+    f7: { default: "Today", active: "TodayFill" },
+    ion: { default: "person-circle-outline", active: "person-circle" },
+    badge: null,
+    hidden: false,
     side: "right",
   },
 ];
