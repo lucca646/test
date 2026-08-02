@@ -7,56 +7,29 @@ import {
   Button,
   Glass,
 } from "konsta/react";
+import { HOME } from "app-nav";
 import DynamicIslandWeb from "../components/DynamicIslandWeb.jsx";
 import IslandBridgePanel from "../components/IslandBridgePanel.jsx";
 import { useIslandBridge } from "../bridge/useIslandBridge.js";
 import { usePlatform } from "../platform/PlatformContext.jsx";
 
-function WebappToday({ onNavigate }) {
+/** Même structure que mobile/app/index — contenu HOME partagé. */
+function WebappToday() {
   return (
     <div className="wa-home">
-      <section className="wa-hero">
-        <p className="wa-hero-kicker">Webapp · Coraia</p>
-        <h1>Liquid Glass, dans le navigateur</h1>
-        <p>
-          Même produit que l’app iOS — ici en webapp : barre du haut, panels,
-          pas de faux iPhone.
-        </p>
-        <div className="wa-actions">
-          <button
-            type="button"
-            className="wa-btn wa-btn-primary"
-            onClick={() => onNavigate?.("/arcade/")}
-          >
-            Ouvrir Arcade
-          </button>
-          <button
-            type="button"
-            className="wa-btn wa-btn-ghost"
-            onClick={() => onNavigate?.("/apps/")}
-          >
-            Apps
-          </button>
-        </div>
+      <section
+        className="wa-hero"
+        style={{
+          background: `linear-gradient(145deg, ${HOME.tint[0]}, ${HOME.tint[1]} 55%, #0b0b12)`,
+        }}
+      >
+        <p className="wa-hero-kicker">{HOME.kicker}</p>
+        <h1>{HOME.title}</h1>
+        <p>{HOME.body}</p>
       </section>
 
-      <p className="wa-section-title">Modules</p>
-      <div className="wa-cards">
-        <article className="wa-card">
-          <h3>Nav unique</h3>
-          <p>Onglets depuis <code>app-nav</code> — web + iOS synchronisés.</p>
-        </article>
-        <article className="wa-card">
-          <h3>OTA</h3>
-          <p>Changements JS sans rebuild Store (iOS / bientôt Android).</p>
-        </article>
-        <article className="wa-card">
-          <h3>Bridge</h3>
-          <p>
-            Lab île : <code>?lab=1</code> pour le playground natif.
-          </p>
-        </article>
-      </div>
+      <p className="wa-section-title">Sur l’île</p>
+      <DynamicIslandWeb />
     </div>
   );
 }

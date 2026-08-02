@@ -14,6 +14,12 @@ declare module "app-nav" {
 
   export const APP_TABS: AppTab[];
   export const NAV_TINT: string;
+  export const HOME: {
+    kicker: string;
+    title: string;
+    body: string;
+    tint: [string, string] | string[];
+  };
   export function visibleTabs(): AppTab[];
   export function allTabs(): AppTab[];
 }
