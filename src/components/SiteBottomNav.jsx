@@ -12,8 +12,9 @@ function NavItem({ tab, activePath, onSelect, showBadge, promoted }) {
   return (
     <button
       type="button"
-      className={`wa-bottom-item${on ? " is-on" : ""}${promoted ? " is-promoted" : ""}`}
+      className={`wa-bottom-item${on ? " is-on" : ""}${promoted ? " is-promoted is-camera" : ""}`}
       aria-current={on ? "page" : undefined}
+      aria-label={promoted ? tab.label : undefined}
       onClick={() => onSelect(tab.path)}
     >
       <span className="wa-bottom-icon" aria-hidden>
@@ -22,13 +23,15 @@ function NavItem({ tab, activePath, onSelect, showBadge, promoted }) {
           <span className="wa-bottom-badge">{tab.badge}</span>
         ) : null}
       </span>
-      <span className="wa-bottom-label">{tab.short || tab.label}</span>
+      {promoted ? null : (
+        <span className="wa-bottom-label">{tab.short || tab.label}</span>
+      )}
     </button>
   );
 }
 
 /**
- * Barre bas web : G / centre promu / D — Actu = bouton central plus grand.
+ * Barre BeReal-like : G / caméra blanche centrale / D.
  */
 export default function SiteBottomNav({ activePath, onSelect }) {
   const { left, center, right } = tabsBySide();
@@ -58,7 +61,7 @@ export default function SiteBottomNav({ activePath, onSelect }) {
               tab={tab}
               activePath={activePath}
               onSelect={onSelect}
-              showBadge={showBadge}
+              showBadge={false}
               promoted={promoteCenter}
             />
           ))}

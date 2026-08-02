@@ -68,7 +68,7 @@
   display: grid;
   grid-template-columns: repeat(var(--nav-count, 2), minmax(0, 1fr));
   flex: 1 1 0;
-  max-width: min(11.5rem, 38%);
+  max-width: min(14.5rem, 40%);
   gap: 0;
   padding: 0.3rem;
   border-radius: 1.25rem;
@@ -88,43 +88,41 @@
   margin-bottom: 0.15rem;
 }
 
-.wa-bottom-item.is-promoted {
-  width: 4.35rem;
-  min-height: 4.35rem;
-  padding: 0.55rem 0.4rem 0.45rem;
-  border-radius: 1.45rem;
-  background: rgba(22, 22, 28, 0.96);
-  border: 1px solid rgba(255, 159, 10, 0.45);
+/* BeReal : pastille caméra blanche, plus grande que les onglets */
+.wa-bottom-item.is-promoted.is-camera {
+  width: 4.65rem;
+  height: 4.65rem;
+  min-height: 4.65rem;
+  padding: 0;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 159, 10, 0.12);
-  color: #ffd60a;
-  transform: translateY(-0.45rem);
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 0 0 4px rgba(255, 255, 255, 0.18);
+  color: #111;
+  transform: translateY(-0.85rem);
 }
 
-.wa-bottom-item.is-promoted.is-on {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 159, 10, 0.42),
-    rgba(255, 69, 58, 0.28)
-  );
-  color: #fff;
-  border-color: rgba(255, 214, 10, 0.55);
+.wa-bottom-item.is-promoted.is-camera.is-on {
+  background: #fff;
+  color: #111;
+  border-color: #fff;
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 5px rgba(255, 255, 255, 0.28);
 }
 
-.wa-bottom-item.is-promoted .wa-bottom-icon {
-  width: 1.95rem;
-  height: 1.95rem;
+.wa-bottom-item.is-promoted.is-camera .wa-bottom-icon {
+  width: 2.05rem;
+  height: 2.05rem;
+  color: #111;
 }
 
-.wa-bottom-item.is-promoted .wa-bottom-icon svg {
-  width: 1.85rem;
-  height: 1.85rem;
-}
-
-.wa-bottom-item.is-promoted .wa-bottom-label {
-  font-size: 0.72rem;
-  font-weight: 750;
+.wa-bottom-item.is-promoted.is-camera .wa-bottom-icon svg {
+  width: 2rem;
+  height: 2rem;
+  fill: currentColor;
 }
 
 .wa-bottom-item {
@@ -389,5 +387,86 @@
   font-size: 0.88rem;
   line-height: 1.45;
   color: var(--wa-muted);
+}
+
+/* Caméra BeReal */
+.wa-camera {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.wa-camera-stage {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-height: min(62vh, 32rem);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: #0a0a0c;
+  border: 1px solid var(--wa-line);
+}
+
+.wa-camera-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.wa-camera-status {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.wa-camera-status.is-err {
+  background: rgba(255, 59, 48, 0.75);
+}
+
+.wa-camera-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 5rem;
+}
+
+.wa-camera-shutter {
+  appearance: none;
+  width: 4.75rem;
+  height: 4.75rem;
+  border-radius: 999px;
+  border: 4px solid rgba(255, 255, 255, 0.55);
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.wa-camera-shutter:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wa-camera-shutter::after {
+  content: "";
+  display: block;
+  width: 3.55rem;
+  height: 3.55rem;
+  margin: 0 auto;
+  border-radius: 999px;
+  border: 2px solid #111;
+  background: #fff;
+}
+
+.wa-camera-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
 }
 

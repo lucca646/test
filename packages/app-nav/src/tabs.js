@@ -65,7 +65,20 @@ export const APP_TABS = [
     ion: { default: "newspaper-outline", active: "newspaper" },
     badge: null,
     hidden: false,
-    /** Bouton central plus grand (web) ; au milieu de la UITabBar iOS */
+    side: "left",
+  },
+  {
+    id: "camera",
+    path: "/camera/",
+    routeName: "camera",
+    label: "Caméra",
+    short: "Cam",
+    sf: { default: "camera", selected: "camera.fill" },
+    f7: { default: "Camera", active: "CameraFill" },
+    ion: { default: "camera-outline", active: "camera" },
+    badge: null,
+    hidden: false,
+    /** BeReal-style : bouton central blanc plus grand (web) */
     side: "center",
   },
   {
