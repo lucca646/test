@@ -16,8 +16,11 @@ export type Prospect = {
   mailSubject?: string;
   mailBody?: string;
   repondu?: string | null;
+  notePerso?: string | null;
   hasEmail?: boolean;
   hasPhone?: boolean;
+  info?: string;
+  siren?: string;
 };
 
 export type ProspectsPage = {

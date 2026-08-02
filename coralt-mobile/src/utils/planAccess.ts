@@ -23,3 +23,30 @@ export function hasMailingAccess(user: CoraltUser | null | undefined) {
 export function hasEnvoisAccess(user: CoraltUser | null | undefined) {
   return userPlan(user) >= PLAN_ENVOIS_MIN;
 }
+
+/** Plan 1 : pas de barre d’onglets filtres (vue « Tout » seule). */
+export function entreprisesHideFilterTabs(user: CoraltUser | null | undefined) {
+  return userPlan(user) <= 1;
+}
+
+/** Onglet « Envoyé » à partir du plan 2. */
+export function entreprisesHideSentTab(user: CoraltUser | null | undefined) {
+  return userPlan(user) < 2;
+}
+
+/** Toggle manuel À contacter ↔ Envoyé (plan 2 seulement). */
+export function entreprisesCanToggleContactStatus(
+  user: CoraltUser | null | undefined,
+) {
+  return userPlan(user) === 2;
+}
+
+/** Contacts enrichis (email / tél) visibles plan ≥ 2. */
+export function entreprisesShowContacts(user: CoraltUser | null | undefined) {
+  return userPlan(user) >= 2;
+}
+
+/** Mail généré / envoyer depuis la fiche — plan ≥ 3. */
+export function entreprisesShowMailActions(user: CoraltUser | null | undefined) {
+  return hasMailingAccess(user);
+}
