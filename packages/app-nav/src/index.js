@@ -6,6 +6,7 @@ export {
   tabsBySide,
 } from "./tabs.js";
 export { HOME, HOME_SCHEMA_VERSION } from "./home.js";
+export { ACTU, ACTU_ARTICLES, ACTU_SCHEMA_VERSION } from "./actu.js";
 
 export {
   NAV_SCHEMA_VERSION,

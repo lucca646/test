@@ -24,6 +24,23 @@ declare module "app-nav" {
     body: string;
     tint: [string, string] | string[];
   };
+  export const ACTU_SCHEMA_VERSION: number;
+  export const ACTU: {
+    kicker: string;
+    title: string;
+    body: string;
+    tint: [string, string] | string[];
+  };
+  export type ActuArticle = {
+    id: string;
+    source: string;
+    category: string;
+    title: string;
+    excerpt: string;
+    time: string;
+    url?: string;
+  };
+  export const ACTU_ARTICLES: ActuArticle[];
   export const PLATFORM_IDS: string[];
   export const CAPABILITIES: Record<
     string,

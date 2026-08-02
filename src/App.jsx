@@ -11,6 +11,7 @@ import { allTabs, normalizeWebPath, visibleTabs } from "app-nav";
 import SiteBottomNav from "./components/SiteBottomNav.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
 import GamesPage from "./pages/GamesPage.jsx";
+import ActuPage from "./pages/ActuPage.jsx";
 import AppsPage from "./pages/AppsPage.jsx";
 import ArcadePage from "./pages/ArcadePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
@@ -20,6 +21,7 @@ import "./styles/site.css";
 const PAGE_BY_ID = {
   today: TodayPage,
   games: GamesPage,
+  actu: ActuPage,
   apps: AppsPage,
   arcade: ArcadePage,
   search: SearchPage,

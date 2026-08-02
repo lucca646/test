@@ -68,7 +68,7 @@
   display: grid;
   grid-template-columns: repeat(var(--nav-count, 2), minmax(0, 1fr));
   flex: 1 1 0;
-  max-width: 11.5rem;
+  max-width: min(16.5rem, 48%);
   gap: 0;
   padding: 0.3rem;
   border-radius: 1.25rem;
@@ -264,5 +264,82 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.55 !important;
+}
+
+/* Actu — fil presse */
+.wa-actu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.wa-actu-chip {
+  appearance: none;
+  border: 1px solid var(--wa-line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--wa-muted);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.wa-actu-chip.is-on {
+  background: rgba(255, 159, 10, 0.22);
+  border-color: rgba(255, 159, 10, 0.45);
+  color: #ffd60a;
+}
+
+.wa-actu-list {
+  display: grid;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+}
+
+.wa-actu-card {
+  padding: 1rem 1.05rem;
+  border-radius: 0.9rem;
+  background: var(--wa-panel);
+  border: 1px solid var(--wa-line);
+}
+
+.wa-actu-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.wa-actu-source {
+  color: #ff9f0a;
+}
+
+.wa-actu-cat {
+  color: var(--wa-muted);
+}
+
+.wa-actu-time {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.wa-actu-card h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.wa-actu-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--wa-muted);
 }
 
