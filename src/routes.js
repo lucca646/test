@@ -1,13 +1,11 @@
-import TodayPage from "./pages/TodayPage.jsx";
-import GamesPage from "./pages/GamesPage.jsx";
-import AppsPage from "./pages/AppsPage.jsx";
-import ArcadePage from "./pages/ArcadePage.jsx";
-import SearchPage from "./pages/SearchPage.jsx";
+import EntreprisesPage from "./pages/EntreprisesPage.jsx";
+import RecherchePage from "./pages/RecherchePage.jsx";
+import EnvoisPage from "./pages/EnvoisPage.jsx";
+import ParametresPage from "./pages/ParametresPage.jsx";
 
 export const routes = [
-  { path: "/", component: TodayPage },
-  { path: "/games/", component: GamesPage },
-  { path: "/apps/", component: AppsPage },
-  { path: "/arcade/", component: ArcadePage },
-  { path: "/search/", component: SearchPage },
+  { path: "/", component: EntreprisesPage },
+  { path: "/recherche/", component: RecherchePage },
+  { path: "/envois/", component: EnvoisPage },
+  { path: "/parametres/", component: ParametresPage },
 ];

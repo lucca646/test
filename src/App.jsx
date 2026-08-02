@@ -9,24 +9,18 @@ import DeviceFrame from "./components/DeviceFrame.jsx";
 import AppTabbar from "./components/AppTabbar.jsx";
 import { allTabs, normalizeWebPath, visibleTabs } from "app-nav";
 import SiteBottomNav from "./components/SiteBottomNav.jsx";
-import TodayPage from "./pages/TodayPage.jsx";
-import GamesPage from "./pages/GamesPage.jsx";
-import ActuPage from "./pages/ActuPage.jsx";
-import CameraPage from "./pages/CameraPage.jsx";
-import AppsPage from "./pages/AppsPage.jsx";
-import ArcadePage from "./pages/ArcadePage.jsx";
-import SearchPage from "./pages/SearchPage.jsx";
+import EntreprisesPage from "./pages/EntreprisesPage.jsx";
+import RecherchePage from "./pages/RecherchePage.jsx";
+import EnvoisPage from "./pages/EnvoisPage.jsx";
+import ParametresPage from "./pages/ParametresPage.jsx";
 import "./styles/site.css";
 
-/** Composants host — branchés par id catalogue (pas une 2ᵉ liste de paths). */
+/** Composants host — branchés par id catalogue COR·ALT (pas une 2ᵉ liste de paths). */
 const PAGE_BY_ID = {
-  today: TodayPage,
-  games: GamesPage,
-  actu: ActuPage,
-  camera: CameraPage,
-  apps: AppsPage,
-  arcade: ArcadePage,
-  search: SearchPage,
+  entreprises: EntreprisesPage,
+  recherche: RecherchePage,
+  envois: EnvoisPage,
+  parametres: ParametresPage,
 };
 
 function pageForPath(path) {
@@ -35,7 +29,7 @@ function pageForPath(path) {
   const tab = tabs.find((t) => t.path === normalized);
   return {
     path: normalized,
-    Page: (tab && PAGE_BY_ID[tab.id]) || TodayPage,
+    Page: (tab && PAGE_BY_ID[tab.id]) || EntreprisesPage,
   };
 }
 
@@ -67,7 +61,7 @@ function LiveWebShell() {
       style={{ "--nav-count": visibleTabs().length }}
     >
       <header className="wa-topbar">
-        <span className="wa-topbar-brand">Coraia</span>
+        <span className="wa-topbar-brand">COR·ALT</span>
       </header>
       <main className="site-main">
         <ActivePage key={activePath} onNavigate={selectTab} />

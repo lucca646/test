@@ -1,60 +1,31 @@
-# mobile/ — Expo SDK 54 · UITabBar native + Live Activities
+# mobile/ — Coraia Glass → réplique iOS COR·ALT
 
-## Ce qu’il y a
+App Expo (UITabBar native / Liquid Glass iOS 26+) branchée sur l’API COR·ALT.
 
-- **UITabBar** Apple via `expo-router` `NativeTabs`
-- **Dynamic Island / Live Activities** via `expo-live-activity` (ActivityKit)
+## Onglets
 
-## Important
+Entreprises · Recherche · Envois · Profil
 
-| Environnement | UITabBar | Dynamic Island réelle |
-|---|---|---|
-| **Expo Go** | oui | non (aperçu UI seulement) |
-| **Dev Client** (`eas build`) | oui | **oui** |
-
-## Dev Client (île système)
-
-Sur une machine avec compte Apple :
+## Démarrer
 
 ```bash
 cd mobile
 npm install --legacy-peer-deps
-npx expo prebuild --platform ios --clean
-# Build interne installable (pas App Store) :
-npx eas-cli build --profile development --platform ios
+cp .env.example .env   # renseigner EXPO_PUBLIC_BRIDGE_URL si Expo Go
+npm run bridge         # terminal 1 — proxy session cookie
+npx expo start --go --tunnel   # terminal 2
 ```
 
-Ou simulateur :
+Le bridge (`bridge/server.mjs`) est requis sur Expo Go : RN ne gère pas bien le cookie `coralt_session`.
 
-```bash
-npx eas-cli build --profile development-simulator --platform ios
-# puis
-npx expo start --dev-client
-```
+## Structure
 
-Sur **Aujourd’hui** : Timer / Music / Progress → **Start**, puis change de mode
-(l’île suit via Update ou restart auto). **Update** / **Stop** pour itérer.
+| Chemin | Rôle |
+|--------|------|
+| `app/(auth)/` | Login / register |
+| `app/(app)/` | NativeTabs COR·ALT |
+| `src/api/` | Client HTTP + session SecureStore |
+| `src/auth/` | AuthContext |
+| `packages/app-nav` | Catalogue onglets partagé web lab + iOS |
 
-Sans rebuild (quota Free) : `./scripts-eas-update.sh preview "…"`.
-
-## Expo Go (sans build)
-
-```bash
-npm run tunnel
-# = EXPO_GO=1 npx expo start --go --tunnel
-```
-
-`EXPO_GO=1` retire `owner` / `projectId` EAS et les plugins natifs le temps du serveur
-(comme au premier playground anonyme). Sans ça, en CI Expo demande un login → erreur 500.
-
-Tu gardes la nav + l’aperçu des modes ; Start affichera que le module natif est absent.
-
-## Fichiers clés
-
-```
-app/_layout.tsx                         ← NativeTabs
-components/DynamicIslandPlayground.tsx  ← modes + Start/Update/Stop
-lib/liveActivity.ts                     ← bridge ActivityKit
-assets/liveActivity/                    ← images < 4KB
-eas.json                                ← profils development
-```
+Playground App Store (Jeux / Arcade / Actu…) retiré de cette app — voir git history si besoin.

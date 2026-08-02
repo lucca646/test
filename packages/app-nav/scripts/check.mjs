@@ -1,25 +1,31 @@
 import { APP_TABS } from "../src/tabs.js";
-import { ACTU_ARTICLES, ACTU_SCHEMA_VERSION } from "../src/actu.js";
-import { assertNavCatalog, NAV_SCHEMA_VERSION } from "../src/schema.js";
+import { HOME, HOME_SCHEMA_VERSION } from "../src/home.js";
+import { assertNavCatalog } from "../src/schema.js";
 
 try {
   assertNavCatalog(APP_TABS);
-  if (!APP_TABS.some((t) => t.id === "actu" && !t.hidden)) {
-    throw new Error("onglet actu manquant ou hidden");
+
+  const required = ["entreprises", "recherche", "envois", "parametres"];
+  for (const id of required) {
+    const tab = APP_TABS.find((t) => t.id === id && !t.hidden);
+    if (!tab) throw new Error(`onglet ${id} manquant ou hidden`);
   }
-  const camera = APP_TABS.find((t) => t.id === "camera" && !t.hidden);
-  if (!camera) {
-    throw new Error("onglet camera manquant ou hidden");
+
+  const recherche = APP_TABS.find((t) => t.id === "recherche");
+  if (recherche?.role !== "search") {
+    throw new Error('onglet recherche doit avoir role: "search"');
   }
-  if (camera.side !== "center") {
-    throw new Error('onglet camera doit avoir side: "center"');
+
+  if (!HOME?.kicker || !HOME?.title) {
+    throw new Error("HOME kicker/title requis");
   }
-  if (!Array.isArray(ACTU_ARTICLES) || ACTU_ARTICLES.length < 1) {
-    throw new Error("ACTU_ARTICLES vide");
+  if (typeof HOME_SCHEMA_VERSION !== "number") {
+    throw new Error("HOME_SCHEMA_VERSION manquant");
   }
-  console.log(`NAV_SCHEMA_VERSION ${NAV_SCHEMA_VERSION} OK`);
-  console.log(`ACTU_SCHEMA_VERSION ${ACTU_SCHEMA_VERSION} · ${ACTU_ARTICLES.length} articles`);
-  process.exit(0);
+
+  console.log(
+    `app-nav OK — COR·ALT tabs (${APP_TABS.filter((t) => !t.hidden).length}) · HOME v${HOME_SCHEMA_VERSION}`,
+  );
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);

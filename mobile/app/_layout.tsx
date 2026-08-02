@@ -1,56 +1,35 @@
 import { useEffect } from "react";
-import {
-  NativeTabs,
-  Icon,
-  Label,
-  Badge,
-} from "expo-router/unstable-native-tabs";
-import { DynamicColorIOS, Platform } from "react-native";
-import { useAppTheme } from "../lib/theme";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AuthProvider } from "../src/auth/AuthContext";
+import { colors } from "../src/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
-import { mapIosNativeTabs } from "../adapters/iosNativeTabs";
 
 /**
- * UITabBar native Apple — données via adaptateur app-nav → toNativeTriggers.
- * Le chrome reste UIKit ; seul le catalogue JS est partagé.
+ * Coraia Glass → réplique iOS COR·ALT.
+ * Auth + Stack ; UITabBar native (Liquid Glass iOS 26+) dans (app).
  */
 export default function RootLayout() {
-  const theme = useAppTheme();
-  const { tint, triggers } = mapIosNativeTabs();
-  const tintColor =
-    Platform.OS === "ios"
-      ? DynamicColorIOS({ light: tint, dark: tint })
-      : tint;
-
   useEffect(() => {
     void applyOtaUpdateIfAny();
   }, []);
 
   return (
-    <NativeTabs
-      tintColor={tintColor}
-      labelStyle={{
-        fontSize: 10,
-        fontWeight: "700",
-        color: theme.isDark
-          ? "rgba(235,235,245,0.72)"
-          : "rgba(60,60,67,0.72)",
-      }}
-      blurEffect={theme.tabBlur}
-      disableTransparentOnScrollEdge
-    >
-      {triggers.map((tab) => (
-        <NativeTabs.Trigger
-          key={tab.name}
-          name={tab.name}
-          role={tab.role}
-          hidden={tab.hidden}
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AuthProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
         >
-          <Label>{tab.label}</Label>
-          {tab.badge ? <Badge>{tab.badge}</Badge> : null}
-          <Icon sf={tab.sf as never} />
-        </NativeTabs.Trigger>
-      ))}
-    </NativeTabs>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(app)" />
+        </Stack>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

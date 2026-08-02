@@ -1,48 +1,20 @@
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { HOME } from "app-nav";
-import AppErrorBoundary from "../components/AppErrorBoundary";
-import TabScreen from "../components/TabScreen";
-import DynamicIslandPlayground, {
-  type IslandMode,
-} from "../components/DynamicIslandPlayground";
-import { useAppTheme } from "../lib/theme";
+import { Redirect } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { useAuth } from "../src/auth/AuthContext";
+import { colors } from "../src/theme";
 
-export default function TodayTab() {
-  const theme = useAppTheme();
-  const [islandMode, setIslandMode] = useState<IslandMode>("breathe");
+export default function Index() {
+  const { user, authReady, activated } = useAuth();
 
-  return (
-    <TabScreen
-      kicker={HOME.kicker}
-      title={HOME.title}
-      body={HOME.body}
-      tint={HOME.tint as [string, string]}
-    >
-      <View
-        style={[
-          styles.islandCard,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.cardBorder,
-          },
-        ]}
-      >
-        <AppErrorBoundary label="DynamicIsland">
-          <DynamicIslandPlayground
-            mode={islandMode}
-            onChange={setIslandMode}
-          />
-        </AppErrorBoundary>
+  if (!authReady) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+        <ActivityIndicator color={colors.accent} />
       </View>
-    </TabScreen>
-  );
-}
+    );
+  }
 
-const styles = StyleSheet.create({
-  islandCard: {
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-});
+  if (!user) return <Redirect href="/(auth)/login" />;
+  if (!activated) return <Redirect href="/(app)/recherche" />;
+  return <Redirect href="/(app)/entreprises" />;
+}

@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "Coraia Glass",
+    "name": "COR·ALT",
     "slug": "liquid-glass-mobile",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "liquidglass",
+    "scheme": "coralt",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "eu.coraia.liquidglass.dev",
       "infoPlist": {
-        "CFBundleDisplayName": "Coraia Glass",
+        "CFBundleDisplayName": "COR·ALT",
         "NSSupportsLiveActivities": true,
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Zone de test caméra / flash dans l’onglet Apps.",
@@ -66,7 +66,7 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": false
     },
     "owner": "luccar2956s-team",
     "extra": {
