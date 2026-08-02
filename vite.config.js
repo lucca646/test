@@ -81,6 +81,13 @@ export default defineConfig({
         ),
       },
       {
+        find: "island-bridge/protocol",
+        replacement: path.resolve(
+          rootDir,
+          "packages/island-bridge/src/protocol.js",
+        ),
+      },
+      {
         find: "island-bridge",
         replacement: path.resolve(
           rootDir,
