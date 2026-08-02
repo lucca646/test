@@ -9,17 +9,18 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { useAuth } from "../../src/auth/AuthContext";
+import { useAuth } from "../src/auth/AuthContext";
+import AuthGate from "../src/screens/AuthGate";
 import {
   apiNafSuggest,
   apiSearchProfileCompose,
   apiSearchQueueStatus,
   apiSendSearch,
-} from "../../src/api/console";
-import { Banner, Button, Group, SectionHeader } from "../../src/ui/Apple";
-import { colors } from "../../src/theme";
+} from "../src/api/console";
+import { Banner, Button, Group, SectionHeader } from "../src/ui/Apple";
+import { colors } from "../src/theme";
 
-export default function RechercheScreen() {
+function RechercheScreen() {
   const { user, activated, refreshUser } = useAuth();
   const [secteur, setSecteur] = useState("");
   const [zone, setZone] = useState("");
@@ -243,3 +244,12 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16, gap: 10, marginTop: 4 },
   status: { color: colors.muted, fontSize: 14, textAlign: "center" },
 });
+
+
+export default function RechercheScreenGate() {
+  return (
+    <AuthGate>
+      <RechercheScreen />
+    </AuthGate>
+  );
+}

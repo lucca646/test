@@ -12,35 +12,36 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
-import { useAuth } from "../../src/auth/AuthContext";
+import { useAuth } from "../src/auth/AuthContext";
+import AuthGate from "../src/screens/AuthGate";
 import {
   deleteProspect,
   fetchSheetProspects,
   sendProspectMail,
   updateProspectStatus,
   type Prospect,
-} from "../../src/api/mailing";
-import { ApiError } from "../../src/api/http";
-import { Banner, EmptyState, Segmented } from "../../src/ui/Apple";
-import { ProspectDetailSheet } from "../../src/ui/ProspectDetailSheet";
-import { colors } from "../../src/theme";
+} from "../src/api/mailing";
+import { ApiError } from "../src/api/http";
+import { Banner, EmptyState, Segmented } from "../src/ui/Apple";
+import { ProspectDetailSheet } from "../src/ui/ProspectDetailSheet";
+import { colors } from "../src/theme";
 import {
   entreprisesHideFilterTabs,
   entreprisesHideSentTab,
   entreprisesShowContacts,
   userPlan,
-} from "../../src/utils/planAccess";
+} from "../src/utils/planAccess";
 import {
   isNoContactStatut,
   isSentStatut,
   prospectMatchesQuery,
   prospectStatusKind,
   prospectStatusLabel,
-} from "../../src/utils/prospectStatus";
+} from "../src/utils/prospectStatus";
 
 type Filter = "all" | "contact" | "sent";
 
-export default function EntreprisesScreen() {
+function EntreprisesScreen() {
   const { user, activated } = useAuth();
   const router = useRouter();
   const [rows, setRows] = useState<Prospect[]>([]);
@@ -119,7 +120,7 @@ export default function EntreprisesScreen() {
     return list;
   }, [rows, filter, query]);
 
-  if (!activated) return <Redirect href="/(app)/recherche" />;
+  if (!activated) return <Redirect href="/recherche" />;
 
   const onSend = (p: Prospect) => {
     if (!user?.email || p.row_index == null) return;
@@ -133,7 +134,7 @@ export default function EntreprisesScreen() {
             text: "Ouvrir Envois",
             onPress: () => {
               setSelected(null);
-              router.push("/(app)/envois");
+              router.push("/envois");
             },
           },
         ],
@@ -308,7 +309,7 @@ export default function EntreprisesScreen() {
         onDelete={onDelete}
         onOpenEnvois={() => {
           setSelected(null);
-          router.push("/(app)/envois");
+          router.push("/envois");
         }}
       />
     </View>
@@ -440,3 +441,12 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
 });
+
+
+export default function EntreprisesScreenGate() {
+  return (
+    <AuthGate>
+      <EntreprisesScreen />
+    </AuthGate>
+  );
+}

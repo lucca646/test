@@ -2,30 +2,29 @@ import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { Link, Redirect } from "expo-router";
-import { useAuth } from "../../src/auth/AuthContext";
-import { getApiBaseLabel } from "../../src/api/auth";
-import { Button } from "../../src/ui/Apple";
-import { colors } from "../../src/theme";
+import { useAuth } from "../auth/AuthContext";
+import { getApiBaseLabel } from "../api/auth";
+import { Button } from "../ui/Apple";
+import { colors } from "../theme";
 import { otaDebugLabel } from "../../lib/ota";
 
-export default function LoginScreen() {
-  const { user, activated, login } = useAuth();
+type Props = {
+  onGoRegister?: () => void;
+};
+
+/** Écran login — composant (pas une route) pour ne jamais démonter NativeTabs. */
+export default function LoginScreen({ onGoRegister }: Props) {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (user) {
-    return (
-      <Redirect href={activated ? "/(app)/entreprises" : "/(app)/recherche"} />
-    );
-  }
 
   const onSubmit = async () => {
     setBusy(true);
@@ -80,9 +79,11 @@ export default function LoginScreen() {
         />
       </View>
 
-      <Link href="/(auth)/register" style={styles.link}>
-        Créer un compte
-      </Link>
+      {onGoRegister ? (
+        <Pressable onPress={onGoRegister}>
+          <Text style={styles.link}>Créer un compte</Text>
+        </Pressable>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

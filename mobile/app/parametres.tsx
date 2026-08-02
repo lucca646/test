@@ -1,19 +1,20 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Redirect } from "expo-router";
-import { useAuth } from "../../src/auth/AuthContext";
-import { API_URL } from "../../src/config";
+import { useAuth } from "../src/auth/AuthContext";
+import AuthGate from "../src/screens/AuthGate";
+import { API_URL } from "../src/config";
 import {
   Button,
   Group,
   Row,
   SectionHeader,
-} from "../../src/ui/Apple";
-import { colors } from "../../src/theme";
-import { userPlan } from "../../src/utils/planAccess";
+} from "../src/ui/Apple";
+import { colors } from "../src/theme";
+import { userPlan } from "../src/utils/planAccess";
 
-export default function ParametresScreen() {
+function ParametresScreen() {
   const { user, activated, logout } = useAuth();
-  if (!activated) return <Redirect href="/(app)/recherche" />;
+  if (!activated) return <Redirect href="/recherche" />;
 
   return (
     <ScrollView
@@ -81,3 +82,12 @@ const styles = StyleSheet.create({
   email: { color: colors.muted, fontSize: 15 },
   pad: { paddingHorizontal: 16, marginTop: 28 },
 });
+
+
+export default function ParametresScreenGate() {
+  return (
+    <AuthGate>
+      <ParametresScreen />
+    </AuthGate>
+  );
+}

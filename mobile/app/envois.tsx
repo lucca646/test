@@ -7,19 +7,20 @@ import {
   View,
 } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
-import { useAuth } from "../../src/auth/AuthContext";
+import { useAuth } from "../src/auth/AuthContext";
+import AuthGate from "../src/screens/AuthGate";
 import {
   fetchSheetProspects,
   regenerateMail,
   sendProspectMail,
   updateProspectStatus,
   type Prospect,
-} from "../../src/api/mailing";
-import { ApiError } from "../../src/api/http";
-import { Banner, Button, EmptyState } from "../../src/ui/Apple";
-import SwipeDeck from "../../src/ui/SwipeDeck";
-import { hasEnvoisAccess } from "../../src/utils/planAccess";
-import { colors } from "../../src/theme";
+} from "../src/api/mailing";
+import { ApiError } from "../src/api/http";
+import { Banner, Button, EmptyState } from "../src/ui/Apple";
+import SwipeDeck from "../src/ui/SwipeDeck";
+import { hasEnvoisAccess } from "../src/utils/planAccess";
+import { colors } from "../src/theme";
 
 const PAGE_SIZE = 10;
 /** Quand il reste ≤ N cartes, précharge la page suivante. */
@@ -29,7 +30,7 @@ function prospectKey(p: Prospect) {
   return String(p.row_index ?? p.id ?? "");
 }
 
-export default function EnvoisScreen() {
+function EnvoisScreen() {
   const { user, activated } = useAuth();
   const [deck, setDeck] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +119,7 @@ export default function EnvoisScreen() {
     }
   }, [deck.length, canSwipe, loading, loadMore]);
 
-  if (!activated) return <Redirect href="/(app)/recherche" />;
+  if (!activated) return <Redirect href="/recherche" />;
   if (!hasEnvoisAccess(user)) {
     return (
       <View style={styles.wrap}>
@@ -307,3 +308,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 });
+
+
+export default function EnvoisScreenGate() {
+  return (
+    <AuthGate>
+      <EnvoisScreen />
+    </AuthGate>
+  );
+}
