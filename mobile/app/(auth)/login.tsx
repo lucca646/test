@@ -12,6 +12,7 @@ import { useAuth } from "../../src/auth/AuthContext";
 import { getApiBaseLabel } from "../../src/api/auth";
 import { Button } from "../../src/ui/Apple";
 import { colors } from "../../src/theme";
+import { otaDebugLabel } from "../../lib/ota";
 
 export default function LoginScreen() {
   const { user, activated, login } = useAuth();
@@ -45,6 +46,7 @@ export default function LoginScreen() {
     >
       <Text style={styles.brand}>COR·ALT</Text>
       <Text style={styles.sub}>Connexion native · {getApiBaseLabel()}</Text>
+      <Text style={styles.ota}>build {otaDebugLabel()}</Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Email ou identifiant</Text>
@@ -99,7 +101,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -1.2,
   },
-  sub: { color: colors.muted, fontSize: 14, marginBottom: 8 },
+  sub: { color: colors.muted, fontSize: 14, marginBottom: 2 },
+  ota: {
+    color: "rgba(235,235,245,0.35)",
+    fontSize: 11,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    marginBottom: 8,
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: 16,

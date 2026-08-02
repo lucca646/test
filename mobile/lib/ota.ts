@@ -4,27 +4,43 @@ import * as Updates from "expo-updates";
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
- * MAJ OTA sans build — version anti boucle de crash.
- * - attend que l’UI soit stable
- * - ne reload que si un update vraiment nouveau est téléchargé
- * - ignore toute erreur (réseau, rollback, etc.)
+ * MAJ OTA — check rapide puis retry (anti-rollback silencieux côté UX).
+ * Ne tourne pas en __DEV__ (Metro).
  */
 export async function applyOtaUpdateIfAny(): Promise<void> {
   if (__DEV__ || Platform.OS === "web") return;
   if (!Updates.isEnabled) return;
 
-  try {
-    // Laisse l’écran s’afficher avant de toucher au reload
-    await sleep(3000);
-
+  const tryOnce = async () => {
     const check = await Updates.checkForUpdateAsync();
-    if (!check.isAvailable) return;
-
+    if (!check.isAvailable) return false;
     const fetched = await Updates.fetchUpdateAsync();
-    if (!fetched.isNew) return;
-
+    if (!fetched.isNew) return false;
     await Updates.reloadAsync();
+    return true;
+  };
+
+  try {
+    // 1er essai après paint court
+    await sleep(800);
+    if (await tryOnce()) return;
+
+    // 2e essai (réseau lent / premier launch)
+    await sleep(4000);
+    await tryOnce();
   } catch {
     /* jamais planter le lancement pour une MAJ */
+  }
+}
+
+/** Debug UI — confirme quel bundle OTA tourne. */
+export function otaDebugLabel(): string {
+  if (__DEV__) return "dev";
+  try {
+    const id = Updates.updateId;
+    if (!id) return "embedded";
+    return id.slice(0, 8);
+  } catch {
+    return "?";
   }
 }
