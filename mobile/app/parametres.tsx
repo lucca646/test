@@ -22,6 +22,7 @@ function ParametresScreen() {
         paddingBottom: TAB_BAR_CLEARANCE + insets.bottom,
       }}
     >
+      <Text style={[styles.largeTitle, { color: c.text }]}>Profil</Text>
       <View style={styles.hero}>
         <View style={[styles.avatar, { backgroundColor: c.accent }]}>
           <Text style={styles.avatarText}>
@@ -75,11 +76,19 @@ function ParametresScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: "center", paddingVertical: 28, gap: 6 },
+  largeTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  hero: { alignItems: "center", paddingVertical: 20, gap: 6 },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,

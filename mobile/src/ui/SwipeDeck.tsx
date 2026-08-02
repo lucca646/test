@@ -37,16 +37,22 @@ type Props = {
 
 function CardFace({ prospect }: { prospect: Prospect }) {
   const c = useColors();
+  const meta = [prospect.ville, prospect.contact].filter(Boolean).join(" · ");
   return (
     <View style={styles.cardInner}>
       <Text style={[styles.title, { color: c.text }]} numberOfLines={2}>
         {prospect.entreprise || "Entreprise"}
       </Text>
-      <Text style={[styles.sub, { color: c.muted }]} numberOfLines={2}>
-        {[prospect.ville, prospect.email, prospect.contact]
-          .filter(Boolean)
-          .join(" · ")}
-      </Text>
+      {meta ? (
+        <Text style={[styles.sub, { color: c.muted }]} numberOfLines={1}>
+          {meta}
+        </Text>
+      ) : null}
+      {prospect.email ? (
+        <Text style={[styles.email, { color: c.muted }]} numberOfLines={1}>
+          {prospect.email}
+        </Text>
+      ) : null}
       <View style={[styles.divider, { backgroundColor: c.separator }]} />
       <Text style={[styles.mailLabel, { color: c.muted }]}>Objet</Text>
       <Text style={[styles.mailSubject, { color: c.text }]} numberOfLines={2}>
@@ -95,11 +101,11 @@ function StackCard({
       const goLeft =
         translateX.value < -SWIPE_THRESHOLD || e.velocityX < -900;
       if (goRight) {
-        translateX.value = withTiming(EXIT_X, { duration: 220 }, () => {
+        translateX.value = withTiming(EXIT_X, { duration: 200 }, () => {
           runOnJS(onCommit)("send");
         });
       } else if (goLeft) {
-        translateX.value = withTiming(-EXIT_X, { duration: 220 }, () => {
+        translateX.value = withTiming(-EXIT_X, { duration: 200 }, () => {
           runOnJS(onCommit)("skip");
         });
       } else {
@@ -112,7 +118,7 @@ function StackCard({
       const rot = interpolate(
         translateX.value,
         [-SCREEN_W, 0, SCREEN_W],
-        [-10, 0, 10],
+        [-8, 0, 8],
         Extrapolation.CLAMP,
       );
       return {
@@ -128,11 +134,10 @@ function StackCard({
     const depth = index;
     return {
       transform: [
-        { translateX: depth * 8 },
-        { translateY: depth * 10 },
-        { scale: 1 - depth * 0.035 },
+        { translateX: 0 },
+        { translateY: depth * 6 },
+        { scale: 1 - depth * 0.03 },
       ],
-      // Cartes arrière opaques (évite le « ghosting » de texte)
       opacity: 1,
       zIndex: 10 - depth,
     };
@@ -159,13 +164,16 @@ function StackCard({
       : 0,
   }));
 
+  const backBg = index >= 2 ? c.stackSilhouette : c.cardSolid;
+
   const body = (
     <Animated.View
       style={[
         styles.card,
         {
-          backgroundColor: c.cardSolid,
+          backgroundColor: active ? c.cardSolid : backBg,
           borderColor: c.border,
+          shadowOpacity: c.statusBar === "dark" ? 0.12 : 0.28,
         },
         animStyle,
       ]}
@@ -174,25 +182,34 @@ function StackCard({
         <>
           <Animated.View
             pointerEvents="none"
-            style={[styles.overlay, styles.overlaySend, sendOverlay]}
+            style={[
+              styles.overlay,
+              styles.overlaySend,
+              { borderColor: c.success, backgroundColor: c.bannerSuccessBg },
+              sendOverlay,
+            ]}
           >
-            <Text style={[styles.overlaySendText, { color: c.success }]}>
+            <Text style={[styles.overlayText, { color: c.success }]}>
               Envoyer
             </Text>
           </Animated.View>
           <Animated.View
             pointerEvents="none"
-            style={[styles.overlay, styles.overlaySkip, skipOverlay]}
+            style={[
+              styles.overlay,
+              styles.overlaySkip,
+              { borderColor: c.danger, backgroundColor: c.bannerErrorBg },
+              skipOverlay,
+            ]}
           >
-            <Text style={[styles.overlaySkipText, { color: c.danger }]}>
+            <Text style={[styles.overlayText, { color: c.danger }]}>
               Passer
             </Text>
           </Animated.View>
           <CardFace prospect={prospect} />
         </>
       ) : (
-        // Silhouette opaque — pas de texte derrière la carte active
-        <View style={[styles.backFace, { backgroundColor: c.cardSolid }]} />
+        <View style={[styles.backFace, { backgroundColor: backBg }]} />
       )}
     </Animated.View>
   );
@@ -252,21 +269,18 @@ export default function SwipeDeck({
 const styles = StyleSheet.create({
   deck: {
     flex: 1,
-    marginHorizontal: 16,
-    marginTop: 4,
-    marginBottom: 4,
+    marginHorizontal: 20,
     justifyContent: "center",
   },
   card: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   backFace: {
     flex: 1,
@@ -274,23 +288,22 @@ const styles = StyleSheet.create({
   cardInner: {
     flex: 1,
     padding: 20,
-    gap: 8,
+    gap: 6,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "800",
-    letterSpacing: -0.5,
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.4,
   },
-  sub: { fontSize: 14, lineHeight: 20 },
+  sub: { fontSize: 13, lineHeight: 18 },
+  email: { fontSize: 13, lineHeight: 18 },
   divider: {
     height: StyleSheet.hairlineWidth,
-    marginVertical: 6,
+    marginVertical: 8,
   },
   mailLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
+    fontSize: 13,
+    fontWeight: "600",
   },
   mailSubject: { fontSize: 17, fontWeight: "600" },
   bodyScroll: { flex: 1, marginTop: 2 },
@@ -301,33 +314,24 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: "absolute",
-    top: 22,
+    top: 16,
     zIndex: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1.5,
   },
   overlaySend: {
-    left: 18,
-    borderColor: "#30d158",
-    backgroundColor: "rgba(48,209,88,0.14)",
-    transform: [{ rotate: "-8deg" }],
+    left: 16,
+    transform: [{ rotate: "-6deg" }],
   },
   overlaySkip: {
-    right: 18,
-    borderColor: "#ff453a",
-    backgroundColor: "rgba(255,69,58,0.14)",
-    transform: [{ rotate: "8deg" }],
+    right: 16,
+    transform: [{ rotate: "6deg" }],
   },
-  overlaySendText: {
-    fontWeight: "800",
-    fontSize: 16,
-    letterSpacing: 0.4,
-  },
-  overlaySkipText: {
-    fontWeight: "800",
-    fontSize: 16,
-    letterSpacing: 0.4,
+  overlayText: {
+    fontWeight: "700",
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });

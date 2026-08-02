@@ -77,9 +77,9 @@ function EnvoisScreen() {
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setError("Session expirée. Reconnectez-vous.");
-        return;
+      } else {
+        setError(e instanceof Error ? e.message : String(e));
       }
-      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ function EnvoisScreen() {
       offsetRef.current = data.nextOffset;
       hasMoreRef.current = data.has_more;
     } catch {
-      /* silencieux : on réessaiera au prochain swipe */
+      /* ignore prefetch errors */
     } finally {
       fetchingMoreRef.current = false;
       setLoadingMore(false);
@@ -110,11 +110,10 @@ function EnvoisScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (canSwipe) void loadInitial();
-    }, [loadInitial, canSwipe]),
+      if (canSwipe) loadInitial();
+    }, [canSwipe, loadInitial]),
   );
 
-  // Précharge petit à petit quand le deck s’amenuise
   useEffect(() => {
     if (!canSwipe || loading) return;
     if (deck.length > 0 && deck.length <= PREFETCH_AT && hasMoreRef.current) {
@@ -141,10 +140,27 @@ function EnvoisScreen() {
 
   const current = deck[0];
 
-  const advance = () => setDeck((d) => d.slice(1));
+  const send = async (p: Prospect) => {
+    if (!p.row_index || !user?.email) return;
+    setBusy("send");
+    try {
+      await sendProspectMail({
+        email: user.email,
+        row_index: p.row_index,
+        subject: p.mailSubject || `Candidature — ${p.entreprise || ""}`,
+        body: p.mailBody || "",
+        target_email: p.email,
+      });
+      setDeck((d) => d.slice(1));
+    } catch (e) {
+      Alert.alert("Envoi", e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
 
-  const skip = async (p: Prospect = current!) => {
-    if (!p?.row_index || !user?.email) return;
+  const skip = async (p: Prospect) => {
+    if (!p.row_index || !user?.email) return;
     setBusy("skip");
     try {
       await updateProspectStatus({
@@ -152,31 +168,9 @@ function EnvoisScreen() {
         row_index: p.row_index,
         action: "no_contact",
       });
-      advance();
+      setDeck((d) => d.slice(1));
     } catch (e) {
       Alert.alert("Erreur", e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const send = async (p: Prospect = current!) => {
-    if (!p?.row_index || !user?.email) return;
-    setBusy("send");
-    try {
-      await sendProspectMail({
-        email: user.email,
-        row_index: p.row_index,
-        subject: p.mailSubject || "",
-        body: p.mailBody || "",
-        target_email: p.email,
-      });
-      advance();
-    } catch (e) {
-      Alert.alert(
-        "Envoi impossible",
-        e instanceof Error ? e.message : String(e),
-      );
     } finally {
       setBusy(null);
     }
@@ -219,11 +213,11 @@ function EnvoisScreen() {
         {
           backgroundColor: c.bg,
           paddingTop: Math.max(insets.top, 8) + 4,
-          // Laisse la place à UITabBar + home indicator (évite boutons coupés)
-          paddingBottom: TAB_BAR_CLEARANCE,
+          paddingBottom: TAB_BAR_CLEARANCE + insets.bottom,
         },
       ]}
     >
+      <Text style={[styles.largeTitle, { color: c.text }]}>Envois</Text>
       <View style={styles.metaRow}>
         <Text style={[styles.meta, { color: c.muted }]}>
           {deck.length}
@@ -257,7 +251,7 @@ function EnvoisScreen() {
             onSkip={skip}
           />
           <View style={styles.actions}>
-            <View style={styles.actionBtn}>
+            <View style={[styles.actionBtn, { flex: 0.9 }]}>
               <Button
                 label="Passer"
                 variant="gray"
@@ -266,16 +260,17 @@ function EnvoisScreen() {
                 onPress={() => skip(current)}
               />
             </View>
-            <View style={styles.actionBtn}>
+            <View style={[styles.actionBtn, { flex: 0.75 }]}>
               <Button
-                label="Régénérer"
+                label="Regen"
                 variant="tinted"
+                size="sm"
                 loading={busy === "regen"}
                 disabled={!!busy}
                 onPress={regen}
               />
             </View>
-            <View style={styles.actionBtn}>
+            <View style={[styles.actionBtn, { flex: 1.15 }]}>
               <Button
                 label="Envoyer"
                 loading={busy === "send"}
@@ -284,9 +279,13 @@ function EnvoisScreen() {
               />
             </View>
           </View>
-          <Text style={[styles.hint, { color: c.muted }]}>
-            Glisse à droite pour envoyer · à gauche pour passer
-          </Text>
+          {!busy ? (
+            <Text style={[styles.hint, { color: c.muted }]}>
+              Glisse à droite pour envoyer · à gauche pour passer
+            </Text>
+          ) : (
+            <View style={{ height: 14 }} />
+          )}
         </>
       ) : (
         <EmptyState
@@ -309,28 +308,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 4,
     minHeight: 22,
   },
   meta: { fontSize: 13 },
   metaHint: { fontSize: 12, fontWeight: "600" },
   actions: {
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 6,
-  },
-  actionBtn: { flex: 1, minHeight: 50 },
-  hint: {
-    fontSize: 12,
-    textAlign: "center",
-    paddingBottom: 4,
+    gap: 10,
     paddingHorizontal: 20,
-    lineHeight: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    alignItems: "center",
+  },
+  actionBtn: { minHeight: 52 },
+  hint: {
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });
-
 
 export default function EnvoisScreenGate() {
   return (

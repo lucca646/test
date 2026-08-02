@@ -160,19 +160,19 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   brand: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: "800",
-    letterSpacing: -1.2,
+    letterSpacing: -1.0,
   },
   sub: { fontSize: 14, marginBottom: 8 },
   card: {
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 18,
     gap: 10,
   },
   label: { fontSize: 13, fontWeight: "600" },
   input: {
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 17,

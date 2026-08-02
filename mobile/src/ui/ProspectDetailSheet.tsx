@@ -22,7 +22,7 @@ import {
   prospectStatusKind,
   prospectStatusLabel,
 } from "../utils/prospectStatus";
-import { Button, Group, Row } from "./Apple";
+import { Button, Group, Row, StatusPill } from "./Apple";
 
 type Props = {
   prospect: Prospect | null;
@@ -52,22 +52,6 @@ export function ProspectDetailSheet({
   const canToggle = entreprisesCanToggleContactStatus(user);
   const p = prospect;
   const kind = p ? prospectStatusKind(p.statut) : "contact";
-  const pillBg =
-    kind === "sent"
-      ? c.pillSentBg
-      : kind === "no_contact"
-        ? c.pillMutedBg
-        : kind === "in_progress"
-          ? c.pillWarnBg
-          : c.pillBg;
-  const pillColor =
-    kind === "sent"
-      ? c.success
-      : kind === "no_contact"
-        ? c.muted
-        : kind === "in_progress"
-          ? c.warning
-          : c.accent;
 
   return (
     <Modal
@@ -76,16 +60,7 @@ export function ProspectDetailSheet({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: c.bg,
-            paddingTop: 12,
-            paddingBottom: insets.bottom + 16,
-          },
-        ]}
-      >
+      <View style={[styles.sheet, { backgroundColor: c.bg }]}>
         <View style={[styles.grabber, { backgroundColor: c.separator }]} />
         <View style={styles.header}>
           <Text
@@ -104,126 +79,150 @@ export function ProspectDetailSheet({
         </View>
 
         {!p ? null : (
-          <ScrollView
-            contentContainerStyle={styles.body}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, { backgroundColor: pillBg }]}>
-                <Text style={[styles.badgeText, { color: pillColor }]}>
-                  {prospectStatusLabel(p.statut)}
-                </Text>
+          <>
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.body}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.badgeRow}>
+                <StatusPill
+                  kind={kind}
+                  label={prospectStatusLabel(p.statut)}
+                />
+                {p.repondu === "yes" ? (
+                  <StatusPill kind="sent" label="Répondu" />
+                ) : null}
+                {busy ? <ActivityIndicator color={c.accent} /> : null}
               </View>
-              {p.repondu === "yes" ? (
-                <View style={[styles.badge, { backgroundColor: c.pillSentBg }]}>
-                  <Text style={[styles.badgeText, { color: c.success }]}>
-                    Répondu
+
+              <Group>
+                <Row label="Ville" value={p.ville || "—"} />
+                <Row label="Adresse" value={p.adresse || "—"} />
+                <Row label="Secteur" value={p.secteur || "—"} />
+                <Row label="Taille" value={p.taille || "—"} last />
+              </Group>
+
+              {showContacts ? (
+                <>
+                  <Text style={[styles.section, { color: c.muted }]}>
+                    Contact
                   </Text>
-                </View>
+                  <Group>
+                    <Row
+                      label="Email"
+                      value={p.email || "—"}
+                      accentValue
+                      onPress={
+                        p.email
+                          ? () => Linking.openURL(`mailto:${p.email}`)
+                          : undefined
+                      }
+                    />
+                    <Row
+                      label="Téléphone"
+                      value={p.numero || "—"}
+                      accentValue
+                      onPress={
+                        p.numero
+                          ? () => Linking.openURL(`tel:${p.numero}`)
+                          : undefined
+                      }
+                    />
+                    <Row label="Contact" value={p.contact || "—"} last />
+                  </Group>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.section, { color: c.muted }]}>
+                    Contact
+                  </Text>
+                  <Group>
+                    <Row
+                      label="Détails"
+                      value="Disponibles dès le plan Avancé"
+                      last
+                    />
+                  </Group>
+                </>
+              )}
+
+              {p.lien || p.notePerso || p.info ? (
+                <>
+                  <Text style={[styles.section, { color: c.muted }]}>
+                    Infos
+                  </Text>
+                  <Group>
+                    {p.lien ? (
+                      <Row
+                        label="Site"
+                        value="Ouvrir"
+                        accentValue
+                        onPress={() => Linking.openURL(String(p.lien))}
+                        last={!p.notePerso && !p.info}
+                      />
+                    ) : null}
+                    {p.notePerso ? (
+                      <Row
+                        label="Note"
+                        value={String(p.notePerso)}
+                        last={!p.info}
+                      />
+                    ) : null}
+                    {p.info ? (
+                      <Row label="Info" value={String(p.info)} last />
+                    ) : null}
+                  </Group>
+                </>
               ) : null}
-              {busy ? <ActivityIndicator color={c.accent} /> : null}
-            </View>
 
-            <Group>
-              <Row label="Ville" value={p.ville || "—"} />
-              <Row label="Adresse" value={p.adresse || "—"} />
-              <Row label="Secteur" value={p.secteur || "—"} />
-              <Row label="Taille" value={p.taille || "—"} last />
-            </Group>
-
-            {showContacts ? (
-              <>
-                <Text style={[styles.section, { color: c.muted }]}>Contact</Text>
-                <Group>
-                  <Row
-                    label="Email"
-                    value={p.email || "—"}
-                    onPress={
-                      p.email
-                        ? () => Linking.openURL(`mailto:${p.email}`)
-                        : undefined
-                    }
-                  />
-                  <Row
-                    label="Téléphone"
-                    value={p.numero || "—"}
-                    onPress={
-                      p.numero
-                        ? () => Linking.openURL(`tel:${p.numero}`)
-                        : undefined
-                    }
-                  />
-                  <Row label="Contact" value={p.contact || "—"} last />
-                </Group>
-              </>
-            ) : (
-              <>
-                <Text style={[styles.section, { color: c.muted }]}>Contact</Text>
-                <Group>
-                  <Row
-                    label="Détails"
-                    value="Disponibles dès le plan Avancé"
-                    last
-                  />
-                </Group>
-              </>
-            )}
-
-            {p.lien || p.notePerso || p.info ? (
-              <>
-                <Text style={[styles.section, { color: c.muted }]}>Infos</Text>
-                <Group>
-                  {p.lien ? (
+              {showMail ? (
+                <>
+                  <Text style={[styles.section, { color: c.muted }]}>Mail</Text>
+                  <Group>
                     <Row
-                      label="Site"
-                      value="Ouvrir"
-                      onPress={() => Linking.openURL(String(p.lien))}
-                      last={!p.notePerso && !p.info}
+                      label="Objet"
+                      value={p.mailSubject || "Non généré"}
+                      last={!p.mailBody}
                     />
-                  ) : null}
-                  {p.notePerso ? (
-                    <Row
-                      label="Note"
-                      value={String(p.notePerso)}
-                      last={!p.info}
-                    />
-                  ) : null}
-                  {p.info ? (
-                    <Row label="Info" value={String(p.info)} last />
-                  ) : null}
-                </Group>
-              </>
-            ) : null}
-
-            {showMail ? (
-              <>
-                <Text style={[styles.section, { color: c.muted }]}>Mail</Text>
-                <Group>
-                  <Row
-                    label="Objet"
-                    value={p.mailSubject || "Non généré"}
-                    last={!p.mailBody}
-                  />
-                  {p.mailBody ? (
-                    <View
-                      style={[
-                        styles.mailBody,
-                        { borderTopColor: c.border },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.mailBodyText, { color: c.muted }]}
-                        numberOfLines={12}
+                    {p.mailBody ? (
+                      <View
+                        style={[
+                          styles.mailBody,
+                          { borderTopColor: c.border },
+                        ]}
                       >
-                        {p.mailBody}
-                      </Text>
-                    </View>
-                  ) : null}
-                </Group>
-              </>
-            ) : null}
+                        <Text
+                          style={[styles.mailBodyText, { color: c.muted }]}
+                          numberOfLines={12}
+                        >
+                          {p.mailBody}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </Group>
+                </>
+              ) : null}
+            </ScrollView>
 
-            <View style={styles.actions}>
+            <View
+              style={[
+                styles.footer,
+                {
+                  borderTopColor: c.separator,
+                  paddingBottom: insets.bottom + 12,
+                  backgroundColor: c.bg,
+                },
+              ]}
+            >
+              {showMail ? (
+                <Button
+                  label="Envoyer la candidature"
+                  disabled={busy}
+                  loading={busy}
+                  onPress={() => onSend(p)}
+                />
+              ) : null}
               {canToggle ? (
                 <Button
                   label={
@@ -236,32 +235,24 @@ export function ProspectDetailSheet({
                   onPress={() => onToggleStatus(p)}
                 />
               ) : null}
-              {showMail ? (
-                <>
-                  <Button
-                    label="Envoyer la candidature"
-                    disabled={busy}
-                    loading={busy}
-                    onPress={() => onSend(p)}
-                  />
-                  {onOpenEnvois ? (
-                    <Button
-                      label="Ouvrir Envois"
-                      variant="tinted"
-                      disabled={busy}
-                      onPress={onOpenEnvois}
-                    />
-                  ) : null}
-                </>
+              {showMail && onOpenEnvois ? (
+                <Button
+                  label="Ouvrir Envois"
+                  variant="tinted"
+                  disabled={busy}
+                  onPress={onOpenEnvois}
+                />
               ) : null}
-              <Button
-                label="Supprimer"
-                variant="destructive"
-                disabled={busy}
-                onPress={() => onDelete(p)}
-              />
+              <View style={{ marginTop: 8 }}>
+                <Button
+                  label="Supprimer"
+                  variant="destructive"
+                  disabled={busy}
+                  onPress={() => onDelete(p)}
+                />
+              </View>
             </View>
-          </ScrollView>
+          </>
         )}
       </View>
     </Modal>
@@ -269,7 +260,7 @@ export function ProspectDetailSheet({
 }
 
 const styles = StyleSheet.create({
-  sheet: { flex: 1 },
+  sheet: { flex: 1, paddingTop: 12 },
   grabber: {
     alignSelf: "center",
     width: 36,
@@ -286,9 +277,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "700",
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
   },
   closeBtn: {
     paddingHorizontal: 14,
@@ -298,7 +289,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   closeText: { fontSize: 16, fontWeight: "600" },
-  body: { paddingBottom: 32, gap: 4 },
+  scroll: { flex: 1 },
+  body: { paddingBottom: 24, gap: 4 },
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -307,12 +299,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexWrap: "wrap",
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  badgeText: { fontSize: 13, fontWeight: "700" },
   section: {
     fontSize: 13,
     fontWeight: "600",
@@ -331,9 +317,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
-  actions: {
-    marginTop: 24,
-    marginHorizontal: 16,
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
     gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

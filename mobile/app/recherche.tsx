@@ -128,6 +128,20 @@ function RechercheScreen() {
       }}
       keyboardShouldPersistTaps="handled"
     >
+      <Text
+        style={{
+          fontSize: 28,
+          fontWeight: "700",
+          letterSpacing: -0.6,
+          marginHorizontal: 20,
+          marginTop: 8,
+          marginBottom: 4,
+          color: c.text,
+        }}
+      >
+        Recherche
+      </Text>
+
       {!activated ? (
         <Banner
           tone="info"
@@ -249,8 +263,8 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 999,
-    minHeight: 40,
+    borderRadius: 10,
+    minHeight: 44,
     justifyContent: "center",
   },
   chipText: { fontSize: 13, fontWeight: "600" },

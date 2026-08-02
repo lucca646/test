@@ -23,14 +23,13 @@ import {
   type Prospect,
 } from "../src/api/mailing";
 import { ApiError } from "../src/api/http";
-import { Banner, EmptyState, Segmented } from "../src/ui/Apple";
+import { Banner, EmptyState, Segmented, StatusPill } from "../src/ui/Apple";
 import { ProspectDetailSheet } from "../src/ui/ProspectDetailSheet";
 import { TAB_BAR_CLEARANCE, useColors } from "../src/theme";
 import {
   entreprisesHideFilterTabs,
   entreprisesHideSentTab,
   entreprisesShowContacts,
-  userPlan,
 } from "../src/utils/planAccess";
 import {
   isNoContactStatut,
@@ -228,10 +227,11 @@ function EntreprisesScreen() {
         { backgroundColor: c.bg, paddingTop: Math.max(insets.top, 8) + 4 },
       ]}
     >
+      <Text style={[styles.largeTitle, { color: c.text }]}>Entreprises</Text>
       <Text style={[styles.meta, { color: c.muted }]}>
         {visible.length}
         {total && total !== visible.length ? ` / ${total}` : ""} entreprise
-        {visible.length > 1 ? "s" : ""} · plan {userPlan(user)}
+        {visible.length > 1 ? "s" : ""}
       </Text>
 
       <View style={styles.searchWrap}>
@@ -252,7 +252,7 @@ function EntreprisesScreen() {
       </View>
 
       {!hideFilters ? (
-        <View style={{ marginBottom: 10 }}>
+        <View style={{ marginBottom: 8 }}>
           <Segmented
             value={filter}
             onChange={(id) => setFilter(id as Filter)}
@@ -300,7 +300,13 @@ function EntreprisesScreen() {
               subtitle={
                 query.trim()
                   ? "Modifie la recherche ou le filtre."
-                  : "Lance une recherche ou tire pour actualiser."
+                  : "Lance une recherche pour remplir ta liste."
+              }
+              actionLabel={query.trim() ? undefined : "Lancer une recherche"}
+              onAction={
+                query.trim()
+                  ? undefined
+                  : () => router.push("/recherche")
               }
             />
           }
@@ -345,30 +351,12 @@ function ProspectRow({
 }) {
   const c = useColors();
   const kind = prospectStatusKind(prospect.statut);
-  const subtitleParts = [prospect.ville].filter(Boolean);
-  if (showContacts) {
-    const contactLine = [prospect.email, prospect.numero].filter(Boolean);
-    if (contactLine.length) subtitleParts.push(contactLine.join(" · "));
-  } else if (prospect.secteur) {
-    subtitleParts.push(prospect.secteur);
+  const subtitleParts: string[] = [];
+  if (prospect.ville) subtitleParts.push(prospect.ville);
+  if (prospect.secteur) subtitleParts.push(prospect.secteur);
+  else if (showContacts && prospect.email) {
+    /* contacts détaillés restent en fiche */
   }
-
-  const pillBg =
-    kind === "sent"
-      ? c.pillSentBg
-      : kind === "no_contact"
-        ? c.pillMutedBg
-        : kind === "in_progress"
-          ? c.pillWarnBg
-          : c.pillBg;
-  const pillColor =
-    kind === "sent"
-      ? c.success
-      : kind === "no_contact"
-        ? c.muted
-        : kind === "in_progress"
-          ? c.warning
-          : c.accent;
 
   return (
     <Pressable
@@ -382,35 +370,36 @@ function ProspectRow({
         <Text style={[styles.rowTitle, { color: c.text }]} numberOfLines={1}>
           {prospect.entreprise || "Entreprise"}
         </Text>
-        <Text style={[styles.rowSub, { color: c.muted }]} numberOfLines={2}>
+        <StatusPill kind={kind} label={prospectStatusLabel(prospect.statut)} />
+        <Text style={[styles.rowSub, { color: c.muted }]} numberOfLines={1}>
           {subtitleParts.join(" · ") || "—"}
         </Text>
       </View>
-      <View style={styles.rowRight}>
-        <View style={[styles.pill, { backgroundColor: pillBg }]}>
-          <Text style={[styles.pillText, { color: pillColor }]}>
-            {prospectStatusLabel(prospect.statut)}
-          </Text>
-        </View>
-        <Text style={[styles.chevron, { color: c.chevron }]}>›</Text>
-      </View>
+      <Text style={[styles.chevron, { color: c.chevron }]}>›</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
+  largeTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.6,
+    marginHorizontal: 20,
+    marginBottom: 4,
+  },
   meta: {
     fontSize: 13,
     marginHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   searchWrap: {
     marginHorizontal: 16,
     marginBottom: 10,
   },
   search: {
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 17,
@@ -426,40 +415,23 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 20,
     gap: 12,
-    minHeight: 76,
+    minHeight: 88,
   },
-  rowMain: { flex: 1, gap: 4, minWidth: 0 },
+  rowMain: { flex: 1, gap: 6, minWidth: 0 },
   rowTitle: {
     fontSize: 17,
     fontWeight: "600",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
-  rowSub: { fontSize: 14, lineHeight: 19 },
-  rowRight: {
-    alignItems: "center",
-    gap: 8,
-    flexDirection: "row",
+  rowSub: { fontSize: 15, lineHeight: 20 },
+  chevron: {
+    fontSize: 20,
     flexShrink: 0,
   },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    maxWidth: 118,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  chevron: {
-    fontSize: 22,
-    marginTop: -2,
-  },
 });
-
 
 export default function EntreprisesScreenGate() {
   return (
