@@ -22,7 +22,7 @@ function ParametresScreen() {
         paddingBottom: TAB_BAR_CLEARANCE + insets.bottom,
       }}
     >
-      <Text style={[styles.largeTitle, { color: c.text }]}>Profil</Text>
+      <Text style={[styles.largeTitle, { color: c.text }]}>Ton profil</Text>
       <View style={styles.hero}>
         <View style={[styles.avatar, { backgroundColor: c.accent }]}>
           <Text style={styles.avatarText}>

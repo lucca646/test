@@ -157,13 +157,24 @@ function RechercheScreen() {
       }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={[styles.largeTitle, { color: c.text }]}>Recherche</Text>
+      <Text style={[styles.largeTitle, { color: c.text }]}>Ta recherche</Text>
+      <Text
+        style={{
+          color: c.muted,
+          fontSize: 15,
+          lineHeight: 20,
+          marginHorizontal: 20,
+          marginBottom: 4,
+        }}
+      >
+        Dis-nous qui tu cherches — on s’occupe du reste.
+      </Text>
 
       {!activated ? (
         <Banner
           tone="info"
-          title="Compte non activé"
-          subtitle="Tu peux déjà composer un ciblage. L’activation débloque le lancement."
+          title="Presque prêt"
+          subtitle="Tu peux déjà composer ton ciblage. L’activation débloque le lancement."
         />
       ) : null}
 

@@ -1,6 +1,6 @@
 /**
  * Source UNIQUE de la barre d’onglets — web lab + iOS (NativeTabs / UITabBar).
- * Catalogue COR·ALT (réplique iOS Coraia Glass).
+ * Catalogue COR·ALT — Accueil (plan du jour) en premier.
  *
  * `hidden: true` retire l’onglet de la barre partout, sans supprimer la route.
  * `side` = split web uniquement (iOS reste UITabBar Apple).
@@ -29,29 +29,14 @@ export const NAV_TINT = "#0a84ff";
 /** @type {AppTab[]} */
 export const APP_TABS = [
   {
-    id: "entreprises",
-    /** `/` = accueil web ; iOS utilise routeName `entreprises`. */
-    path: "/",
-    routeName: "entreprises",
-    label: "Entreprises",
-    short: "Entreprises",
-    sf: { default: "building.2", selected: "building.2.fill" },
-    f7: { default: "Layers", active: "LayersFill" },
-    ion: { default: "business-outline", active: "business" },
-    badge: null,
-    hidden: false,
-    side: "left",
-  },
-  {
-    id: "recherche",
-    path: "/recherche/",
-    routeName: "recherche",
-    label: "Recherche",
-    short: "Recherche",
-    sf: "magnifyingglass",
-    f7: { default: "Search", active: "Search" },
-    ion: { default: "search-outline", active: "search" },
-    role: "search",
+    id: "accueil",
+    path: "/accueil/",
+    routeName: "accueil",
+    label: "Accueil",
+    short: "Accueil",
+    sf: { default: "house", selected: "house.fill" },
+    f7: { default: "House", active: "HouseFill" },
+    ion: { default: "home-outline", active: "home" },
     badge: null,
     hidden: false,
     side: "left",
@@ -63,14 +48,41 @@ export const APP_TABS = [
     label: "Envois",
     short: "Envois",
     sf: {
-      default: "rectangle.stack",
-      selected: "rectangle.stack.fill",
+      default: "paperplane",
+      selected: "paperplane.fill",
     },
-    f7: { default: "DocText", active: "DocTextFill" },
-    ion: { default: "albums-outline", active: "albums" },
+    f7: { default: "Paperplane", active: "PaperplaneFill" },
+    ion: { default: "paper-plane-outline", active: "paper-plane" },
+    badge: null,
+    hidden: false,
+    side: "left",
+  },
+  {
+    id: "entreprises",
+    path: "/entreprises/",
+    routeName: "entreprises",
+    label: "Liste",
+    short: "Liste",
+    sf: { default: "building.2", selected: "building.2.fill" },
+    f7: { default: "Layers", active: "LayersFill" },
+    ion: { default: "business-outline", active: "business" },
     badge: null,
     hidden: false,
     side: "right",
+  },
+  {
+    id: "recherche",
+    path: "/recherche/",
+    routeName: "recherche",
+    label: "Recherche",
+    short: "Recherche",
+    sf: "magnifyingglass",
+    f7: { default: "Search", active: "Search" },
+    ion: { default: "search-outline", active: "search" },
+    badge: null,
+    /** Hors barre — accessible depuis Accueil */
+    hidden: true,
+    side: "left",
   },
   {
     id: "parametres",

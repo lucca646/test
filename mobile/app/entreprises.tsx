@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,12 @@ import {
 import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Redirect, useFocusEffect, useRouter } from "expo-router";
+import {
+  Redirect,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useAuth } from "../src/auth/AuthContext";
 import AuthGate from "../src/screens/AuthGate";
 import {
@@ -47,11 +52,17 @@ type Filter = "all" | "contact" | "sent";
 function EntreprisesScreen() {
   const { user, activated } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams<{ filter?: string }>();
   const c = useColors();
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState<Prospect[]>([]);
   const [filter, setFilter] = useState<Filter>("contact");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const f = params.filter;
+    if (f === "contact" || f === "sent" || f === "all") setFilter(f);
+  }, [params.filter]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | number | null>(null);
@@ -242,7 +253,10 @@ function EntreprisesScreen() {
         { backgroundColor: c.bg, paddingTop: Math.max(insets.top, 8) + 4 },
       ]}
     >
-      <Text style={[styles.largeTitle, { color: c.text }]}>Entreprises</Text>
+      <Text style={[styles.largeTitle, { color: c.text }]}>Tes entreprises</Text>
+      <Text style={[styles.intro, { color: c.muted }]}>
+        Celles que tu suis pour ton alternance.
+      </Text>
 
       {!hideFilters ? (
         <View style={styles.folderRow}>
@@ -524,7 +538,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.6,
     marginHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  intro: {
+    fontSize: 15,
+    lineHeight: 20,
+    marginHorizontal: 20,
+    marginBottom: 14,
   },
   folderRow: {
     flexDirection: "row",

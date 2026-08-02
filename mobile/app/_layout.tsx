@@ -19,8 +19,8 @@ import { applyOtaUpdateIfAny } from "../lib/ota";
 import { useColors } from "../src/theme";
 
 /**
- * NativeTabs racine — thème = Appearance système (jour/nuit).
- * Pas de role="search" : la loupe système chevauche Profil.
+ * NativeTabs racine — Accueil (plan du jour) en premier.
+ * Recherche hors barre (accessible depuis Accueil).
  */
 export default function RootLayout() {
   useEffect(() => {
@@ -74,24 +74,13 @@ export default function RootLayout() {
             >
               <NativeTabs.Trigger name="index" hidden>
                 <Label> </Label>
-                <Icon sf="building.2" />
+                <Icon sf="house" />
               </NativeTabs.Trigger>
 
-              <NativeTabs.Trigger name="entreprises">
-                <Label>Entreprises</Label>
+              <NativeTabs.Trigger name="accueil">
+                <Label>Accueil</Label>
                 <Icon
-                  sf={{ default: "building.2", selected: "building.2.fill" }}
-                />
-              </NativeTabs.Trigger>
-
-              {/* Pas de role="search" — évite le gros bouton loupe qui mange Profil */}
-              <NativeTabs.Trigger name="recherche">
-                <Label>Recherche</Label>
-                <Icon
-                  sf={{
-                    default: "magnifyingglass",
-                    selected: "magnifyingglass.circle.fill",
-                  }}
+                  sf={{ default: "house", selected: "house.fill" }}
                 />
               </NativeTabs.Trigger>
 
@@ -99,10 +88,23 @@ export default function RootLayout() {
                 <Label>Envois</Label>
                 <Icon
                   sf={{
-                    default: "rectangle.stack",
-                    selected: "rectangle.stack.fill",
+                    default: "paperplane",
+                    selected: "paperplane.fill",
                   }}
                 />
+              </NativeTabs.Trigger>
+
+              <NativeTabs.Trigger name="entreprises">
+                <Label>Liste</Label>
+                <Icon
+                  sf={{ default: "building.2", selected: "building.2.fill" }}
+                />
+              </NativeTabs.Trigger>
+
+              {/* Recherche hors barre — push depuis Accueil */}
+              <NativeTabs.Trigger name="recherche" hidden>
+                <Label>Recherche</Label>
+                <Icon sf="magnifyingglass" />
               </NativeTabs.Trigger>
 
               <NativeTabs.Trigger name="parametres">

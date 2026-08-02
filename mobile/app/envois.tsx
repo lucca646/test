@@ -224,17 +224,22 @@ function EnvoisScreen() {
       ]}
     >
       <View style={styles.header}>
-        <Text style={[styles.largeTitle, { color: c.text }]}>Envois</Text>
-        <View style={[styles.counter, { backgroundColor: c.searchBg }]}>
-          {loadingMore ? (
-            <ActivityIndicator color={c.accent} size="small" />
-          ) : (
-            <Text style={[styles.counterText, { color: c.text }]}>
-              {deck.length}
-              {total > deck.length ? `/${total}` : ""}
-            </Text>
-          )}
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={[styles.largeTitle, { color: c.text }]}>
+            À envoyer
+          </Text>
+          <Text style={[styles.headerSub, { color: c.muted }]}>
+            {deck.length === 0
+              ? "Rien en attente pour l’instant"
+              : deck.length === 1
+                ? "1 restante aujourd’hui"
+                : `${deck.length} restantes aujourd’hui`}
+            {total > deck.length ? ` · ${total} au total` : ""}
+          </Text>
         </View>
+        {loadingMore ? (
+          <ActivityIndicator color={c.accent} size="small" />
+        ) : null}
       </View>
 
       {error ? (
@@ -291,15 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.6,
   },
-  counter: {
-    minWidth: 52,
-    height: 32,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  counterText: { fontSize: 14, fontWeight: "700" },
+  headerSub: { fontSize: 14, lineHeight: 18 },
   stage: { flex: 1, justifyContent: "center" },
 });
 

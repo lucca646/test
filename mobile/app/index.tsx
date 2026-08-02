@@ -1,9 +1,8 @@
 import { Redirect } from "expo-router";
 
 /**
- * Deep link / cold start `coralt:///` → onglet Entreprises.
- * Sans ce fichier : « Unmatched Route ».
+ * Cold start `coralt:///` → Accueil (plan du jour).
  */
 export default function Index() {
-  return <Redirect href="/entreprises" />;
+  return <Redirect href="/accueil" />;
 }
