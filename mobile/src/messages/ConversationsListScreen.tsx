@@ -10,29 +10,32 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { listConversations, type ConversationSummary } from "./api";
+import { listConversations, listSims, type ConversationSummary, type SimStatus } from "./api";
 import ConversationRow from "./ConversationRow";
-import { EmptyState } from "../ui/Apple";
+import { EmptyState, Segmented } from "../ui/Apple";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { formatDisplayPhone } from "./format";
 
 const POLL_MS = 8000;
+const ALL_SIM = "all";
 
 export default function ConversationsListScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [sims, setSims] = useState<SimStatus[]>([]);
+  const [simFilter, setSimFilter] = useState<string>(ALL_SIM);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const focusedRef = useRef(false);
 
-  const load = useCallback(async (silent = false) => {
+  const load = useCallback(async (silent = false, sim = simFilter) => {
     if (!silent) setLoading(true);
     try {
-      const data = await listConversations();
+      const data = await listConversations(sim === ALL_SIM ? undefined : sim);
       setConversations(data);
       setError(null);
     } catch (e) {
@@ -40,7 +43,13 @@ export default function ConversationsListScreen() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [simFilter]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void listSims().then(setSims).catch(() => {});
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -55,6 +64,16 @@ export default function ConversationsListScreen() {
       };
     }, [load]),
   );
+
+  const onChangeSim = (id: string) => {
+    setSimFilter(id);
+    void load(false, id);
+  };
+
+  const simOptions = [
+    { id: ALL_SIM, label: "Toutes" },
+    ...sims.map((s) => ({ id: s.id, label: s.label.replace(/^SIM\s*/i, "SIM ") })),
+  ];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -90,6 +109,12 @@ export default function ConversationsListScreen() {
           clearButtonMode="while-editing"
         />
       </View>
+
+      {sims.length > 1 ? (
+        <View style={styles.simFilterWrap}>
+          <Segmented options={simOptions} value={simFilter} onChange={onChangeSim} />
+        </View>
+      ) : null}
 
       {error ? (
         <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
@@ -142,5 +167,6 @@ const styles = StyleSheet.create({
     height: 36,
   },
   searchInput: { flex: 1, fontSize: 16, height: 36 },
+  simFilterWrap: { marginBottom: 8 },
   errorText: { marginHorizontal: 16, marginBottom: 6, fontSize: 13 },
 });

@@ -188,7 +188,15 @@ export async function listSims(): Promise<SimStatus[]> {
   return request<SimStatus[]>("/api/sims");
 }
 
-export async function getStats(params?: { sim?: string }): Promise<StatsPayload> {
-  const qs = params?.sim ? `?sim=${encodeURIComponent(params.sim)}` : "";
-  return request<StatsPayload>(`/api/stats${qs}`);
+export async function getStats(params?: {
+  sim?: string;
+  from?: string;
+  to?: string;
+}): Promise<StatsPayload> {
+  const q = new URLSearchParams();
+  if (params?.sim) q.set("sim", params.sim);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  const qs = q.toString();
+  return request<StatsPayload>(`/api/stats${qs ? `?${qs}` : ""}`);
 }
