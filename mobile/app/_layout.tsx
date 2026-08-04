@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
-import { useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@react-navigation/native";
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import { CurrentUserProvider } from "../src/messages/CurrentUserContext";
+import { AppearanceProvider, useAppearance } from "../src/messages/AppearanceContext";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 import { useColors } from "../src/theme";
 
@@ -24,9 +24,17 @@ export default function RootLayout() {
     void applyOtaUpdateIfAny();
   }, []);
 
-  const scheme = useColorScheme();
+  return (
+    <AppearanceProvider>
+      <RootLayoutContent />
+    </AppearanceProvider>
+  );
+}
+
+function RootLayoutContent() {
+  const { resolvedScheme } = useAppearance();
   const c = useColors();
-  const isDark = scheme !== "light";
+  const isDark = resolvedScheme !== "light";
 
   const navTheme = isDark
     ? {

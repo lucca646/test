@@ -2,7 +2,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCurrentUser } from "./CurrentUserContext";
 import { avatarColor, initials } from "./format";
-import { Button, Group, Row, SectionHeader } from "../ui/Apple";
+import { Group, Row, SectionHeader } from "../ui/Apple";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 
 export default function ProfilScreen() {
@@ -10,6 +10,8 @@ export default function ProfilScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   if (!user) return null;
+
+  const isAdmin = user.role === "admin";
 
   return (
     <ScrollView
@@ -26,28 +28,48 @@ export default function ProfilScreen() {
           <Text style={styles.avatarText}>{initials(user.name)}</Text>
         </View>
         <Text style={[styles.name, { color: c.text }]}>{user.name}</Text>
-        <Text style={[styles.role, { color: c.muted }]}>
-          {user.role === "admin" ? "Administrateur" : "Vendeur"}
-        </Text>
+        <View
+          style={[
+            styles.rolePill,
+            { backgroundColor: isAdmin ? c.pillWarnBg : c.pillBg },
+          ]}
+        >
+          <Text style={[styles.roleText, { color: isAdmin ? c.pillWarnText : c.pillText }]}>
+            {isAdmin ? "Administrateur" : "Vendeur"}
+          </Text>
+        </View>
       </View>
 
       <SectionHeader title="Compte" />
       <Group>
-        <Row label="Identifiant" value={user.id} last />
+        <Row
+          label="Identifiant"
+          icon={{ name: "person-outline", backgroundColor: c.accent }}
+          value={user.id}
+        />
+        <Row
+          label="Rôle"
+          icon={{ name: "shield-checkmark-outline", backgroundColor: c.warning }}
+          value={isAdmin ? "Administrateur" : "Vendeur"}
+          last
+        />
       </Group>
 
-      <View style={styles.pad}>
-        <Button
+      <SectionHeader title="Session" />
+      <Group>
+        <Row
           label="Changer d’utilisateur"
-          variant="gray"
+          destructive
+          icon={{ name: "swap-horizontal", backgroundColor: c.danger }}
           onPress={() => {
             Alert.alert("Changer d’utilisateur", "Revenir à l’écran de sélection ?", [
               { text: "Annuler", style: "cancel" },
-              { text: "Changer", onPress: () => clearUser() },
+              { text: "Changer", style: "destructive", onPress: () => clearUser() },
             ]);
           }}
+          last
         />
-      </View>
+      </Group>
     </ScrollView>
   );
 }
@@ -63,15 +85,20 @@ const styles = StyleSheet.create({
   },
   hero: { alignItems: "center", paddingVertical: 20, gap: 4 },
   avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  avatarText: { color: "#fff", fontSize: 26, fontWeight: "700" },
+  avatarText: { color: "#fff", fontSize: 30, fontWeight: "700" },
   name: { fontSize: 22, fontWeight: "700" },
-  role: { fontSize: 15 },
-  pad: { paddingHorizontal: 16, marginTop: 28 },
+  rolePill: {
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  roleText: { fontSize: 13, fontWeight: "600" },
 });

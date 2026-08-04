@@ -2,12 +2,29 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   View,
   type ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { Ionicons } from "@expo/vector-icons";
 import { useColors, type ThemeColors } from "../theme";
+
+/** Icône façon iOS Settings : carré arrondi coloré + glyphe blanc. */
+export function RowIcon({
+  name,
+  backgroundColor,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  backgroundColor: string;
+}) {
+  return (
+    <View style={[styles.rowIcon, { backgroundColor }]}>
+      <Ionicons name={name} size={17} color="#fff" />
+    </View>
+  );
+}
 
 export function SectionHeader({ title }: { title: string }) {
   const c = useColors();
@@ -40,19 +57,34 @@ export function Group({
 export function Row({
   label,
   value,
+  subtitle,
+  icon,
   onPress,
   destructive,
   last,
   accentValue,
+  rightElement,
+  switchValue,
+  onSwitchChange,
+  switchDisabled,
 }: {
   label: string;
   value?: string;
+  subtitle?: string;
+  icon?: { name: keyof typeof Ionicons.glyphMap; backgroundColor: string };
   onPress?: () => void;
   destructive?: boolean;
   last?: boolean;
   accentValue?: boolean;
+  /** Élément custom à droite (prioritaire sur `value`/chevron), ex. un `Switch`. */
+  rightElement?: React.ReactNode;
+  /** Raccourci : affiche un `Switch` natif iOS à droite. */
+  switchValue?: boolean;
+  onSwitchChange?: (next: boolean) => void;
+  switchDisabled?: boolean;
 }) {
   const c = useColors();
+  const showSwitch = switchValue !== undefined;
   const inner = (
     <View
       style={[
@@ -63,25 +95,47 @@ export function Row({
         },
       ]}
     >
-      <Text
-        style={[styles.rowLabel, { color: destructive ? c.danger : c.text }]}
-      >
-        {label}
-      </Text>
-      {value ? (
+      {icon ? <RowIcon name={icon.name} backgroundColor={icon.backgroundColor} /> : null}
+      <View style={styles.rowTextCol}>
         <Text
-          style={[
-            styles.rowValue,
-            { color: accentValue && onPress ? c.accent : c.muted },
-          ]}
-          numberOfLines={2}
+          style={[styles.rowLabel, { color: destructive ? c.danger : c.text }]}
+          numberOfLines={1}
         >
-          {value}
+          {label}
         </Text>
-      ) : null}
-      {onPress ? (
-        <Text style={[styles.chevron, { color: c.chevron }]}>›</Text>
-      ) : null}
+        {subtitle ? (
+          <Text style={[styles.rowSubtitle, { color: c.muted }]} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {rightElement ? (
+        rightElement
+      ) : showSwitch ? (
+        <Switch
+          value={switchValue}
+          onValueChange={onSwitchChange}
+          disabled={switchDisabled}
+          trackColor={{ true: c.success, false: c.searchBg }}
+        />
+      ) : (
+        <>
+          {value ? (
+            <Text
+              style={[
+                styles.rowValue,
+                { color: accentValue && onPress ? c.accent : c.muted },
+              ]}
+              numberOfLines={2}
+            >
+              {value}
+            </Text>
+          ) : null}
+          {onPress ? (
+            <Text style={[styles.chevron, { color: c.chevron }]}>›</Text>
+          ) : null}
+        </>
+      )}
     </View>
   );
   if (!onPress) return inner;
@@ -349,7 +403,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  rowLabel: { flex: 1, fontSize: 17 },
+  rowIcon: {
+    width: 29,
+    height: 29,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTextCol: { flex: 1, gap: 1 },
+  rowLabel: { fontSize: 17 },
+  rowSubtitle: { fontSize: 13, lineHeight: 17 },
   rowValue: { fontSize: 16, maxWidth: "52%", textAlign: "right" },
   chevron: { fontSize: 20, marginTop: -1 },
   btn: {

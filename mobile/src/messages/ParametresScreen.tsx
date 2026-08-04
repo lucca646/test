@@ -1,20 +1,29 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { listSims, type SimStatus } from "./api";
-import { Group, Row, SectionHeader } from "../ui/Apple";
+import { useAppearance, type AppearanceMode } from "./AppearanceContext";
+import { Group, Row, Segmented, SectionHeader } from "../ui/Apple";
 import { MESSAGES_API_URL } from "../config";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { otaDebugLabel } from "../../lib/ota";
 
+const APPEARANCE_OPTIONS: { id: AppearanceMode; label: string }[] = [
+  { id: "system", label: "Système" },
+  { id: "light", label: "Clair" },
+  { id: "dark", label: "Sombre" },
+];
+
 export default function ParametresScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { mode, setMode } = useAppearance();
   const [sims, setSims] = useState<SimStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notifEnabled, setNotifEnabled] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -61,12 +70,21 @@ export default function ParametresScreen() {
       ) : (
         <Group>
           {sims.length === 0 ? (
-            <Row label="Aucune SIM" last />
+            <Row
+              label="Aucune SIM"
+              icon={{ name: "cellular-outline", backgroundColor: c.muted }}
+              last
+            />
           ) : (
             sims.map((sim, i) => (
               <Row
                 key={sim.id}
-                label={`${sim.label}${sim.ownNumber ? ` · ${sim.ownNumber}` : ""}`}
+                icon={{
+                  name: "cellular-outline",
+                  backgroundColor: sim.connected ? c.success : c.danger,
+                }}
+                label={sim.label}
+                subtitle={sim.ownNumber ?? undefined}
                 value={sim.connected ? "Connectée" : "Hors ligne"}
                 accentValue={sim.connected}
                 last={i === sims.length - 1}
@@ -76,15 +94,41 @@ export default function ParametresScreen() {
         </Group>
       )}
 
-      <SectionHeader title="Application" />
-      <Group>
-        <Row label="API Messages" value={MESSAGES_API_URL.replace(/^https?:\/\//, "")} />
-        <Row label="Build" value={otaDebugLabel()} last />
-      </Group>
+      <SectionHeader title="Apparence" />
+      <View style={styles.appearanceWrap}>
+        <Segmented
+          options={APPEARANCE_OPTIONS}
+          value={mode}
+          onChange={(id) => setMode(id as AppearanceMode)}
+        />
+      </View>
 
       <SectionHeader title="Notifications" />
       <Group>
-        <Row label="Push (bientôt)" value="—" last />
+        <Row
+          label="Notifications push"
+          subtitle="Bientôt disponible"
+          icon={{ name: "notifications", backgroundColor: c.danger }}
+          switchValue={notifEnabled}
+          onSwitchChange={setNotifEnabled}
+          switchDisabled
+          last
+        />
+      </Group>
+
+      <SectionHeader title="Application" />
+      <Group>
+        <Row
+          label="API Messages"
+          icon={{ name: "globe-outline", backgroundColor: c.accent }}
+          value={MESSAGES_API_URL.replace(/^https?:\/\//, "")}
+        />
+        <Row
+          label="Build"
+          icon={{ name: "construct-outline", backgroundColor: "#8e8e93" }}
+          value={otaDebugLabel()}
+          last
+        />
       </Group>
     </ScrollView>
   );
@@ -100,4 +144,5 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   error: { marginHorizontal: 16, fontSize: 14 },
+  appearanceWrap: { marginBottom: 6 },
 });

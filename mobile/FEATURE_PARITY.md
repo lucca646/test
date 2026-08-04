@@ -187,12 +187,12 @@ Endpoints **déjà disponibles** pour l’implémentation RN (rappel) :
 
 | Statut RN | Nombre |
 |-----------|--------|
-| ✅ Fait | **24** |
-| 🟡 Partiel | **18** |
-| ❌ Absent | **33** |
+| ✅ Fait | **23** |
+| 🟡 Partiel | **17** |
+| ❌ Absent | **35** |
 | **Total fonctionnalités recensées** | **75** |
 
-*(Les items N/A purs « clavier desktop » #41 sont comptés ❌/Basse ; #14 swipe ligne noté hors PWA mais resté dans le tableau comme vérification.)*
+*(#41 navigation clavier desktop compté ❌/Basse ; #14 swipe ligne confirmé absent côté PWA aussi.)*
 
 ---
 

@@ -1,4 +1,6 @@
+import { useContext } from "react";
 import { useColorScheme, type ColorSchemeName } from "react-native";
+import { AppearanceOverrideContext } from "./messages/AppearanceContext";
 
 export type ThemeColors = {
   bg: string;
@@ -120,9 +122,15 @@ export function colorsFor(scheme: ColorSchemeName | null | undefined): ThemeColo
   return scheme === "light" ? light : dark;
 }
 
-/** Thème = Appearance iOS (Réglages → Affichage). */
+/**
+ * Thème = Appearance iOS (Réglages → Affichage), sauf si l'utilisateur a
+ * choisi une surcharge dans Paramètres → Apparence (`AppearanceContext`).
+ */
 export function useColors(): ThemeColors {
-  return colorsFor(useColorScheme());
+  const systemScheme = useColorScheme();
+  const override = useContext(AppearanceOverrideContext);
+  if (override) return colorsFor(override.resolvedScheme);
+  return colorsFor(systemScheme);
 }
 
 /** Padding bas pour ne pas passer sous UITabBar + home indicator. */

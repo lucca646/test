@@ -4,7 +4,9 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStats, listSims, type SimStatus, type StatsPayload } from "./api";
 import { statsCache, statsCacheKey } from "./cache";
+import { labelColor } from "./format";
 import { EmptyState, Group, Row, SectionHeader, Segmented } from "../ui/Apple";
+import { BarChart, HorizontalBarChart } from "../ui/Charts";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 
 const ALL_SIM = "all";
@@ -137,6 +139,23 @@ function VolumeTab({ stats }: { stats: StatsPayload }) {
       {series.length === 0 ? (
         <Text style={[styles.emptyText, { color: c.muted }]}>Aucune donnée sur la période.</Text>
       ) : (
+        <BarChart
+          legend={[
+            { label: "Reçus", color: c.accent },
+            { label: "Envoyés", color: c.success },
+          ]}
+          data={series.map((day) => ({
+            label: formatDayLabel(day.day),
+            series: [
+              { value: day.inbound, color: c.accent },
+              { value: day.outbound, color: c.success },
+            ],
+          }))}
+        />
+      )}
+
+      <SectionHeader title="Détail par jour" />
+      {series.length === 0 ? null : (
         <Group>
           {series.map((day, i) => (
             <Row
@@ -162,32 +181,26 @@ function FunnelTab({ stats }: { stats: StatsPayload }) {
       {byCategory.length === 0 ? (
         <Text style={[styles.emptyText, { color: c.muted }]}>Aucune catégorie.</Text>
       ) : (
-        <Group>
-          {byCategory.map((row, i) => (
-            <Row
-              key={row.category}
-              label={row.label}
-              value={String(row.count)}
-              last={i === byCategory.length - 1}
-            />
-          ))}
-        </Group>
+        <HorizontalBarChart
+          data={byCategory.map((row) => ({
+            label: row.label,
+            value: row.count,
+            color: labelColor(row.label),
+          }))}
+        />
       )}
 
       <SectionHeader title="Par étiquette" />
       {byLabel.length === 0 ? (
         <Text style={[styles.emptyText, { color: c.muted }]}>Aucune étiquette.</Text>
       ) : (
-        <Group>
-          {byLabel.map((row, i) => (
-            <Row
-              key={row.name}
-              label={row.name}
-              value={String(row.count)}
-              last={i === byLabel.length - 1}
-            />
-          ))}
-        </Group>
+        <HorizontalBarChart
+          data={byLabel.map((row) => ({
+            label: row.name,
+            value: row.count,
+            color: labelColor(row.name),
+          }))}
+        />
       )}
     </>
   );
@@ -224,16 +237,26 @@ function RdvTab({ stats }: { stats: StatsPayload }) {
       {rdvByDay.length === 0 ? (
         <Text style={[styles.emptyText, { color: c.muted }]}>Aucun RDV réservé sur la période.</Text>
       ) : (
-        <Group>
-          {rdvByDay.map((row, i) => (
-            <Row
-              key={row.day}
-              label={formatDayLabel(row.day)}
-              value={String(row.count)}
-              last={i === rdvByDay.length - 1}
-            />
-          ))}
-        </Group>
+        <>
+          <BarChart
+            formatValue={(v) => String(v)}
+            data={rdvByDay.map((row) => ({
+              label: formatDayLabel(row.day),
+              series: [{ value: row.count, color: c.success }],
+            }))}
+          />
+          <View style={{ height: 16 }} />
+          <Group>
+            {rdvByDay.map((row, i) => (
+              <Row
+                key={row.day}
+                label={formatDayLabel(row.day)}
+                value={String(row.count)}
+                last={i === rdvByDay.length - 1}
+              />
+            ))}
+          </Group>
+        </>
       )}
     </>
   );
