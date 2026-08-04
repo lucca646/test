@@ -159,55 +159,59 @@ export default function ConversationsListScreen() {
       </View>
 
       {sims.length > 1 ? (
+        <View style={styles.simRowWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRowContent}
+          >
+            <SimChip
+              label="Toutes"
+              active={simFilter === ALL_SIM}
+              onPress={() => onChangeSim(ALL_SIM)}
+            />
+            {sims.map((s) => (
+              <SimChip
+                key={s.id}
+                label={s.label.replace(/^SIM\s*/i, "SIM ")}
+                active={simFilter === s.id}
+                connected={s.connected}
+                draftCount={s.draftCount}
+                onPress={() => onChangeSim(s.id)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      <View style={styles.filterRowWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.simRow}
+          contentContainerStyle={styles.chipRowContent}
         >
-          <SimChip
-            label="Toutes"
-            active={simFilter === ALL_SIM}
-            onPress={() => onChangeSim(ALL_SIM)}
+          <FilterChip
+            label={unreadTotal > 0 ? `Non lus (${unreadTotal})` : "Non lus"}
+            active={unreadOnly}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              setUnreadOnly((v) => !v);
+            }}
           />
-          {sims.map((s) => (
-            <SimChip
-              key={s.id}
-              label={s.label.replace(/^SIM\s*/i, "SIM ")}
-              active={simFilter === s.id}
-              connected={s.connected}
-              draftCount={s.draftCount}
-              onPress={() => onChangeSim(s.id)}
+          {availableLabels.map((label) => (
+            <FilterChip
+              key={label.name}
+              label={label.name}
+              color={label.color || labelColor(label.name)}
+              active={labelFilter === label.name}
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setLabelFilter((cur) => (cur === label.name ? null : label.name));
+              }}
             />
           ))}
         </ScrollView>
-      ) : null}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        <FilterChip
-          label={unreadTotal > 0 ? `Non lus (${unreadTotal})` : "Non lus"}
-          active={unreadOnly}
-          onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
-            setUnreadOnly((v) => !v);
-          }}
-        />
-        {availableLabels.map((label) => (
-          <FilterChip
-            key={label.name}
-            label={label.name}
-            color={label.color || labelColor(label.name)}
-            active={labelFilter === label.name}
-            onPress={() => {
-              Haptics.selectionAsync().catch(() => {});
-              setLabelFilter((cur) => (cur === label.name ? null : label.name));
-            }}
-          />
-        ))}
-      </ScrollView>
+      </View>
 
       {error ? (
         <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
@@ -342,13 +346,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 10,
     borderRadius: 10,
     paddingHorizontal: 10,
     height: 36,
   },
   searchInput: { flex: 1, fontSize: 16, height: 36 },
-  simRow: { paddingHorizontal: 16, gap: 8, marginBottom: 6 },
+  simRowWrap: { height: 32, marginBottom: 10 },
+  filterRowWrap: { height: 30, marginBottom: 10 },
+  chipRowContent: { paddingHorizontal: 16, gap: 8, alignItems: "center" },
   simChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -369,7 +375,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   simBadgeText: { fontSize: 10, fontWeight: "800" },
-  filterRow: { paddingHorizontal: 16, gap: 8, marginBottom: 8 },
   filterChip: {
     height: 30,
     paddingHorizontal: 12,
