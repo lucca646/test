@@ -94,6 +94,13 @@ export default function RootLayout() {
                 />
               </NativeTabs.Trigger>
 
+              <NativeTabs.Trigger name="messages">
+                <Label>Messages</Label>
+                <Icon
+                  sf={{ default: "message", selected: "message.fill" }}
+                />
+              </NativeTabs.Trigger>
+
               <NativeTabs.Trigger name="entreprises">
                 <Label>Liste</Label>
                 <Icon

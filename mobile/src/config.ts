@@ -20,3 +20,15 @@ export const BRIDGE_URL = (
 
 export const APP_ENV =
   process.env.EXPO_PUBLIC_APP_ENV || "development";
+
+/**
+ * Backend Messages (CRM SMS COR·ALT — `mcp/src/imessage-server.ts`).
+ * Service distinct de l'API COR·ALT (`API_URL` ci-dessus) : pas de bridge
+ * cookie nécessaire, la session utilise un Bearer token classique.
+ * Servi en clair (pas de TLS) → exception ATS ajoutée dans app.json.
+ */
+export const MESSAGES_API_URL = (
+  process.env.EXPO_PUBLIC_MESSAGES_API_URL ||
+  Constants.expoConfig?.extra?.messagesApiUrl ||
+  "http://46.62.139.238:8008"
+).replace(/\/$/, "");

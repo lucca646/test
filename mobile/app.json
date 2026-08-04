@@ -17,7 +17,15 @@
         "NSCameraUsageDescription": "Zone de test caméra / flash dans l’onglet Apps.",
         "NSFaceIDUsageDescription": "Zone de test Face ID dans l’onglet Apps.",
         "NSMicrophoneUsageDescription": "Optionnel pour tests caméra vidéo.",
-        "NSSupportsLiveActivitiesFrequentUpdates": false
+        "NSSupportsLiveActivitiesFrequentUpdates": false,
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "46.62.139.238": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": false
+            }
+          }
+        }
       },
       "entitlements": {}
     },
@@ -73,6 +81,7 @@
       "router": {},
       "apiUrl": "https://cal.coraia.eu",
       "bridgeUrl": "https://cal.coraia.eu",
+      "messagesApiUrl": "http://46.62.139.238:8008",
       "eas": {
         "build": {
           "experimental": {
