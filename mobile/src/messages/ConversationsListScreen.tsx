@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { listConversations, listSims, type ConversationSummary, type SimStatus } from "./api";
+import { conversationsCache, conversationsCacheKey } from "./cache";
 import ConversationRow from "./ConversationRow";
 import { EmptyState, Segmented } from "../ui/Apple";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
@@ -23,25 +24,32 @@ export default function ConversationsListScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
-  const [sims, setSims] = useState<SimStatus[]>([]);
   const [simFilter, setSimFilter] = useState<string>(ALL_SIM);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] = useState<ConversationSummary[]>(
+    () => conversationsCache.get(conversationsCacheKey(ALL_SIM)) ?? [],
+  );
+  const [sims, setSims] = useState<SimStatus[]>([]);
+  // Pas de spinner plein écran si on a déjà des données en cache pour ce filtre
+  // (stale-while-revalidate) — seulement au tout premier chargement à froid.
+  const [loading, setLoading] = useState(() => !conversationsCache.has(conversationsCacheKey(ALL_SIM)));
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const focusedRef = useRef(false);
 
   const load = useCallback(async (silent = false, sim = simFilter) => {
-    if (!silent) setLoading(true);
+    const cacheKey = conversationsCacheKey(sim);
+    const hasCache = conversationsCache.has(cacheKey);
+    if (!silent && !hasCache) setLoading(true);
     try {
       const data = await listConversations(sim === ALL_SIM ? undefined : sim);
+      conversationsCache.set(cacheKey, data);
       setConversations(data);
       setError(null);
     } catch (e) {
-      if (!silent) setError(e instanceof Error ? e.message : String(e));
+      if (!silent && !hasCache) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   }, [simFilter]);
 
@@ -67,6 +75,7 @@ export default function ConversationsListScreen() {
 
   const onChangeSim = (id: string) => {
     setSimFilter(id);
+    setConversations(conversationsCache.get(conversationsCacheKey(id)) ?? []);
     void load(false, id);
   };
 

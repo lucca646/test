@@ -3,6 +3,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View }
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStats, listSims, type SimStatus, type StatsPayload } from "./api";
+import { statsCache, statsCacheKey } from "./cache";
 import { EmptyState, Group, Row, SectionHeader, Segmented } from "../ui/Apple";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 
@@ -238,15 +239,23 @@ function RdvTab({ stats }: { stats: StatsPayload }) {
   );
 }
 
+const INITIAL_PERIOD = "7";
+
 export default function StatsScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const [stats, setStats] = useState<StatsPayload | null>(null);
-  const [sims, setSims] = useState<SimStatus[]>([]);
-  const [period, setPeriod] = useState("7");
+  const [period, setPeriod] = useState(INITIAL_PERIOD);
   const [simFilter, setSimFilter] = useState(ALL_SIM);
+  const [stats, setStats] = useState<StatsPayload | null>(() => {
+    const r = rangeForPeriod(INITIAL_PERIOD);
+    return statsCache.get(statsCacheKey(ALL_SIM, r.from, r.to)) ?? null;
+  });
+  const [sims, setSims] = useState<SimStatus[]>([]);
   const [category, setCategory] = useState("overview");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    const r = rangeForPeriod(INITIAL_PERIOD);
+    return !statsCache.has(statsCacheKey(ALL_SIM, r.from, r.to));
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -254,17 +263,20 @@ export default function StatsScreen() {
 
   const load = useCallback(
     async (silent = false, opts?: { period?: string; sim?: string }) => {
-      if (!silent) setLoading(true);
+      const { from, to } = rangeForPeriod(opts?.period ?? period);
+      const sim = opts?.sim ?? simFilter;
+      const cacheKey = statsCacheKey(sim, from, to);
+      const hasCache = statsCache.has(cacheKey);
+      if (!silent && !hasCache) setLoading(true);
       try {
-        const { from, to } = rangeForPeriod(opts?.period ?? period);
-        const sim = opts?.sim ?? simFilter;
         const data = await getStats({ sim, from, to });
+        statsCache.set(cacheKey, data);
         setStats(data);
         setError(null);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (!hasCache) setError(e instanceof Error ? e.message : String(e));
       } finally {
-        if (!silent) setLoading(false);
+        setLoading(false);
       }
     },
     [period, simFilter],
@@ -285,11 +297,14 @@ export default function StatsScreen() {
 
   const onChangePeriod = (id: string) => {
     setPeriod(id);
+    const r = rangeForPeriod(id);
+    setStats(statsCache.get(statsCacheKey(simFilter, r.from, r.to)) ?? null);
     void load(false, { period: id });
   };
 
   const onChangeSim = (id: string) => {
     setSimFilter(id);
+    setStats(statsCache.get(statsCacheKey(id, range.from, range.to)) ?? null);
     void load(false, { sim: id });
   };
 

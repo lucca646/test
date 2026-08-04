@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "../theme";
 import type { ConversationSummary } from "./api";
-import { avatarColor, formatDisplayPhone, formatListTimestamp, initials } from "./format";
+import { avatarColor, formatDisplayPhone, formatListTimestamp, initials, labelColor } from "./format";
 
 export default function ConversationRow({
   conversation,
@@ -21,6 +21,7 @@ export default function ConversationRow({
     conversation.last_direction === "out"
       ? `Vous : ${conversation.last_message || ""}`
       : conversation.last_message || "";
+  const labels = conversation.labels || [];
 
   return (
     <Pressable
@@ -34,6 +35,7 @@ export default function ConversationRow({
         pressed && { backgroundColor: c.rowPressed },
       ]}
     >
+      {unread ? <View style={[styles.unreadDot, { backgroundColor: c.accent }]} /> : null}
       <View style={[styles.avatar, { backgroundColor: avatarColor(conversation.phone) }]}>
         <Text style={styles.avatarText}>{initials(conversation.name || conversation.phone)}</Text>
       </View>
@@ -52,24 +54,29 @@ export default function ConversationRow({
             {formatListTimestamp(conversation.last_date)}
           </Text>
         </View>
-        <View style={styles.bottomLine}>
-          <Text
-            style={[
-              styles.preview,
-              { color: unread ? c.text : c.muted, fontWeight: unread ? "600" : "400" },
-            ]}
-            numberOfLines={2}
-          >
-            {preview}
-          </Text>
-          {unread ? (
-            <View style={[styles.badge, { backgroundColor: c.accent }]}>
-              <Text style={styles.badgeText}>
-                {conversation.unread_count > 9 ? "9+" : conversation.unread_count}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        <Text
+          style={[
+            styles.preview,
+            { color: unread ? c.text : c.muted, fontWeight: unread ? "600" : "400" },
+          ]}
+          numberOfLines={2}
+        >
+          {preview}
+        </Text>
+        {labels.length > 0 ? (
+          <View style={styles.labelsRow}>
+            {labels.slice(0, 3).map((label) => (
+              <View
+                key={label.id}
+                style={[styles.labelChip, { backgroundColor: label.color || labelColor(label.name) }]}
+              >
+                <Text style={styles.labelText} numberOfLines={1}>
+                  {label.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -80,9 +87,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 12,
+    gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   avatar: {
     width: 50,
@@ -96,16 +108,13 @@ const styles = StyleSheet.create({
   topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   name: { fontSize: 17, flex: 1, marginRight: 8 },
   time: { fontSize: 14 },
-  bottomLine: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  preview: { fontSize: 15, flex: 1, lineHeight: 19, marginRight: 8 },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
+  preview: { fontSize: 15, lineHeight: 19 },
+  labelsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 2 },
+  labelChip: {
     paddingHorizontal: 6,
-    marginTop: 1,
+    paddingVertical: 2,
+    borderRadius: 4,
+    maxWidth: 120,
   },
-  badgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  labelText: { color: "#fff", fontSize: 10, fontWeight: "700" },
 });

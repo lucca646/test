@@ -17,9 +17,11 @@ import {
   getConversation,
   markConversationRead,
   sendMessageToContact,
+  setBotEnabled,
   type ConversationDetail,
   type ConversationMessage,
 } from "./api";
+import { threadCache } from "./cache";
 import MessageBubble from "./MessageBubble";
 import { EmptyState } from "../ui/Apple";
 import { useColors } from "../theme";
@@ -58,23 +60,27 @@ export default function ThreadScreen() {
   const listRef = useRef<FlatList<Row>>(null);
   const focusedRef = useRef(false);
 
-  const [conversation, setConversation] = useState<ConversationDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [conversation, setConversation] = useState<ConversationDetail | null>(
+    () => (key ? threadCache.get(key) ?? null : null),
+  );
+  const [loading, setLoading] = useState(() => !!key && !threadCache.has(key));
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!key) return;
-    if (!silent) setLoading(true);
+    const hasCache = threadCache.has(key);
+    if (!silent && !hasCache) setLoading(true);
     try {
       const detail = await getConversation(key);
+      threadCache.set(key, detail);
       setConversation(detail);
       setError(null);
     } catch (e) {
-      if (!silent) setError(e instanceof Error ? e.message : String(e));
+      if (!silent && !hasCache) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   }, [key]);
 
@@ -120,13 +126,64 @@ export default function ThreadScreen() {
         ? formatDisplayPhone(conversation.phone)
         : "Messages";
 
+  const onToggleBot = async () => {
+    if (!conversation) return;
+    const next = !(conversation.bot_enabled ?? true);
+    Haptics.selectionAsync().catch(() => {});
+    const optimistic = { ...conversation, bot_enabled: next };
+    setConversation(optimistic);
+    if (key) threadCache.set(key, optimistic);
+    try {
+      await setBotEnabled(conversation.phone, next, conversation.sim_id);
+    } catch {
+      const reverted = { ...conversation, bot_enabled: !next };
+      setConversation(reverted);
+      if (key) threadCache.set(key, reverted);
+    }
+  };
+
+  const botEnabled = conversation?.bot_enabled ?? true;
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
-      <Stack.Screen options={{ title, headerBackTitle: "Messages" }} />
+      <Stack.Screen
+        options={{
+          title,
+          headerBackTitle: "Messages",
+          headerRight: conversation
+            ? () => (
+                <Pressable
+                  onPress={onToggleBot}
+                  style={[
+                    styles.botPill,
+                    { backgroundColor: botEnabled ? c.pillSentBg : c.pillWarnBg },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.botPillText,
+                      { color: botEnabled ? c.pillSentText : c.pillWarnText },
+                    ]}
+                  >
+                    🤖 {botEnabled ? "ON" : "OFF"}
+                  </Text>
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
+
+      {!loading && conversation && !botEnabled ? (
+        <View style={[styles.botBanner, { backgroundColor: c.pillWarnBg }]}>
+          <Text style={[styles.botBannerText, { color: c.pillWarnText }]}>
+            Bot désactivé — réponse manuelle active
+          </Text>
+        </View>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator color={c.accent} style={{ marginTop: 40 }} />
@@ -196,6 +253,21 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   errorText: { fontSize: 13, marginHorizontal: 16, marginBottom: 4 },
+  botPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginRight: 4,
+  },
+  botPillText: { fontSize: 12, fontWeight: "700" },
+  botBanner: {
+    marginHorizontal: 12,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  botBannerText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
   composerWrap: {
     flexDirection: "row",
     alignItems: "flex-end",

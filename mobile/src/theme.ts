@@ -4,6 +4,10 @@ export type ThemeColors = {
   bg: string;
   card: string;
   cardSolid: string;
+  /** Fond des bulles de message entrant (distinct de `card`, façon PWA). */
+  bubbleIn: string;
+  /** Fond des bulles de message sortant envoyé par le bot (vs `accent` = envoi manuel UI). */
+  bubbleBot: string;
   surfaceElevated: string;
   stackSilhouette: string;
   border: string;
@@ -39,6 +43,8 @@ const dark: ThemeColors = {
   bg: "#000000",
   card: "#1c1c1e",
   cardSolid: "#1c1c1e",
+  bubbleIn: "#262629",
+  bubbleBot: "#30d158",
   surfaceElevated: "#2c2c2e",
   stackSilhouette: "#2c2c2e",
   border: "rgba(84,84,88,0.65)",
@@ -74,6 +80,8 @@ const light: ThemeColors = {
   bg: "#f2f2f7",
   card: "#ffffff",
   cardSolid: "#ffffff",
+  bubbleIn: "#e9e9eb",
+  bubbleBot: "#34c759",
   surfaceElevated: "#ffffff",
   stackSilhouette: "#e5e5ea",
   border: "rgba(60,60,67,0.18)",

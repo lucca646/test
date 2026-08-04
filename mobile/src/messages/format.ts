@@ -8,16 +8,16 @@ export function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Couleur d'avatar stable par numéro/nom (palette iOS Messages). */
+/** Couleur d'avatar stable par numéro/nom (même palette que la PWA Messages). */
 const AVATAR_PALETTE = [
-  "#8e8e93",
-  "#ff9f0a",
-  "#ff375f",
+  "#007aff",
+  "#34c759",
+  "#ff9500",
   "#af52de",
-  "#5e5ce6",
-  "#0a84ff",
-  "#64d2ff",
-  "#30d158",
+  "#ff2d55",
+  "#5ac8fa",
+  "#ff6b35",
+  "#30b0c7",
 ];
 export function avatarColor(seed: string): string {
   let hash = 0;
@@ -49,7 +49,7 @@ export function formatListTimestamp(raw?: string | null): string {
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
-/** Libellé de séparateur de jour dans le fil (façon iMessage). */
+/** Libellé de séparateur de jour dans le fil (identique à la PWA : pas d'heure ici). */
 export function formatDaySeparator(raw?: string | null): string {
   const d = parseServerDate(raw);
   if (!d) return "";
@@ -57,18 +57,12 @@ export function formatDaySeparator(raw?: string | null): string {
   const sameDay = d.toDateString() === now.toDateString();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (sameDay) {
-    return `Aujourd’hui ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  }
-  if (d.toDateString() === yesterday.toDateString()) {
-    return `Hier ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
-  }
+  if (sameDay) return "Aujourd’hui";
+  if (d.toDateString() === yesterday.toDateString()) return "Hier";
   return d.toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "2-digit",
     month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -86,6 +80,28 @@ export function formatDisplayPhone(raw: string): string {
   else if (digits.length === 9) national = `0${digits}`;
   if (national.length !== 10) return raw;
   return `+33 ${national.slice(1, 2)} ${national.slice(2, 4)} ${national.slice(4, 6)} ${national.slice(6, 8)} ${national.slice(8, 10)}`;
+}
+
+/** Couleurs des étiquettes CRM — identiques à la PWA Messages. */
+const LABEL_COLORS: Record<string, string> = {
+  LinkedIn: "#6366f1",
+  "Gagné": "#ca8a04",
+  Vendu: "#db2777",
+  "Appelé": "#ea580c",
+  Manuel: "#64748b",
+  Nouveau: "#94a3b8",
+  "À qualifier": "#f59e0b",
+  "Découverte": "#3b82f6",
+  "Projet identifié": "#8b5cf6",
+  "Recherche active": "#0ea5e9",
+  "Intéressé": "#22c55e",
+  Chaud: "#16a34a",
+  Client: "#15803d",
+  "À relancer": "#eab308",
+  Refus: "#ef4444",
+};
+export function labelColor(name: string): string {
+  return LABEL_COLORS[name] || "#8e8e93";
 }
 
 /** Regroupe les messages consécutifs par jour pour insérer des séparateurs. */

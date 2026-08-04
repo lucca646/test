@@ -45,6 +45,8 @@ export type ConversationMessage = {
   sim_id?: string | null;
   timestamp?: number;
   reaction?: string | null;
+  /** "bot" (défaut si absent sur un envoi sortant) ou "ui" (envoi manuel). */
+  sentBy?: "bot" | "ui" | null;
   status: "envoye" | "lu" | "non_lu" | string;
 };
 
@@ -217,6 +219,18 @@ export async function sendMessageToContact(params: {
     method: "POST",
     body: { text: params.text },
     timeoutMs: 30000,
+  });
+}
+
+export async function setBotEnabled(
+  number: string,
+  enabled: boolean,
+  simId?: string,
+): Promise<{ enabled: boolean }> {
+  const qs = simId ? `?sim=${encodeURIComponent(simId)}` : "";
+  return request(`/api/contacts/${encodeURIComponent(number)}/bot${qs}`, {
+    method: "POST",
+    body: { enabled },
   });
 }
 
