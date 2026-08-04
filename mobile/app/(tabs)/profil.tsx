@@ -1,5 +1,5 @@
-import CurrentUserGate from "../src/messages/CurrentUserGate";
-import ProfilScreen from "../src/messages/ProfilScreen";
+import CurrentUserGate from "../../src/messages/CurrentUserGate";
+import ProfilScreen from "../../src/messages/ProfilScreen";
 
 export default function ProfilRoute() {
   return (

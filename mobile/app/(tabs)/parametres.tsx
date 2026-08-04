@@ -1,5 +1,5 @@
-import CurrentUserGate from "../src/messages/CurrentUserGate";
-import ParametresScreen from "../src/messages/ParametresScreen";
+import CurrentUserGate from "../../src/messages/CurrentUserGate";
+import ParametresScreen from "../../src/messages/ParametresScreen";
 
 export default function ParametresRoute() {
   return (

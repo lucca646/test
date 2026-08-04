@@ -71,6 +71,18 @@ export type SimStatus = {
   draftCount?: number;
 };
 
+export type StatsDayRow = {
+  day: string;
+  inbound: number;
+  outbound: number;
+  outboundBot: number;
+  outboundUi: number;
+  cost: number;
+  newContacts: number;
+  newConversations: number;
+  activeContacts: number;
+};
+
 export type StatsPayload = {
   ok: boolean;
   from: string;
@@ -87,13 +99,37 @@ export type StatsPayload = {
     outboundBot: number;
     outboundUi: number;
     replyRate: number | null;
+    avgReplyLatencySec: number | null;
     rdvInPeriod: number;
     gagne: number;
     messagesPerContact: number | null;
   };
+  volume: {
+    inbound: number;
+    outbound: number;
+    outboundBot: number;
+    outboundUi: number;
+    outboundUnknown: number;
+    hidden: number;
+    series: StatsDayRow[];
+  };
   costs: {
     total: number;
     avgPerPricedOutbound: number | null;
+    costPerGagne: number | null;
+  };
+  funnel: {
+    byCategory: Array<{ category: string; label: string; count: number }>;
+    byLabel: Array<{ name: string; count: number }>;
+  };
+  conversion: {
+    gagne: number;
+    withCalRdv: number;
+    rdvUpcoming: number;
+    rdvPast: number;
+    rdvInPeriod: number;
+    rdvByDay: Array<{ day: string; count: number }>;
+    rateVsContacted: number | null;
     costPerGagne: number | null;
   };
 };

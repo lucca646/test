@@ -138,7 +138,7 @@ export default function ConversationsListScreen() {
           renderItem={({ item }) => (
             <ConversationRow
               conversation={item}
-              onPress={() => router.push(`/messages/${item.key}`)}
+              onPress={() => router.push(`/thread/${item.key}`)}
             />
           )}
         />
