@@ -24,7 +24,8 @@ export const APP_ENV =
 /**
  * Backend Messages (CRM SMS COR·ALT — `mcp/src/imessage-server.ts`).
  * Service distinct de l'API COR·ALT (`API_URL` ci-dessus).
- * Servi en clair (pas de TLS) → exception ATS ajoutée dans app.json.
+ * Exposé en HTTPS via `simbot.coraia.eu` (nginx-proxy-manager → :8521,
+ * cert Let's Encrypt) — pas d'exception ATS nécessaire.
  *
  * Auth : token serveur (même niveau que n8n) envoyé en Bearer sur chaque
  * requête — pas de mot de passe utilisateur pour l'instant. Le choix
@@ -34,7 +35,7 @@ export const APP_ENV =
 export const MESSAGES_API_URL = (
   process.env.EXPO_PUBLIC_MESSAGES_API_URL ||
   Constants.expoConfig?.extra?.messagesApiUrl ||
-  "http://46.62.139.238:8008"
+  "https://simbot.coraia.eu"
 ).replace(/\/$/, "");
 
 export const MESSAGES_API_TOKEN =
