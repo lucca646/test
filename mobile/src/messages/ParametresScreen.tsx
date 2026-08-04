@@ -2,12 +2,19 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { listSims, type SimStatus } from "./api";
+import { getSimLimits, listSims, type SimLimits, type SimStatus } from "./api";
 import { useAppearance, type AppearanceMode } from "./AppearanceContext";
 import { Group, Row, Segmented, SectionHeader } from "../ui/Apple";
 import { MESSAGES_API_URL } from "../config";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { otaDebugLabel } from "../../lib/ota";
+
+function limitsSubtitle(limits?: SimLimits): string | undefined {
+  if (!limits) return undefined;
+  const max = limits.limits.maxMessagesPerDay;
+  const sent = limits.usage.messagesSent;
+  return max != null ? `${sent}/${max} SMS aujourd'hui` : `${sent} SMS aujourd'hui`;
+}
 
 const APPEARANCE_OPTIONS: { id: AppearanceMode; label: string }[] = [
   { id: "system", label: "Système" },
@@ -20,6 +27,7 @@ export default function ParametresScreen() {
   const insets = useSafeAreaInsets();
   const { mode, setMode } = useAppearance();
   const [sims, setSims] = useState<SimStatus[]>([]);
+  const [limitsBySim, setLimitsBySim] = useState<Record<string, SimLimits>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +36,21 @@ export default function ParametresScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      setSims(await listSims());
+      const list = await listSims();
+      setSims(list);
       setError(null);
+      const entries = await Promise.all(
+        list.filter((s) => s.connected).map(async (s) => {
+          try {
+            return [s.id, await getSimLimits(s.id)] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      setLimitsBySim(
+        Object.fromEntries(entries.filter((e): e is [string, SimLimits] => e !== null)),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -84,7 +105,10 @@ export default function ParametresScreen() {
                   backgroundColor: sim.connected ? c.success : c.danger,
                 }}
                 label={sim.label}
-                subtitle={sim.ownNumber ?? undefined}
+                subtitle={
+                  [sim.ownNumber, limitsSubtitle(limitsBySim[sim.id])].filter(Boolean).join(" · ") ||
+                  undefined
+                }
                 value={sim.connected ? "Connectée" : "Hors ligne"}
                 accentValue={sim.connected}
                 last={i === sims.length - 1}

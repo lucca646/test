@@ -47,6 +47,8 @@ export type ConversationMessage = {
   reaction?: string | null;
   /** "bot" (défaut si absent sur un envoi sortant) ou "ui" (envoi manuel). */
   sentBy?: "bot" | "ui" | null;
+  /** Coût facturé (€) — messages sortants IA uniquement. */
+  cost?: number | null;
   status: "envoye" | "lu" | "non_lu" | string;
 };
 
@@ -58,6 +60,11 @@ export type ConversationDetail = {
   category?: string;
   bot_enabled?: boolean;
   labels?: ConversationLabel[];
+  linkedin_url?: string | null;
+  email?: string | null;
+  project_summary?: string | null;
+  cal_rdv_at?: string | null;
+  total_cost?: number | null;
   messages: ConversationMessage[];
 };
 
@@ -72,6 +79,81 @@ export type SimStatus = {
   error?: string;
   draftCount?: number;
 };
+
+/** Signalement SAV (bouton "Signaler le bot"). */
+export const BOT_REPORT_REASONS = [
+  "repetition",
+  "no_context",
+  "wrong_info",
+  "tone",
+  "timing",
+  "other",
+] as const;
+export type BotReportReason = (typeof BOT_REPORT_REASONS)[number];
+export const BOT_REPORT_REASON_LABELS: Record<BotReportReason, string> = {
+  repetition: "Répète ou ignore l'historique",
+  no_context: "Ne répond pas à la question",
+  wrong_info: "Information incorrecte",
+  tone: "Ton ou formulation inadaptée",
+  timing: "Timing inapproprié (relance, délai)",
+  other: "Autre problème",
+};
+export const BOT_REPORT_STATUS_LABELS: Record<string, string> = {
+  open: "Ouvert",
+  triaged: "Règle proposée",
+  in_progress: "En attente validation",
+  resolved: "Jurisprudence ajoutée",
+  wont_fix: "Non retenu",
+};
+export type BotReportSummary = {
+  id: string;
+  status: string;
+  reason: BotReportReason;
+  note?: string;
+  createdAt: string;
+};
+
+export type TramChecklistItem = {
+  step: number;
+  code?: string;
+  label: string;
+  instruction: string;
+  done: boolean;
+  current: boolean;
+};
+export type TramPayload = {
+  number: string;
+  method?: string;
+  progress: { step: number; note?: string; state?: string };
+  checklist: TramChecklistItem[];
+  doneCount: number;
+  totalSteps: number;
+};
+
+export type RelaunchTemplate = { id: string; text: string; createdAt: string };
+
+export type SimDraft = {
+  index: string;
+  phone: string;
+  content: string;
+  date: string;
+  simId: string;
+  contactName: string | null;
+  contactNumber: string | null;
+};
+
+export type SimLimits = {
+  simId: string;
+  day: string;
+  timezone: string;
+  limits: { maxMessagesPerDay: number | null; maxNewConversationsPerDay: number | null };
+  usage: { messagesSent: number; newConversations: number };
+  remaining: { messages: number | null; newConversations: number | null };
+  apiCostDay: number;
+  apiCostLifetime: number;
+};
+
+export type LabelCatalogEntry = { name: string; color: string; description: string };
 
 export type StatsDayRow = {
   day: string;
@@ -142,6 +224,23 @@ type FetchOpts = {
   timeoutMs?: number;
 };
 
+/** État de connectivité — dérivé des échecs réseau (pas HTTP) sur `request()`. */
+type ConnectivityListener = (online: boolean) => void;
+let isOnline = true;
+const connectivityListeners = new Set<ConnectivityListener>();
+function setOnline(next: boolean) {
+  if (isOnline === next) return;
+  isOnline = next;
+  connectivityListeners.forEach((l) => l(next));
+}
+export function getIsOnline(): boolean {
+  return isOnline;
+}
+export function subscribeConnectivity(listener: ConnectivityListener): () => void {
+  connectivityListeners.add(listener);
+  return () => connectivityListeners.delete(listener);
+}
+
 async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const { method = "GET", body, timeoutMs = 15000 } = opts;
   const controller = new AbortController();
@@ -159,8 +258,10 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
+    setOnline(true);
   } catch (err) {
     clearTimeout(timer);
+    setOnline(false);
     if (err instanceof Error && err.name === "AbortError") {
       throw new MessagesApiError("Délai dépassé.", 0);
     }
@@ -249,4 +350,114 @@ export async function getStats(params?: {
   if (params?.to) q.set("to", params.to);
   const qs = q.toString();
   return request<StatsPayload>(`/api/stats${qs ? `?${qs}` : ""}`);
+}
+
+/** Statut complet du contact (fiche) : catégorie, bot, LinkedIn, email, extras. */
+export async function updateContactStatus(
+  number: string,
+  params: {
+    displayName?: string;
+    category?: string;
+    projectSummary?: string;
+    botEnabled?: boolean;
+    linkedinUrl?: string;
+    email?: string;
+    extras?: string[];
+  },
+  simId?: string,
+): Promise<{ success: boolean; category: string; botEnabled: boolean; labels: ConversationLabel[] }> {
+  const qs = simId ? `?sim=${encodeURIComponent(simId)}` : "";
+  return request(`/api/contacts/${encodeURIComponent(number)}/status${qs}`, {
+    method: "POST",
+    body: params,
+  });
+}
+
+export async function deleteContact(number: string): Promise<{ success: boolean }> {
+  return request(`/api/contacts/${encodeURIComponent(number)}`, { method: "DELETE" });
+}
+
+export async function createContact(params: {
+  phone: string;
+  displayName?: string;
+  simId?: string;
+  linkedinUrl?: string;
+  email?: string;
+  projectSummary?: string;
+}): Promise<{ success: boolean; created: boolean; conversationKey: string; contact: Record<string, unknown> }> {
+  return request(`/api/contacts`, { method: "POST", body: params });
+}
+
+export async function listLabelCatalog(): Promise<LabelCatalogEntry[]> {
+  return request<LabelCatalogEntry[]>(`/api/labels`);
+}
+
+/** Progression trame commerciale PVMD-EA (n/6). */
+export async function getTram(number: string): Promise<TramPayload> {
+  return request<TramPayload>(`/api/contacts/${encodeURIComponent(number)}/tram`);
+}
+
+export async function submitBotReport(
+  number: string,
+  params: { reason: BotReportReason; note?: string },
+  simId?: string,
+): Promise<{ success: boolean; reportId: string; status: string; message: string }> {
+  const qs = simId ? `?sim=${encodeURIComponent(simId)}` : "";
+  return request(`/api/contacts/${encodeURIComponent(number)}/bot-report${qs}`, {
+    method: "POST",
+    body: params,
+  });
+}
+
+export async function getActiveBotReport(
+  number: string,
+): Promise<{ active: boolean; report?: BotReportSummary }> {
+  return request(`/api/contacts/${encodeURIComponent(number)}/bot-report/active`);
+}
+
+export async function listRelaunchTemplates(): Promise<RelaunchTemplate[]> {
+  const data = await request<{ ok: boolean; templates: RelaunchTemplate[] }>(
+    `/api/relaunch/templates`,
+  );
+  return data.templates;
+}
+
+export async function addRelaunchTemplate(text: string): Promise<RelaunchTemplate> {
+  const data = await request<{ ok: boolean; template: RelaunchTemplate }>(
+    `/api/relaunch/templates`,
+    { method: "POST", body: { text } },
+  );
+  return data.template;
+}
+
+export async function deleteRelaunchTemplate(id: string): Promise<void> {
+  await request(`/api/relaunch/templates/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function proofreadText(text: string): Promise<{ text: string; changed: boolean }> {
+  return request(`/api/compose/proofread`, { method: "POST", body: { text }, timeoutMs: 20000 });
+}
+
+export async function listSimDrafts(simId: string): Promise<{ simId: string; count: number; drafts: SimDraft[] }> {
+  return request(`/api/sims/${encodeURIComponent(simId)}/drafts`);
+}
+
+export async function resendDraft(
+  simId: string,
+  index: string,
+): Promise<{ ok: boolean; sent: boolean }> {
+  return request(`/api/sims/${encodeURIComponent(simId)}/drafts/${encodeURIComponent(index)}/resend`, {
+    method: "POST",
+    timeoutMs: 30000,
+  });
+}
+
+export async function deleteDraft(simId: string, index: string): Promise<{ ok: boolean }> {
+  return request(`/api/sims/${encodeURIComponent(simId)}/drafts/${encodeURIComponent(index)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getSimLimits(simId: string): Promise<SimLimits> {
+  return request(`/api/sims/${encodeURIComponent(simId)}/limits`);
 }

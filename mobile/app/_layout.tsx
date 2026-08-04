@@ -12,6 +12,7 @@ import { CurrentUserProvider } from "../src/messages/CurrentUserContext";
 import { AppearanceProvider, useAppearance } from "../src/messages/AppearanceContext";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 import { useColors } from "../src/theme";
+import OfflineBanner from "../src/ui/OfflineBanner";
 
 /**
  * Stack racine — contient le groupe `(tabs)` (Messages/Stats/Profil/Paramètres)
@@ -80,6 +81,7 @@ function RootLayoutContent() {
               />
             </Stack>
           </ThemeProvider>
+          <OfflineBanner />
         </CurrentUserProvider>
       </AppErrorBoundary>
     </GestureHandlerRootView>

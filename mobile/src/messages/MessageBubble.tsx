@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { useColors } from "../theme";
 import type { ConversationMessage } from "./api";
-import { formatBubbleTime } from "./format";
+import { formatBubbleTime, formatCost, linkifySegments } from "./format";
 
 export default function MessageBubble({
   message,
@@ -16,6 +16,8 @@ export default function MessageBubble({
   // Même règle que la PWA : un envoi sortant sans `sentBy` explicite est
   // considéré comme envoyé par le bot (vs "ui" = envoi manuel depuis l'app).
   const isBot = isOut && message.sentBy !== "ui";
+  const isDraft = message.status === "non_envoye";
+  const segments = linkifySegments(text);
 
   return (
     <View style={[styles.wrap, isOut ? styles.wrapOut : styles.wrapIn]}>
@@ -24,13 +26,28 @@ export default function MessageBubble({
           styles.bubble,
           isOut
             ? {
-                backgroundColor: isBot ? c.bubbleBot : c.accent,
+                backgroundColor: isDraft ? c.searchBg : isBot ? c.bubbleBot : c.accent,
                 borderBottomRightRadius: 4,
               }
             : { backgroundColor: c.bubbleIn, borderBottomLeftRadius: 4 },
+          isDraft && { borderWidth: 1, borderColor: c.danger, borderStyle: "dashed" },
         ]}
       >
-        <Text style={[styles.text, { color: isOut ? "#fff" : c.text }]}>{text}</Text>
+        <Text style={[styles.text, { color: isOut && !isDraft ? "#fff" : c.text }]}>
+          {segments.map((seg, i) =>
+            seg.url ? (
+              <Text
+                key={i}
+                style={{ textDecorationLine: "underline" }}
+                onPress={() => Linking.openURL(seg.url!).catch(() => {})}
+              >
+                {seg.text}
+              </Text>
+            ) : (
+              <Text key={i}>{seg.text}</Text>
+            ),
+          )}
+        </Text>
         {message.reaction ? (
           <View
             style={[
@@ -43,10 +60,15 @@ export default function MessageBubble({
           </View>
         ) : null}
       </View>
-      {showStatus ? (
+      {isDraft ? (
+        <Text style={[styles.status, { color: c.danger, fontWeight: "700" }]}>Non envoyé</Text>
+      ) : showStatus ? (
         <Text style={[styles.status, { color: c.muted }]}>
           {isOut ? `Distribué · ${formatBubbleTime(message.date)}` : formatBubbleTime(message.date)}
         </Text>
+      ) : null}
+      {!isDraft && isOut && message.cost != null && message.cost > 0 ? (
+        <Text style={[styles.cost, { color: c.muted }]}>{formatCost(message.cost)}</Text>
       ) : null}
     </View>
   );
@@ -63,6 +85,7 @@ const styles = StyleSheet.create({
   },
   text: { fontSize: 16, lineHeight: 21 },
   status: { fontSize: 11, marginTop: 3, marginHorizontal: 4 },
+  cost: { fontSize: 10, marginTop: 2, marginHorizontal: 4 },
   reaction: {
     position: "absolute",
     top: -14,

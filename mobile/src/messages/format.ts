@@ -104,6 +104,73 @@ export function labelColor(name: string): string {
   return LABEL_COLORS[name] || "#8e8e93";
 }
 
+/** Catégories CRM (statut de qualification) — mêmes libellés que le backend. */
+export const CATEGORY_OPTIONS: { id: string; label: string }[] = [
+  { id: "nouveau", label: "Nouveau" },
+  { id: "a_qualifier", label: "À qualifier" },
+  { id: "decouverte", label: "Découverte" },
+  { id: "projet_identifie", label: "Projet identifié" },
+  { id: "recherche_active", label: "En recherche active" },
+  { id: "interesse", label: "Intéressé" },
+  { id: "chaud", label: "Chaud" },
+  { id: "client", label: "Client / converti" },
+  { id: "en_pause", label: "En pause" },
+  { id: "hors_cible", label: "Hors cible" },
+];
+export function categoryLabel(category?: string | null): string {
+  return CATEGORY_OPTIONS.find((o) => o.id === category)?.label || "Nouveau";
+}
+
+/** Étiquettes "extra" (badges manuels, hors funnel CRM). */
+export const EXTRA_LABEL_NAMES = ["LinkedIn", "Gagné", "Vendu", "Appelé"] as const;
+
+/** Formatte un coût en euros (ex. 0.042 → "0,042 €"). */
+export function formatCost(value?: number | null): string {
+  if (value == null) return "—";
+  return `${value.toFixed(value < 1 ? 3 : 2).replace(".", ",")} €`;
+}
+
+/** Remplace {prenom}/{name} par le prénom du contact (même règle que le backend). */
+export function applyRelaunchTemplate(text: string, contactName?: string | null): string {
+  const first = String(contactName || "").trim().split(/\s+/)[0] || "";
+  return text
+    .replace(/\{prenom\}/gi, first || "toi")
+    .replace(/\{name\}/gi, first || "toi")
+    .trim();
+}
+
+/** Découpe un texte en segments { text, url? } pour rendre les liens cliquables. */
+const URL_RE = /(https?:\/\/[^\s]+)/gi;
+export function linkifySegments(text: string): { text: string; url?: string }[] {
+  if (!text) return [{ text: "" }];
+  const parts: { text: string; url?: string }[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  URL_RE.lastIndex = 0;
+  while ((match = URL_RE.exec(text))) {
+    if (match.index > lastIndex) parts.push({ text: text.slice(lastIndex, match.index) });
+    let url = match[0];
+    // Ne pas inclure la ponctuation finale dans le lien.
+    const trailing = url.match(/[.,;:!?)\]]+$/);
+    if (trailing) url = url.slice(0, -trailing[0].length);
+    parts.push({ text: url, url });
+    if (trailing) parts.push({ text: trailing[0] });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex) });
+  return parts.length ? parts : [{ text }];
+}
+
+/** Format court d'une date ISO pour un RDV Cal.com (ex. "lun. 12 août à 14:30"). */
+export function formatCalRdv(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "long" }).replace(".", "");
+  const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return `${day} à ${time}`;
+}
+
 /** Regroupe les messages consécutifs par jour pour insérer des séparateurs. */
 export function shouldShowDaySeparator(
   current: { date?: string },
