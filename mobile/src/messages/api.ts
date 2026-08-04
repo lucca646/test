@@ -1,5 +1,4 @@
-import { MESSAGES_API_URL } from "../config";
-import { getMessagesToken, setMessagesToken, clearMessagesSession } from "./session";
+import { MESSAGES_API_TOKEN, MESSAGES_API_URL } from "../config";
 
 export class MessagesApiError extends Error {
   status: number;
@@ -9,12 +8,6 @@ export class MessagesApiError extends Error {
     this.status = status;
   }
 }
-
-export type MessagesUser = {
-  id: string;
-  name?: string;
-  role?: string;
-};
 
 export type ConversationLabel = {
   id: number;
@@ -78,24 +71,47 @@ export type SimStatus = {
   draftCount?: number;
 };
 
+export type StatsPayload = {
+  ok: boolean;
+  from: string;
+  to: string;
+  sim: string | null;
+  kpis: {
+    peopleContacted: number;
+    peopleReplied: number;
+    newContacts: number;
+    newConversations: number;
+    activeContacts: number;
+    inbound: number;
+    outbound: number;
+    outboundBot: number;
+    outboundUi: number;
+    replyRate: number | null;
+    rdvInPeriod: number;
+    gagne: number;
+    messagesPerContact: number | null;
+  };
+  costs: {
+    total: number;
+    avgPerPricedOutbound: number | null;
+    costPerGagne: number | null;
+  };
+};
+
 type FetchOpts = {
   method?: string;
   body?: unknown;
   timeoutMs?: number;
-  auth?: boolean;
 };
 
 async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
-  const { method = "GET", body, timeoutMs = 15000, auth = true } = opts;
+  const { method = "GET", body, timeoutMs = 15000 } = opts;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (auth) {
-    const token = getMessagesToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-  }
+  if (MESSAGES_API_TOKEN) headers.Authorization = `Bearer ${MESSAGES_API_TOKEN}`;
 
   let res: Response;
   try {
@@ -135,46 +151,9 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   return data as T;
 }
 
-export async function messagesLogin(
-  login: string,
-  password: string,
-): Promise<{ user: MessagesUser }> {
-  const data = await request<{ ok: boolean; user: MessagesUser; token: string; error?: string }>(
-    "/api/auth/login",
-    { method: "POST", body: { login, password }, auth: false },
-  );
-  if (!data.ok) throw new MessagesApiError(data.error || "Connexion refusée", 401);
-  setMessagesToken(data.token);
-  return { user: data.user };
-}
-
-export async function messagesMe(): Promise<MessagesUser | null> {
-  if (!getMessagesToken()) return null;
-  try {
-    const data = await request<{ ok: boolean; authenticated: boolean; user: MessagesUser }>(
-      "/api/auth/me",
-    );
-    return data.authenticated ? data.user : null;
-  } catch (err) {
-    if (err instanceof MessagesApiError && err.status === 401) {
-      clearMessagesSession();
-    }
-    return null;
-  }
-}
-
-export async function messagesLogout(): Promise<void> {
-  try {
-    await request("/api/auth/logout", { method: "POST" });
-  } catch {
-    /* best-effort */
-  }
-  clearMessagesSession();
-}
-
 export async function listConversations(simId?: string): Promise<ConversationSummary[]> {
   const qs = simId ? `?sim=${encodeURIComponent(simId)}` : "";
-  return request<ConversationSummary[]>(`/api/conversations${qs}`, { auth: false });
+  return request<ConversationSummary[]>(`/api/conversations${qs}`);
 }
 
 export async function getConversation(
@@ -182,10 +161,7 @@ export async function getConversation(
   simId?: string,
 ): Promise<ConversationDetail> {
   const qs = simId ? `?sim=${encodeURIComponent(simId)}` : "";
-  return request<ConversationDetail>(
-    `/api/conversations/${encodeURIComponent(key)}${qs}`,
-    { auth: false },
-  );
+  return request<ConversationDetail>(`/api/conversations/${encodeURIComponent(key)}${qs}`);
 }
 
 export async function markConversationRead(key: string, simId?: string): Promise<void> {
@@ -210,4 +186,9 @@ export async function sendMessageToContact(params: {
 
 export async function listSims(): Promise<SimStatus[]> {
   return request<SimStatus[]>("/api/sims");
+}
+
+export async function getStats(params?: { sim?: string }): Promise<StatsPayload> {
+  const qs = params?.sim ? `?sim=${encodeURIComponent(params.sim)}` : "";
+  return request<StatsPayload>(`/api/stats${qs}`);
 }

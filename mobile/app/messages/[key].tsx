@@ -1,10 +1,10 @@
-import MessagesAuthGate from "../../src/messages/MessagesAuthGate";
+import CurrentUserGate from "../../src/messages/CurrentUserGate";
 import ThreadScreen from "../../src/messages/ThreadScreen";
 
 export default function MessagesThreadRoute() {
   return (
-    <MessagesAuthGate>
+    <CurrentUserGate>
       <ThreadScreen />
-    </MessagesAuthGate>
+    </CurrentUserGate>
   );
 }

@@ -14,13 +14,13 @@ import {
 } from "@react-navigation/native";
 import { NAV_TINT } from "app-nav";
 import AppErrorBoundary from "../components/AppErrorBoundary";
-import { AuthProvider } from "../src/auth/AuthContext";
+import { CurrentUserProvider } from "../src/messages/CurrentUserContext";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 import { useColors } from "../src/theme";
 
 /**
- * NativeTabs racine — Accueil (plan du jour) en premier.
- * Recherche hors barre (accessible depuis Accueil).
+ * NativeTabs racine — app Messages COR·ALT (SMS).
+ * Messages → Stats → Profil → Paramètres.
  */
 export default function RootLayout() {
   useEffect(() => {
@@ -63,7 +63,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.bg }}>
       <AppErrorBoundary label="Root">
-        <AuthProvider>
+        <CurrentUserProvider>
           <StatusBar style={c.statusBar} />
           <ThemeProvider value={navTheme}>
             <NativeTabs
@@ -74,24 +74,7 @@ export default function RootLayout() {
             >
               <NativeTabs.Trigger name="index" hidden>
                 <Label> </Label>
-                <Icon sf="house" />
-              </NativeTabs.Trigger>
-
-              <NativeTabs.Trigger name="accueil">
-                <Label>Accueil</Label>
-                <Icon
-                  sf={{ default: "house", selected: "house.fill" }}
-                />
-              </NativeTabs.Trigger>
-
-              <NativeTabs.Trigger name="envois">
-                <Label>Envois</Label>
-                <Icon
-                  sf={{
-                    default: "paperplane",
-                    selected: "paperplane.fill",
-                  }}
-                />
+                <Icon sf="message" />
               </NativeTabs.Trigger>
 
               <NativeTabs.Trigger name="messages">
@@ -101,20 +84,14 @@ export default function RootLayout() {
                 />
               </NativeTabs.Trigger>
 
-              <NativeTabs.Trigger name="entreprises">
-                <Label>Liste</Label>
+              <NativeTabs.Trigger name="stats">
+                <Label>Stats</Label>
                 <Icon
-                  sf={{ default: "building.2", selected: "building.2.fill" }}
+                  sf={{ default: "chart.bar", selected: "chart.bar.fill" }}
                 />
               </NativeTabs.Trigger>
 
-              {/* Recherche hors barre — push depuis Accueil */}
-              <NativeTabs.Trigger name="recherche" hidden>
-                <Label>Recherche</Label>
-                <Icon sf="magnifyingglass" />
-              </NativeTabs.Trigger>
-
-              <NativeTabs.Trigger name="parametres">
+              <NativeTabs.Trigger name="profil">
                 <Label>Profil</Label>
                 <Icon
                   sf={{
@@ -123,9 +100,16 @@ export default function RootLayout() {
                   }}
                 />
               </NativeTabs.Trigger>
+
+              <NativeTabs.Trigger name="parametres">
+                <Label>Paramètres</Label>
+                <Icon
+                  sf={{ default: "gearshape", selected: "gearshape.fill" }}
+                />
+              </NativeTabs.Trigger>
             </NativeTabs>
           </ThemeProvider>
-        </AuthProvider>
+        </CurrentUserProvider>
       </AppErrorBoundary>
     </GestureHandlerRootView>
   );

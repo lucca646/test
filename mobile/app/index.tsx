@@ -1,8 +1,8 @@
 import { Redirect } from "expo-router";
 
 /**
- * Cold start `coralt:///` → Accueil (plan du jour).
+ * Cold start `coralt:///` → Messages.
  */
 export default function Index() {
-  return <Redirect href="/accueil" />;
+  return <Redirect href="/messages" />;
 }

@@ -23,12 +23,21 @@ export const APP_ENV =
 
 /**
  * Backend Messages (CRM SMS COR·ALT — `mcp/src/imessage-server.ts`).
- * Service distinct de l'API COR·ALT (`API_URL` ci-dessus) : pas de bridge
- * cookie nécessaire, la session utilise un Bearer token classique.
+ * Service distinct de l'API COR·ALT (`API_URL` ci-dessus).
  * Servi en clair (pas de TLS) → exception ATS ajoutée dans app.json.
+ *
+ * Auth : token serveur (même niveau que n8n) envoyé en Bearer sur chaque
+ * requête — pas de mot de passe utilisateur pour l'instant. Le choix
+ * « Lucca / Ernest » (`src/messages/CurrentUserContext.tsx`) est une
+ * identité locale d'affichage, pas une session backend.
  */
 export const MESSAGES_API_URL = (
   process.env.EXPO_PUBLIC_MESSAGES_API_URL ||
   Constants.expoConfig?.extra?.messagesApiUrl ||
   "http://46.62.139.238:8008"
 ).replace(/\/$/, "");
+
+export const MESSAGES_API_TOKEN =
+  process.env.EXPO_PUBLIC_MESSAGES_API_TOKEN ||
+  Constants.expoConfig?.extra?.messagesApiToken ||
+  "";
