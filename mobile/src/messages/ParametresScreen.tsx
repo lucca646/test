@@ -6,6 +6,7 @@ import * as Notifications from "expo-notifications";
 import { getSimLimits, listSims, type SimLimits, type SimStatus } from "./api";
 import { useAppearance, type AppearanceMode } from "./AppearanceContext";
 import { useCurrentUser } from "./CurrentUserContext";
+import SimStatsModal from "./modals/SimStatsModal";
 import { Group, Row, Segmented, SectionHeader } from "../ui/Apple";
 import { ThemePicker } from "../ui/ThemePicker";
 import { MESSAGES_API_URL } from "../config";
@@ -43,6 +44,7 @@ export default function ParametresScreen() {
   // position du dernier tap quand l'état ne change pas (ex. refus/attente
   // réseau), un bug connu du composant `Switch` de React Native sur iOS.
   const [notifNonce, setNotifNonce] = useState(0);
+  const [statsSim, setStatsSim] = useState<SimStatus | null>(null);
 
   const refreshNotifStatus = useCallback(async () => {
     try {
@@ -161,6 +163,8 @@ export default function ParametresScreen() {
     >
       <Text style={[styles.largeTitle, { color: c.text }]}>Paramètres</Text>
 
+      <SimStatsModal visible={statsSim != null} sim={statsSim} onClose={() => setStatsSim(null)} />
+
       <SectionHeader title="SIMs" />
       {loading ? (
         <ActivityIndicator color={c.accent} style={{ marginTop: 12 }} />
@@ -189,6 +193,7 @@ export default function ParametresScreen() {
                 }
                 value={sim.connected ? "Connectée" : "Hors ligne"}
                 accentValue={sim.connected}
+                onPress={() => setStatsSim(sim)}
                 last={i === sims.length - 1}
               />
             ))

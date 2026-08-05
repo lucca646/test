@@ -17,6 +17,7 @@ import { listConversations, listSims, type ConversationSummary, type SimStatus }
 import { CONVERSATIONS_CACHE_KEY, conversationsCache } from "./cache";
 import ConversationRow from "./ConversationRow";
 import NewContactModal from "./modals/NewContactModal";
+import SimStatsModal from "./modals/SimStatsModal";
 import { EmptyState } from "../ui/Apple";
 import { GlassSurface } from "../ui/Glass";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
@@ -47,6 +48,7 @@ export default function ConversationsListScreen() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [newContactVisible, setNewContactVisible] = useState(false);
+  const [statsSim, setStatsSim] = useState<SimStatus | null>(null);
   const focusedRef = useRef(false);
 
   const load = useCallback(async (silent = false) => {
@@ -165,6 +167,7 @@ export default function ConversationsListScreen() {
         simId={simFilter}
         onClose={() => setNewContactVisible(false)}
       />
+      <SimStatsModal visible={statsSim != null} sim={statsSim} onClose={() => setStatsSim(null)} />
 
       <View style={[styles.searchWrap, { backgroundColor: c.searchBg }]}>
         <Text style={{ color: c.muted, fontSize: 15 }}>🔍</Text>
@@ -200,6 +203,10 @@ export default function ConversationsListScreen() {
                 connected={s.connected}
                 draftCount={s.draftCount}
                 onPress={() => onChangeSim(s.id)}
+                onLongPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                  setStatsSim(s);
+                }}
               />
             ))}
           </ScrollView>
@@ -269,12 +276,14 @@ function SimChip({
   connected,
   draftCount,
   onPress,
+  onLongPress,
 }: {
   label: string;
   active: boolean;
   connected?: boolean;
   draftCount?: number;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const c = useColors();
   const content = (
@@ -298,7 +307,7 @@ function SimChip({
     </>
   );
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       {active ? (
         <View style={[styles.simChip, { backgroundColor: c.accent, borderColor: c.accent }]}>
           {content}
