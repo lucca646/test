@@ -19,6 +19,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-native-community/slider": "5.0.1",
+    "@react-navigation/elements": "2.9.36",
     "app-nav": "file:../packages/app-nav",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.36",

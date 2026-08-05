@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -90,8 +91,14 @@ export default function ThreadScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const listRef = useRef<FlatList<Row>>(null);
   const focusedRef = useRef(false);
+  // Après un toggle bot, on ignore le `bot_enabled` renvoyé par le polling
+  // pendant cette fenêtre — le temps que l'écriture serveur soit bien prise
+  // en compte — pour éviter que le switch revienne visuellement en arrière
+  // (mismatch position/couleur) juste après l'action de l'utilisateur.
+  const botOverrideUntilRef = useRef(0);
 
   const [conversation, setConversation] = useState<ConversationDetail | null>(
     () => (key ? threadCache.get(key) ?? null : null),
@@ -106,6 +113,8 @@ export default function ThreadScreen() {
   const [tramModalVisible, setTramModalVisible] = useState(false);
   const [botReportModalVisible, setBotReportModalVisible] = useState(false);
   const [relaunchModalVisible, setRelaunchModalVisible] = useState(false);
+  const conversationRef = useRef<ConversationDetail | null>(conversation);
+  conversationRef.current = conversation;
 
   const load = useCallback(async (silent = false) => {
     if (!key) return;
@@ -113,8 +122,12 @@ export default function ThreadScreen() {
     if (!silent && !hasCache) setLoading(true);
     try {
       const detail = await getConversation(key);
-      threadCache.set(key, detail);
-      setConversation(detail);
+      const keepLocalBot = Date.now() < botOverrideUntilRef.current;
+      const merged = keepLocalBot
+        ? { ...detail, bot_enabled: conversationRef.current?.bot_enabled ?? detail.bot_enabled }
+        : detail;
+      threadCache.set(key, merged);
+      setConversation(merged);
       setError(null);
     } catch (e) {
       if (!silent && !hasCache) setError(e instanceof Error ? e.message : String(e));
@@ -255,12 +268,17 @@ export default function ThreadScreen() {
   const onToggleBot = async (next: boolean) => {
     if (!conversation) return;
     Haptics.selectionAsync().catch(() => {});
+    // Couvre au moins un cycle de polling (4s) pour que le rafraîchissement
+    // en tâche de fond n'écrase pas notre valeur optimiste avant que le
+    // serveur ait bien enregistré le changement.
+    botOverrideUntilRef.current = Date.now() + POLL_MS + 1500;
     const optimistic = { ...conversation, bot_enabled: next };
     setConversation(optimistic);
     if (key) threadCache.set(key, optimistic);
     try {
       await setBotEnabled(conversation.phone, next, conversation.sim_id);
     } catch {
+      botOverrideUntilRef.current = 0;
       const reverted = { ...conversation, bot_enabled: !next };
       setConversation(reverted);
       if (key) threadCache.set(key, reverted);
@@ -288,7 +306,7 @@ export default function ThreadScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.bg }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
     >
       <Stack.Screen
         options={{
