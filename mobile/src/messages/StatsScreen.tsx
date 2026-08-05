@@ -1,11 +1,22 @@
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getStats, listSims, type SimStatus, type StatsPayload } from "./api";
 import { statsCache, statsCacheKey } from "./cache";
 import { labelColor } from "./format";
 import { EmptyState, Group, Row, SectionHeader, Segmented } from "../ui/Apple";
+import { GlassSurface } from "../ui/Glass";
 import { BarChart, HorizontalBarChart } from "../ui/Charts";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 
@@ -335,6 +346,19 @@ export default function StatsScreen() {
     { id: ALL_SIM, label: "Toutes" },
     ...sims.map((s) => ({ id: s.id, label: s.label })),
   ];
+  const currentSimLabel = simOptions.find((o) => o.id === simFilter)?.label ?? "Toutes";
+
+  const openSimMenu = () => {
+    if (simOptions.length <= 1) return;
+    Haptics.selectionAsync().catch(() => {});
+    const labels = [...simOptions.map((o) => o.label), "Annuler"];
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: labels, cancelButtonIndex: labels.length - 1 },
+      (index) => {
+        if (index >= 0 && index < simOptions.length) onChangeSim(simOptions[index].id);
+      },
+    );
+  };
 
   return (
     <ScrollView
@@ -348,18 +372,25 @@ export default function StatsScreen() {
       }
     >
       <Text style={[styles.largeTitle, { color: c.text }]}>Stats</Text>
-      <Text style={[styles.sub, { color: c.muted }]}>
-        {stats ? `${stats.from} → ${stats.to}` : `${range.from} → ${range.to}`}
-      </Text>
+      <View style={styles.subRow}>
+        <Text style={[styles.sub, { color: c.muted }]}>
+          {stats ? `${stats.from} → ${stats.to}` : `${range.from} → ${range.to}`}
+        </Text>
+        {sims.length > 1 ? (
+          <Pressable onPress={openSimMenu} hitSlop={8}>
+            <GlassSurface radius={13} style={styles.simMenuBtn}>
+              <Text style={[styles.simMenuText, { color: c.accent }]} numberOfLines={1}>
+                {currentSimLabel}
+              </Text>
+              <Text style={[styles.simMenuChevron, { color: c.accent }]}>⌄</Text>
+            </GlassSurface>
+          </Pressable>
+        ) : null}
+      </View>
 
       <View style={styles.filterWrap}>
         <Segmented options={PERIODS} value={period} onChange={onChangePeriod} />
       </View>
-      {sims.length > 1 ? (
-        <View style={styles.filterWrap}>
-          <Segmented options={simOptions} value={simFilter} onChange={onChangeSim} />
-        </View>
-      ) : null}
       <View style={styles.filterWrap}>
         <Segmented options={CATEGORIES} value={category} onChange={setCategory} />
       </View>
@@ -388,7 +419,23 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     marginHorizontal: 16,
   },
-  sub: { fontSize: 14, marginHorizontal: 16, marginBottom: 4 },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginBottom: 4,
+  },
+  sub: { fontSize: 14 },
+  simMenuBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 10,
+    height: 26,
+  },
+  simMenuText: { fontSize: 13, fontWeight: "600", maxWidth: 110 },
+  simMenuChevron: { fontSize: 12, fontWeight: "700", marginTop: 1 },
   filterWrap: { marginTop: 6, marginBottom: 6 },
   emptyText: { fontSize: 14, marginHorizontal: 16, marginTop: 4 },
   grid: {

@@ -10,6 +10,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors, type ThemeColors } from "../theme";
+import { GlassSurface } from "./Glass";
 
 /** Icône façon iOS Settings : carré arrondi coloré + glyphe blanc. */
 export function RowIcon({
@@ -265,7 +266,7 @@ export function Segmented({
 }) {
   const c = useColors();
   return (
-    <View style={[styles.segmented, { backgroundColor: c.searchBg }]}>
+    <GlassSurface radius={10} style={styles.segmented}>
       {options.map((o) => {
         const on = o.id === value;
         return (
@@ -280,10 +281,14 @@ export function Segmented({
               styles.segItem,
               on && {
                 backgroundColor: c.surfaceElevated,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor:
+                  c.statusBar === "dark" ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.9)",
                 shadowColor: "#000",
-                shadowOpacity: c.statusBar === "dark" ? 0.08 : 0,
-                shadowRadius: 2,
-                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: c.statusBar === "dark" ? 0.35 : 0.1,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 1.5 },
+                elevation: 2,
               },
             ]}
           >
@@ -295,7 +300,7 @@ export function Segmented({
           </Pressable>
         );
       })}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -463,7 +468,6 @@ const styles = StyleSheet.create({
   emptyActionText: { fontSize: 16, fontWeight: "600" },
   segmented: {
     flexDirection: "row",
-    borderRadius: 9,
     padding: 3,
     marginHorizontal: 16,
   },

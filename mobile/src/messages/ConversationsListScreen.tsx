@@ -18,6 +18,7 @@ import { CONVERSATIONS_CACHE_KEY, conversationsCache } from "./cache";
 import ConversationRow from "./ConversationRow";
 import NewContactModal from "./modals/NewContactModal";
 import { EmptyState } from "../ui/Apple";
+import { GlassSurface } from "../ui/Glass";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { formatDisplayPhone, labelColor } from "./format";
 
@@ -276,17 +277,8 @@ function SimChip({
   onPress: () => void;
 }) {
   const c = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.simChip,
-        {
-          backgroundColor: active ? c.accent : c.searchBg,
-          borderColor: active ? c.accent : "transparent",
-        },
-      ]}
-    >
+  const content = (
+    <>
       {connected !== undefined ? (
         <View
           style={[
@@ -303,6 +295,19 @@ function SimChip({
           </Text>
         </View>
       ) : null}
+    </>
+  );
+  return (
+    <Pressable onPress={onPress}>
+      {active ? (
+        <View style={[styles.simChip, { backgroundColor: c.accent, borderColor: c.accent }]}>
+          {content}
+        </View>
+      ) : (
+        <GlassSurface radius={16} style={[styles.simChip, { borderColor: "transparent" }]}>
+          {content}
+        </GlassSurface>
+      )}
     </Pressable>
   );
 }
@@ -320,20 +325,20 @@ function FilterChip({
 }) {
   const c = useColors();
   const tint = color || c.accent;
+  const text = (
+    <Text style={[styles.filterChipText, { color: active ? "#fff" : c.text }]} numberOfLines={1}>
+      {label}
+    </Text>
+  );
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.filterChip,
-        {
-          backgroundColor: active ? tint : c.searchBg,
-          borderColor: active ? tint : "transparent",
-        },
-      ]}
-    >
-      <Text style={[styles.filterChipText, { color: active ? "#fff" : c.text }]} numberOfLines={1}>
-        {label}
-      </Text>
+    <Pressable onPress={onPress}>
+      {active ? (
+        <View style={[styles.filterChip, { backgroundColor: tint, borderColor: tint }]}>{text}</View>
+      ) : (
+        <GlassSurface radius={15} style={[styles.filterChip, { borderColor: "transparent" }]}>
+          {text}
+        </GlassSurface>
+      )}
     </Pressable>
   );
 }
