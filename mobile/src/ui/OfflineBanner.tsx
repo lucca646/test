@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getIsOnline, subscribeConnectivity } from "../messages/api";
+import { useColors } from "../theme";
 
 /**
  * Bandeau discret affiché quand des requêtes échouent pour une raison
@@ -9,6 +10,7 @@ import { getIsOnline, subscribeConnectivity } from "../messages/api";
  * l'OTA), juste un état dérivé des appels API.
  */
 export default function OfflineBanner() {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const [online, setOnline] = useState(getIsOnline());
 
@@ -18,7 +20,9 @@ export default function OfflineBanner() {
 
   return (
     <View style={[styles.wrap, { top: insets.top + 4 }]} pointerEvents="none">
-      <Text style={styles.text}>Hors ligne — nouvelle tentative…</Text>
+      <Text style={[styles.text, { backgroundColor: c.warning, color: c.bg }]}>
+        Hors ligne — nouvelle tentative…
+      </Text>
     </View>
   );
 }
@@ -32,8 +36,6 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   text: {
-    backgroundColor: "rgba(255,159,10,0.95)",
-    color: "#1c1c1e",
     fontSize: 12,
     fontWeight: "700",
     paddingHorizontal: 12,

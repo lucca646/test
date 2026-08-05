@@ -288,7 +288,7 @@ export function Segmented({
             ]}
           >
             <Text
-              style={[styles.segText, { color: on ? c.text : c.muted }]}
+              style={[styles.segText, { color: on ? c.accent : c.muted }]}
             >
               {o.label}
             </Text>

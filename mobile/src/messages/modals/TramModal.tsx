@@ -48,6 +48,17 @@ export default function TramModal({
           <EmptyState title="Indisponible" subtitle={error || undefined} />
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
+            <View style={[styles.progressTrack, { backgroundColor: c.searchBg }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: c.accent,
+                    width: `${Math.max(4, Math.round((payload.doneCount / Math.max(1, payload.totalSteps)) * 100))}%`,
+                  },
+                ]}
+              />
+            </View>
             {payload.progress.note ? (
               <Text style={[styles.note, { color: c.muted }]}>{payload.progress.note}</Text>
             ) : null}
@@ -97,6 +108,13 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: "700", flex: 1 },
   headerBtn: { fontSize: 16 },
   list: { padding: 16, gap: 2 },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  progressFill: { height: "100%", borderRadius: 4 },
   note: { fontSize: 13, marginBottom: 12, fontStyle: "italic" },
   item: {
     flexDirection: "row",

@@ -53,7 +53,7 @@ export default function MessageBubble({
             style={[
               styles.reaction,
               isOut ? styles.reactionOut : styles.reactionIn,
-              { borderColor: c.bg },
+              { backgroundColor: c.success, borderColor: c.bg },
             ]}
           >
             <Text style={styles.reactionText}>{message.reaction}</Text>
@@ -93,7 +93,6 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    backgroundColor: "#34c759",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",

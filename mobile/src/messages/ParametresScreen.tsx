@@ -237,7 +237,7 @@ export default function ParametresScreen() {
         />
         <Row
           label="Build"
-          icon={{ name: "construct-outline", backgroundColor: "#8e8e93" }}
+          icon={{ name: "construct-outline", backgroundColor: c.muted }}
           value={otaDebugLabel()}
           last
         />

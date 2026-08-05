@@ -291,7 +291,7 @@ function SimChip({
         <View
           style={[
             styles.simDot,
-            { backgroundColor: connected ? "#34c759" : "#8e8e93" },
+            { backgroundColor: connected ? c.success : c.muted },
           ]}
         />
       ) : null}
