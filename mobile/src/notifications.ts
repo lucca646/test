@@ -59,8 +59,6 @@ export async function registerForPushNotifications(
   userId: string,
 ): Promise<PushRegistrationResult> {
   try {
-    if (!Constants.isDevice) return "unsupported"; // simulateur/émulateur
-
     await ensureAndroidChannel();
 
     const existing = await Notifications.getPermissionsAsync();
@@ -76,7 +74,18 @@ export async function registerForPushNotifications(
     const projectId = resolveProjectId();
     if (!projectId) return "no-project";
 
-    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+    // Pas de `Constants.isDevice` fiable dans expo-constants récent (toujours
+    // `undefined`, donc faussement truthy en négation) — on laisse l'appel
+    // natif lever son erreur "physical device required" sur simulateur/
+    // émulateur, capturée ci-dessous.
+    let token: string | undefined;
+    try {
+      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/physical device|simulator|emulator/i.test(msg)) return "unsupported";
+      throw err;
+    }
     if (!token) return "error";
 
     await registerPushDevice({ userId, token, platform: Platform.OS });
