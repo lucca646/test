@@ -110,7 +110,32 @@ export default function ParametresScreen() {
     if (!user) return;
     setNotifBusy(true);
     try {
-      await registerForPushNotifications(user.id);
+      const result = await registerForPushNotifications(user.id);
+      if (result === "denied") {
+        // iOS ne réaffiche le prompt système qu'une seule fois : si la
+        // permission a déjà été refusée avant (ex. au premier lancement),
+        // on ne peut plus la redemander ici — seul un passage par Réglages
+        // permet de la réactiver. Sans ce message, le switch retombe sur
+        // "off" sans aucune explication ("il se passe rien").
+        Alert.alert(
+          "Notifications refusées",
+          "Active-les dans Réglages iOS → COR·ALT → Notifications.",
+          [
+            { text: "OK", style: "cancel" },
+            { text: "Réglages", onPress: () => Linking.openSettings() },
+          ],
+        );
+      } else if (result === "unsupported") {
+        Alert.alert(
+          "Indisponible sur simulateur",
+          "Les notifications push ne fonctionnent que sur un appareil réel.",
+        );
+      } else if (result === "no-project" || result === "error") {
+        Alert.alert(
+          "Notifications",
+          "Impossible d'activer les notifications pour le moment. Réessaie plus tard.",
+        );
+      }
     } finally {
       await refreshNotifStatus();
       setNotifBusy(false);

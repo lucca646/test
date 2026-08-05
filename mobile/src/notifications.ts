@@ -37,15 +37,29 @@ function resolveProjectId(): string | null {
   );
 }
 
+export type PushRegistrationResult =
+  /** Token enregistré côté serveur. */
+  | "granted"
+  /** Permission refusée (ou déjà refusée avant — iOS ne réaffiche le prompt qu'une fois). */
+  | "denied"
+  /** Simulateur / émulateur — pas de push possible. */
+  | "unsupported"
+  /** Pas de `projectId` EAS (Expo Go). */
+  | "no-project"
+  /** Erreur réseau / API Expo — voir logs. */
+  | "error";
+
 /**
  * Demande la permission puis récupère le push token Expo et l'enregistre
- * côté serveur pour cet utilisateur. Best-effort total : simulateur iOS,
- * permission refusée, pas de projectId (Expo Go), pas de réseau… échouent
- * silencieusement sans jamais bloquer le reste de l'app.
+ * côté serveur pour cet utilisateur. Ne throw jamais — retourne un statut
+ * explicite pour permettre à l'appelant (ex. réglage dans Paramètres)
+ * d'informer l'utilisateur (permission refusée → rediriger vers Réglages).
  */
-export async function registerForPushNotifications(userId: string): Promise<void> {
+export async function registerForPushNotifications(
+  userId: string,
+): Promise<PushRegistrationResult> {
   try {
-    if (!Constants.isDevice && Platform.OS === "ios") return; // simulateur iOS : pas de push possible
+    if (!Constants.isDevice) return "unsupported"; // simulateur/émulateur
 
     await ensureAndroidChannel();
 
@@ -57,16 +71,17 @@ export async function registerForPushNotifications(userId: string): Promise<void
       });
       status = requested.status;
     }
-    if (status !== "granted") return;
+    if (status !== "granted") return "denied";
 
     const projectId = resolveProjectId();
-    if (!projectId) return;
+    if (!projectId) return "no-project";
 
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
-    if (!token) return;
+    if (!token) return "error";
 
     await registerPushDevice({ userId, token, platform: Platform.OS });
+    return "granted";
   } catch {
-    // best-effort — voir commentaire ci-dessus
+    return "error";
   }
 }
