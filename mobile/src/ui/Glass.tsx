@@ -4,21 +4,22 @@ import { BlurView } from "expo-blur";
 import { useColors } from "../theme";
 
 /**
- * Surface "Liquid Glass" (façon iOS 26 — Control Center, barres de choix) :
- * verre dépoli (`BlurView`) + liseré de reflet en haut, au lieu d'un simple
- * fond opaque gris. Utilisé pour les zones de choix horizontales (Segmented,
- * chips SIM/étiquettes) plutôt que les fonds plats précédents.
+ * Surface "Liquid Glass" — exactement le même matériau natif que la barre
+ * d'onglets (`NativeTabs` → `blurEffect={c.tabBlur}`, un vrai `UIBlurEffect`
+ * `.systemMaterial` iOS), pas un simple fond semi-transparent "light/dark".
+ * Utilisé pour les zones de choix horizontales (Segmented, chips SIM /
+ * étiquettes) afin qu'elles aient le même rendu verre que la navbar.
  */
 export function GlassSurface({
   children,
   style,
   radius = 9,
-  intensity,
+  intensity = 100,
 }: {
   children?: ReactNode;
   style?: ViewStyle | ViewStyle[];
   radius?: number;
-  /** Override manuel — sinon dérivé du mode clair/sombre. */
+  /** 1–100, comme sur la navbar on reste à pleine intensité par défaut. */
   intensity?: number;
 }) {
   const c = useColors();
@@ -26,8 +27,8 @@ export function GlassSurface({
   return (
     <View style={[{ borderRadius: radius, overflow: "hidden" }, style]}>
       <BlurView
-        intensity={intensity ?? (dark ? 42 : 62)}
-        tint={dark ? "dark" : "light"}
+        intensity={intensity}
+        tint={c.tabBlur}
         style={StyleSheet.absoluteFill}
       />
       <View
