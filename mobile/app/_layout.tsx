@@ -10,6 +10,7 @@ import {
 import AppErrorBoundary from "../components/AppErrorBoundary";
 import { CurrentUserProvider } from "../src/messages/CurrentUserContext";
 import { AppearanceProvider, useAppearance } from "../src/messages/AppearanceContext";
+import PushNotificationsBridge from "../src/messages/PushNotificationsBridge";
 import { applyOtaUpdateIfAny } from "../lib/ota";
 import { useColors } from "../src/theme";
 import OfflineBanner from "../src/ui/OfflineBanner";
@@ -66,6 +67,7 @@ function RootLayoutContent() {
       <AppErrorBoundary label="Root">
         <CurrentUserProvider>
           <StatusBar style={c.statusBar} />
+          <PushNotificationsBridge />
           <ThemeProvider value={navTheme}>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />

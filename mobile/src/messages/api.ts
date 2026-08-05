@@ -461,3 +461,19 @@ export async function deleteDraft(simId: string, index: string): Promise<{ ok: b
 export async function getSimLimits(simId: string): Promise<SimLimits> {
   return request(`/api/sims/${encodeURIComponent(simId)}/limits`);
 }
+
+/**
+ * Enregistre ce device pour les notifications push (Expo Push token) côté
+ * serveur — `deviceId` = le token lui-même (stable par install, pas de
+ * stockage persistant côté app pour l'instant). Best-effort, ne throw pas.
+ */
+export async function registerPushDevice(params: {
+  userId: string;
+  token: string;
+  platform: string;
+}): Promise<void> {
+  await request(`/api/mobile/device`, {
+    method: "POST",
+    body: { userId: params.userId, deviceId: params.token, platform: params.platform, pushToken: params.token },
+  });
+}

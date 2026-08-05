@@ -11,7 +11,19 @@ module.exports = ({ config }) => {
   const storeFacing =
     profile === "production" || profile === "preview";
 
-  if (!forExpoGo && !storeFacing) return config;
+  // Entitlement APNs "production" pour TestFlight/App Store (obligatoire pour
+  // que les push arrivent réellement), "development" pour dev-client/simulateur
+  // (sandbox APNs) — sinon les notifs remote ne se déclenchent jamais en review.
+  const withNotifMode = (plugins) =>
+    plugins.map((plugin) =>
+      Array.isArray(plugin) && plugin[0] === "expo-notifications"
+        ? [plugin[0], { ...plugin[1], mode: storeFacing ? "production" : "development" }]
+        : plugin,
+    );
+
+  if (!forExpoGo && !storeFacing) {
+    return { ...config, plugins: withNotifMode(config.plugins || []) };
+  }
 
   const drop = new Set(
     forExpoGo
@@ -19,7 +31,7 @@ module.exports = ({ config }) => {
       : ["expo-dev-client"],
   );
 
-  const plugins = (config.plugins || []).filter((plugin) => {
+  const plugins = withNotifMode(config.plugins || []).filter((plugin) => {
     const name = Array.isArray(plugin) ? plugin[0] : plugin;
     return !drop.has(name);
   });
