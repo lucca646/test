@@ -3,8 +3,6 @@ import {
   Icon,
   Label,
 } from "expo-router/unstable-native-tabs";
-import { DynamicColorIOS, Platform } from "react-native";
-import { NAV_TINT } from "app-nav";
 import { useColors } from "../../src/theme";
 
 /**
@@ -16,10 +14,10 @@ import { useColors } from "../../src/theme";
 export default function TabsLayout() {
   const c = useColors();
 
-  const tint =
-    Platform.OS === "ios"
-      ? DynamicColorIOS({ light: NAV_TINT, dark: NAV_TINT })
-      : NAV_TINT;
+  // Suit l'accent du thème choisi dans Paramètres (au lieu de l'ancien bleu
+  // fixe importé de `app-nav`) — la barre d'onglets est l'élément le plus
+  // visible en permanence, elle doit refléter le thème sélectionné.
+  const tint = c.accent;
 
   return (
     <NativeTabs

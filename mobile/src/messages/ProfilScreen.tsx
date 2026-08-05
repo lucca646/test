@@ -24,7 +24,12 @@ export default function ProfilScreen() {
       <Text style={[styles.largeTitle, { color: c.text }]}>Profil</Text>
 
       <View style={styles.hero}>
-        <View style={[styles.avatar, { backgroundColor: avatarColor(user.id) }]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: avatarColor(user.id), borderColor: c.accent },
+          ]}
+        >
           <Text style={styles.avatarText}>{initials(user.name)}</Text>
         </View>
         <Text style={[styles.name, { color: c.text }]}>{user.name}</Text>
@@ -91,6 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
+    borderWidth: 3,
   },
   avatarText: { color: "#fff", fontSize: 30, fontWeight: "700" },
   name: { fontSize: 22, fontWeight: "700" },

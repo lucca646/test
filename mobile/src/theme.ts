@@ -140,11 +140,14 @@ function applyThemePreset(
   themeId: ThemePresetId,
   scheme: "light" | "dark",
 ): ThemeColors {
-  if (themeId === "blue") return base; // thème par défaut = palette iOS d'origine, inchangée
   const preset = getThemePreset(themeId);
   const accent = scheme === "light" ? preset.accentLight : preset.accentDark;
-  const bgTintWeight = scheme === "light" ? 0.045 : 0.07;
-  const cardTintWeight = scheme === "light" ? 0.02 : 0.035;
+  // Le thème "Bleu" reprend l'accent iOS d'origine — mais applique quand même
+  // les mêmes dérivés (rowPressed/chevron/stackSilhouette) pour rester cohérent
+  // avec les autres presets plutôt que de sortir tôt sans rien teinter.
+  const isDefault = themeId === "blue";
+  const bgTintWeight = isDefault ? 0 : scheme === "light" ? 0.06 : 0.09;
+  const cardTintWeight = isDefault ? 0 : scheme === "light" ? 0.03 : 0.05;
 
   return {
     ...base,
@@ -153,10 +156,15 @@ function applyThemePreset(
     card: mixHex(base.card, accent, cardTintWeight),
     cardSolid: mixHex(base.cardSolid, accent, cardTintWeight),
     surfaceElevated: mixHex(base.surfaceElevated, accent, cardTintWeight),
+    stackSilhouette: mixHex(base.stackSilhouette, accent, cardTintWeight),
     bubbleIn: mixHex(base.bubbleIn, accent, cardTintWeight * 1.5),
     pillBg: hexWithAlpha(accent, scheme === "light" ? 0.12 : 0.32),
     pillText: accent,
     searchBg: hexWithAlpha(accent, scheme === "light" ? 0.08 : 0.2),
+    // Retour visuel au toucher (listes) et chevrons de navigation teintés
+    // par l'accent — jusqu'ici toujours gris neutre, quel que soit le thème.
+    rowPressed: hexWithAlpha(accent, scheme === "light" ? 0.1 : 0.22),
+    chevron: hexWithAlpha(accent, scheme === "light" ? 0.55 : 0.6),
     bannerInfoBg: hexWithAlpha(accent, scheme === "light" ? 0.1 : 0.16),
     bannerInfoBorder: hexWithAlpha(accent, scheme === "light" ? 0.28 : 0.32),
   };

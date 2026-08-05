@@ -389,8 +389,8 @@ export default function ThreadScreen() {
       ) : null}
 
       {!loading && conversation?.cal_rdv_at ? (
-        <View style={[styles.rdvBanner, { backgroundColor: "#fff4e0" }]}>
-          <Text style={[styles.rdvBannerText, { color: "#c93400" }]}>
+        <View style={[styles.rdvBanner, { backgroundColor: c.bannerSuccessBg, borderColor: c.bannerSuccessBorder }]}>
+          <Text style={[styles.rdvBannerText, { color: c.success }]}>
             📅 RDV Cal.com · {formatCalRdv(conversation.cal_rdv_at)}
           </Text>
         </View>
@@ -504,6 +504,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   rdvBannerText: { fontSize: 13, fontWeight: "700", textAlign: "center" },
   totalCost: { fontSize: 11, textAlign: "center", marginBottom: 4 },

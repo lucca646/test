@@ -125,7 +125,7 @@ export function Row({
           value={switchValue}
           onValueChange={onSwitchChange}
           disabled={switchDisabled}
-          trackColor={{ true: c.success, false: c.searchBg }}
+          trackColor={{ true: c.accent, false: c.searchBg }}
         />
       ) : (
         <>
