@@ -266,7 +266,7 @@ export function Segmented({
 }) {
   const c = useColors();
   return (
-    <GlassSurface radius={10} style={styles.segmented}>
+    <GlassSurface radius={999} style={styles.segmented}>
       {options.map((o) => {
         const on = o.id === value;
         return (
@@ -283,11 +283,11 @@ export function Segmented({
                 backgroundColor: c.surfaceElevated,
                 borderWidth: StyleSheet.hairlineWidth,
                 borderColor:
-                  c.statusBar === "dark" ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.9)",
+                  c.statusBar === "dark" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.9)",
                 shadowColor: "#000",
-                shadowOpacity: c.statusBar === "dark" ? 0.35 : 0.1,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 1.5 },
+                shadowOpacity: c.statusBar === "dark" ? 0.4 : 0.12,
+                shadowRadius: 5,
+                shadowOffset: { width: 0, height: 2 },
                 elevation: 2,
               },
             ]}
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 32,
     paddingVertical: 8,
-    borderRadius: 7,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },
