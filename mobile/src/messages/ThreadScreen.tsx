@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -248,9 +249,8 @@ export default function ThreadScreen() {
         ? formatDisplayPhone(conversation.phone)
         : "Messages";
 
-  const onToggleBot = async () => {
+  const onToggleBot = async (next: boolean) => {
     if (!conversation) return;
-    const next = !(conversation.bot_enabled ?? true);
     Haptics.selectionAsync().catch(() => {});
     const optimistic = { ...conversation, bot_enabled: next };
     setConversation(optimistic);
@@ -294,11 +294,15 @@ export default function ThreadScreen() {
           headerRight: conversation
             ? () => (
                 <View style={styles.headerActions}>
-                  <Pressable onPress={onToggleBot} style={[styles.botPill, { backgroundColor: botEnabled ? c.pillSentBg : c.pillWarnBg }]}>
-                    <Text style={[styles.botPillText, { color: botEnabled ? c.pillSentText : c.pillWarnText }]}>
-                      🤖 {botEnabled ? "ON" : "OFF"}
-                    </Text>
-                  </Pressable>
+                  <Text style={styles.botEmoji}>🤖</Text>
+                  <Switch
+                    value={botEnabled}
+                    onValueChange={onToggleBot}
+                    trackColor={{ false: c.warning, true: c.success }}
+                    thumbColor="#fff"
+                    ios_backgroundColor={c.warning}
+                    style={styles.botSwitch}
+                  />
                   <Pressable onPress={openMenu} hitSlop={8} style={styles.menuBtn}>
                     <Text style={[styles.menuIcon, { color: c.accent }]}>•••</Text>
                   </Pressable>
@@ -452,14 +456,10 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   errorText: { fontSize: 13, marginHorizontal: 16, marginBottom: 4 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
-  botPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  botPillText: { fontSize: 12, fontWeight: "700" },
-  menuBtn: { paddingHorizontal: 4, paddingVertical: 4 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+  botEmoji: { fontSize: 15 },
+  botSwitch: { transform: [{ scale: 0.78 }] },
+  menuBtn: { paddingHorizontal: 4, paddingVertical: 4, marginLeft: 2 },
   menuIcon: { fontSize: 18, fontWeight: "800" },
   botBanner: {
     marginHorizontal: 12,

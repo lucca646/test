@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { listConversations, listSims, type ConversationSummary, type SimStatus } from "./api";
-import { conversationsCache, conversationsCacheKey } from "./cache";
+import { CONVERSATIONS_CACHE_KEY, conversationsCache } from "./cache";
 import ConversationRow from "./ConversationRow";
 import NewContactModal from "./modals/NewContactModal";
 import { EmptyState } from "../ui/Apple";
@@ -30,35 +30,40 @@ export default function ConversationsListScreen() {
   const router = useRouter();
   const [simFilter, setSimFilter] = useState<string>(ALL_SIM);
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [labelFilter, setLabelFilter] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<ConversationSummary[]>(
-    () => conversationsCache.get(conversationsCacheKey(ALL_SIM)) ?? [],
+  // Multi-sélection : on peut cumuler plusieurs catégories/étiquettes.
+  const [labelFilters, setLabelFilters] = useState<string[]>([]);
+  // Une seule liste en mémoire : tous SIM confondus. Le filtre SIM est ensuite
+  // 100% côté client (par `sim_id`) — aucun appel réseau au changement d'onglet,
+  // et le dernier snapshot connu reste affiché même hors connexion.
+  const [allConversations, setAllConversations] = useState<ConversationSummary[]>(
+    () => conversationsCache.get(CONVERSATIONS_CACHE_KEY) ?? [],
   );
   const [sims, setSims] = useState<SimStatus[]>([]);
-  // Pas de spinner plein écran si on a déjà des données en cache pour ce filtre
+  // Pas de spinner plein écran si on a déjà des données en cache
   // (stale-while-revalidate) — seulement au tout premier chargement à froid.
-  const [loading, setLoading] = useState(() => !conversationsCache.has(conversationsCacheKey(ALL_SIM)));
+  const [loading, setLoading] = useState(() => !conversationsCache.has(CONVERSATIONS_CACHE_KEY));
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [newContactVisible, setNewContactVisible] = useState(false);
   const focusedRef = useRef(false);
 
-  const load = useCallback(async (silent = false, sim = simFilter) => {
-    const cacheKey = conversationsCacheKey(sim);
-    const hasCache = conversationsCache.has(cacheKey);
+  const load = useCallback(async (silent = false) => {
+    const hasCache = conversationsCache.has(CONVERSATIONS_CACHE_KEY);
     if (!silent && !hasCache) setLoading(true);
     try {
-      const data = await listConversations(sim === ALL_SIM ? undefined : sim);
-      conversationsCache.set(cacheKey, data);
-      setConversations(data);
+      const data = await listConversations();
+      conversationsCache.set(CONVERSATIONS_CACHE_KEY, data);
+      setAllConversations(data);
       setError(null);
     } catch (e) {
+      // Hors connexion ou erreur réseau : on garde le dernier snapshot affiché,
+      // on ne vide jamais la liste (le bandeau hors-ligne global signale déjà l'état).
       if (!silent && !hasCache) setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [simFilter]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,8 +88,6 @@ export default function ConversationsListScreen() {
   const onChangeSim = (id: string) => {
     Haptics.selectionAsync().catch(() => {});
     setSimFilter(id);
-    setConversations(conversationsCache.get(conversationsCacheKey(id)) ?? []);
-    void load(false, id);
   };
 
   const onRefresh = async () => {
@@ -93,20 +96,33 @@ export default function ConversationsListScreen() {
     setRefreshing(false);
   };
 
+  // Sous-ensemble du SIM sélectionné — dérivé en mémoire, jamais re-fetché.
+  const bySim = useMemo(() => {
+    if (simFilter === ALL_SIM) return allConversations;
+    return allConversations.filter((conv) => conv.sim_id === simFilter);
+  }, [allConversations, simFilter]);
+
   const availableLabels = useMemo(() => {
     const byName = new Map<string, string | undefined>();
-    for (const conv of conversations) {
+    for (const conv of bySim) {
       for (const label of conv.labels || []) {
         if (!byName.has(label.name)) byName.set(label.name, label.color);
       }
     }
     return [...byName.entries()].map(([name, color]) => ({ name, color }));
-  }, [conversations]);
+  }, [bySim]);
+
+  const toggleLabelFilter = (name: string) => {
+    Haptics.selectionAsync().catch(() => {});
+    setLabelFilters((cur) => (cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name]));
+  };
 
   const filtered = useMemo(() => {
-    let list = conversations;
+    let list = bySim;
     if (unreadOnly) list = list.filter((conv) => conv.unread_count > 0);
-    if (labelFilter) list = list.filter((conv) => (conv.labels || []).some((l) => l.name === labelFilter));
+    if (labelFilters.length > 0) {
+      list = list.filter((conv) => (conv.labels || []).some((l) => labelFilters.includes(l.name)));
+    }
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -117,10 +133,10 @@ export default function ConversationsListScreen() {
       );
     }
     return list;
-  }, [conversations, unreadOnly, labelFilter, query]);
+  }, [bySim, unreadOnly, labelFilters, query]);
 
-  const unreadTotal = conversations.filter((conv) => conv.unread_count > 0).length;
-  const hasActiveFilters = unreadOnly || !!labelFilter;
+  const unreadTotal = bySim.filter((conv) => conv.unread_count > 0).length;
+  const hasActiveFilters = unreadOnly || labelFilters.length > 0;
 
   return (
     <View style={[styles.wrap, { backgroundColor: c.bg, paddingTop: Math.max(insets.top, 8) + 4 }]}>
@@ -203,11 +219,8 @@ export default function ConversationsListScreen() {
               key={label.name}
               label={label.name}
               color={label.color || labelColor(label.name)}
-              active={labelFilter === label.name}
-              onPress={() => {
-                Haptics.selectionAsync().catch(() => {});
-                setLabelFilter((cur) => (cur === label.name ? null : label.name));
-              }}
+              active={labelFilters.includes(label.name)}
+              onPress={() => toggleLabelFilter(label.name)}
             />
           ))}
         </ScrollView>
