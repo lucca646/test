@@ -7,6 +7,7 @@ import { getSimLimits, listSims, type SimLimits, type SimStatus } from "./api";
 import { useAppearance, type AppearanceMode } from "./AppearanceContext";
 import { useCurrentUser } from "./CurrentUserContext";
 import { Group, Row, Segmented, SectionHeader } from "../ui/Apple";
+import { ThemePicker } from "../ui/ThemePicker";
 import { MESSAGES_API_URL } from "../config";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { otaDebugLabel } from "../../lib/ota";
@@ -28,7 +29,7 @@ const APPEARANCE_OPTIONS: { id: AppearanceMode; label: string }[] = [
 export default function ParametresScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { mode, setMode } = useAppearance();
+  const { mode, setMode, themeId, setThemeId } = useAppearance();
   const { user } = useCurrentUser();
   const [sims, setSims] = useState<SimStatus[]>([]);
   const [limitsBySim, setLimitsBySim] = useState<Record<string, SimLimits>>({});
@@ -163,6 +164,9 @@ export default function ParametresScreen() {
           onChange={(id) => setMode(id as AppearanceMode)}
         />
       </View>
+
+      <SectionHeader title="Thème" />
+      <ThemePicker value={themeId} onChange={setThemeId} />
 
       <SectionHeader title="Notifications" />
       <Group>

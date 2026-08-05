@@ -1,6 +1,13 @@
 import { useContext } from "react";
 import { useColorScheme, type ColorSchemeName } from "react-native";
 import { AppearanceOverrideContext } from "./messages/AppearanceContext";
+import {
+  DEFAULT_THEME_PRESET,
+  getThemePreset,
+  hexWithAlpha,
+  mixHex,
+  type ThemePresetId,
+} from "./messages/themePresets";
 
 export type ThemeColors = {
   bg: string;
@@ -123,14 +130,50 @@ export function colorsFor(scheme: ColorSchemeName | null | undefined): ThemeColo
 }
 
 /**
+ * Applique un thème de couleur (Paramètres → Thème) par-dessus la palette
+ * clair/sombre de base : teinte le fond/les surfaces vers l'accent choisi et
+ * dérive les pastilles/bannières de ce même accent, pour que tout l'app
+ * (bulles, liens, listes…) suive un seul et même thème cohérent.
+ */
+function applyThemePreset(
+  base: ThemeColors,
+  themeId: ThemePresetId,
+  scheme: "light" | "dark",
+): ThemeColors {
+  if (themeId === "blue") return base; // thème par défaut = palette iOS d'origine, inchangée
+  const preset = getThemePreset(themeId);
+  const accent = scheme === "light" ? preset.accentLight : preset.accentDark;
+  const bgTintWeight = scheme === "light" ? 0.045 : 0.07;
+  const cardTintWeight = scheme === "light" ? 0.02 : 0.035;
+
+  return {
+    ...base,
+    accent,
+    bg: mixHex(base.bg, accent, bgTintWeight),
+    card: mixHex(base.card, accent, cardTintWeight),
+    cardSolid: mixHex(base.cardSolid, accent, cardTintWeight),
+    surfaceElevated: mixHex(base.surfaceElevated, accent, cardTintWeight),
+    bubbleIn: mixHex(base.bubbleIn, accent, cardTintWeight * 1.5),
+    pillBg: hexWithAlpha(accent, scheme === "light" ? 0.12 : 0.32),
+    pillText: accent,
+    searchBg: hexWithAlpha(accent, scheme === "light" ? 0.08 : 0.2),
+    bannerInfoBg: hexWithAlpha(accent, scheme === "light" ? 0.1 : 0.16),
+    bannerInfoBorder: hexWithAlpha(accent, scheme === "light" ? 0.28 : 0.32),
+  };
+}
+
+/**
  * Thème = Appearance iOS (Réglages → Affichage), sauf si l'utilisateur a
- * choisi une surcharge dans Paramètres → Apparence (`AppearanceContext`).
+ * choisi une surcharge dans Paramètres → Apparence (`AppearanceContext`),
+ * + palette de couleurs (Paramètres → Thème, mémoire app par défaut « Bleu »).
  */
 export function useColors(): ThemeColors {
   const systemScheme = useColorScheme();
   const override = useContext(AppearanceOverrideContext);
-  if (override) return colorsFor(override.resolvedScheme);
-  return colorsFor(systemScheme);
+  const scheme: "light" | "dark" =
+    override?.resolvedScheme ?? (systemScheme === "light" ? "light" : "dark");
+  const themeId = override?.themeId ?? DEFAULT_THEME_PRESET;
+  return applyThemePreset(colorsFor(scheme), themeId, scheme);
 }
 
 /** Padding bas pour ne pas passer sous UITabBar + home indicator. */
