@@ -137,7 +137,10 @@ export default function ThreadScreen() {
   useFocusEffect(
     useCallback(() => {
       focusedRef.current = true;
-      void load();
+      // Le fil s'actualise toujours (via l'intervalle ci-dessous), mais pas
+      // instantanément à l'ouverture si on a déjà le cache de cette conv —
+      // seulement au tout premier accès à ce fil.
+      if (!key || !threadCache.has(key)) void load();
       markConversationRead(key).catch(() => {});
       const interval = setInterval(() => {
         if (focusedRef.current) void load(true);

@@ -74,7 +74,12 @@ export default function ConversationsListScreen() {
   useFocusEffect(
     useCallback(() => {
       focusedRef.current = true;
-      void load();
+      // Toujours réactualiser en tâche de fond (l'intervalle ci-dessous s'en
+      // charge) — mais pas dès l'ouverture de l'écran si on a déjà des
+      // données en cache : on évite ainsi une requête réseau à chaque simple
+      // retour sur l'onglet Messages. Sans cache (tout premier lancement),
+      // on charge immédiatement pour ne pas laisser l'écran vide.
+      if (!conversationsCache.has(CONVERSATIONS_CACHE_KEY)) void load();
       const interval = setInterval(() => {
         if (focusedRef.current) void load(true);
       }, POLL_MS);
