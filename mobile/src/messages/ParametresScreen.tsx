@@ -1,13 +1,16 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Notifications from "expo-notifications";
 import { getSimLimits, listSims, type SimLimits, type SimStatus } from "./api";
 import { useAppearance, type AppearanceMode } from "./AppearanceContext";
+import { useCurrentUser } from "./CurrentUserContext";
 import { Group, Row, Segmented, SectionHeader } from "../ui/Apple";
 import { MESSAGES_API_URL } from "../config";
 import { TAB_BAR_CLEARANCE, useColors } from "../theme";
 import { otaDebugLabel } from "../../lib/ota";
+import { registerForPushNotifications } from "../notifications";
 
 function limitsSubtitle(limits?: SimLimits): string | undefined {
   if (!limits) return undefined;
@@ -26,12 +29,23 @@ export default function ParametresScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { mode, setMode } = useAppearance();
+  const { user } = useCurrentUser();
   const [sims, setSims] = useState<SimStatus[]>([]);
   const [limitsBySim, setLimitsBySim] = useState<Record<string, SimLimits>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifBusy, setNotifBusy] = useState(false);
+
+  const refreshNotifStatus = useCallback(async () => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      setNotifEnabled(status === "granted");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -61,8 +75,31 @@ export default function ParametresScreen() {
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+      void refreshNotifStatus();
+    }, [load, refreshNotifStatus]),
   );
+
+  const onToggleNotif = async (next: boolean) => {
+    if (!next) {
+      Alert.alert(
+        "Notifications",
+        "Pour désactiver les notifications, va dans Réglages iOS → COR·ALT → Notifications.",
+        [
+          { text: "Annuler", style: "cancel" },
+          { text: "Réglages", onPress: () => Linking.openSettings() },
+        ],
+      );
+      return;
+    }
+    if (!user) return;
+    setNotifBusy(true);
+    try {
+      await registerForPushNotifications(user.id);
+    } finally {
+      await refreshNotifStatus();
+      setNotifBusy(false);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -131,11 +168,17 @@ export default function ParametresScreen() {
       <Group>
         <Row
           label="Notifications push"
-          subtitle="Bientôt disponible"
-          icon={{ name: "notifications", backgroundColor: c.danger }}
+          subtitle={
+            notifBusy
+              ? "…"
+              : notifEnabled
+                ? "Message manuel entrant (bot désactivé)"
+                : "Désactivées"
+          }
+          icon={{ name: "notifications", backgroundColor: notifEnabled ? c.success : c.danger }}
           switchValue={notifEnabled}
-          onSwitchChange={setNotifEnabled}
-          switchDisabled
+          onSwitchChange={onToggleNotif}
+          switchDisabled={notifBusy}
           last
         />
       </Group>

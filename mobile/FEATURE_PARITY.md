@@ -116,7 +116,7 @@ Document **définitif** d’audit, établi par relecture directe du code (PWA + 
 | 64 | SSE temps réel `new_message` / `message_reaction` / `contact_updated` | `app.js:1328-1365` | `GET /api/events` — `imessage-server.ts:1143-1163` | 🟡 polling seul (8s liste / 4s fil) — **SSE possible** via polyfill (`react-native-sse` / EventSource) mais **pas obligatoire** : polling actuel acceptable ; SSE = latence + batterie | Moyen | Moyenne |
 | 65 | Polling secours contacts / SIMs | `app.js:1109-1121` (20s / 40s) | — | ✅ | — | — |
 | 66 | Thème clair/sombre (toggle + `localStorage "theme"`) | `index.html:56-60` ; `app.js:1067-1081`, `1694-1697` | — | 🟡 `theme.ts:123-126` : suit **uniquement** `useColorScheme` système — **pas** de override local | Faible | Basse |
-| 67 | Push Web (VAPID) + banner notif in-app | `app.js:889-1005`, `index.html:605` | `GET /api/mobile/vapid-public-key` ; `POST /api/mobile/device` ; `GET /api/mobile/notifications` | ❌ `ParametresScreen.tsx:85-88` « Push (bientôt) » | Élevé | Haute |
+| 67 | Push notifications (message manuel entrant, bot OFF) | `app.js:889-1005`, `index.html:605` (Web Push/VAPID côté PWA) | `POST /api/mobile/device` | ✅ Expo Push natif (APNs) — `src/notifications.ts`, `PushNotificationsBridge.tsx` ; PWA reste sur Web Push/VAPID | — | — |
 | 68 | Deep link `?contact=&sim=` / SW message | `app.js:1010-1065` | — | ❌ | Moyen | Moyenne |
 | 69 | Safe-area / clavier visualViewport | `app.js:1127-1322` | — | ✅ `useSafeAreaInsets` + `KeyboardAvoidingView` `ThreadScreen.tsx:148-151` | — | — |
 
@@ -220,7 +220,7 @@ Ordre : **priorité Haute**, puis **effort croissant**. Exclut les items déjà 
 16. **Bandeau offline** (#62) — Moyen  
 17. **Stats onglet Détail** (#56) — Faible  
 18. **Signaler le bot + panneau SAV** (#29, #30) — Élevé  
-19. **Push notifications natives** (#67) — Élevé  
+19. ~~**Push notifications natives** (#67)~~ — ✅ fait  
 20. **Auth session réelle multi-vendeur** (#59, #61) — Élevé  
 
 ### Ensuite (priorité Moyenne / Basse)
