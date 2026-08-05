@@ -113,6 +113,11 @@ export default function ThreadScreen() {
   const [tramModalVisible, setTramModalVisible] = useState(false);
   const [botReportModalVisible, setBotReportModalVisible] = useState(false);
   const [relaunchModalVisible, setRelaunchModalVisible] = useState(false);
+  // Incrémenté à chaque tap pour forcer le remount du `Switch` bot (cf.
+  // Apple.tsx Row) — évite qu'il reste visuellement sur la position du
+  // dernier tap si l'état affiché ne change pas d'une frame à l'autre
+  // (bug connu du composant natif `Switch` sur iOS).
+  const [botSwitchNonce, setBotSwitchNonce] = useState(0);
   const conversationRef = useRef<ConversationDetail | null>(conversation);
   conversationRef.current = conversation;
 
@@ -274,6 +279,7 @@ export default function ThreadScreen() {
     botOverrideUntilRef.current = Date.now() + POLL_MS + 1500;
     const optimistic = { ...conversation, bot_enabled: next };
     setConversation(optimistic);
+    setBotSwitchNonce((n) => n + 1);
     if (key) threadCache.set(key, optimistic);
     try {
       await setBotEnabled(conversation.phone, next, conversation.sim_id);
@@ -281,6 +287,7 @@ export default function ThreadScreen() {
       botOverrideUntilRef.current = 0;
       const reverted = { ...conversation, bot_enabled: !next };
       setConversation(reverted);
+      setBotSwitchNonce((n) => n + 1);
       if (key) threadCache.set(key, reverted);
     }
   };
@@ -317,6 +324,7 @@ export default function ThreadScreen() {
                 <View style={styles.headerActions}>
                   <Text style={styles.botEmoji}>🤖</Text>
                   <Switch
+                    key={botSwitchNonce}
                     value={botEnabled}
                     onValueChange={onToggleBot}
                     trackColor={{ false: c.warning, true: c.success }}

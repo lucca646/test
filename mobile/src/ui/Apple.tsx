@@ -67,6 +67,7 @@ export function Row({
   switchValue,
   onSwitchChange,
   switchDisabled,
+  switchResyncKey,
 }: {
   label: string;
   value?: string;
@@ -82,6 +83,13 @@ export function Row({
   switchValue?: boolean;
   onSwitchChange?: (next: boolean) => void;
   switchDisabled?: boolean;
+  /**
+   * Change cette valeur (ex. compteur incrémenté à chaque toggle) pour forcer
+   * le remount du `Switch` natif — évite le bug iOS connu où le composant
+   * reste visuellement sur la position du dernier tap alors que `switchValue`
+   * n'a pas changé (ex. action refusée/asynchrone qui ne modifie pas l'état).
+   */
+  switchResyncKey?: string | number;
 }) {
   const c = useColors();
   const showSwitch = switchValue !== undefined;
@@ -113,6 +121,7 @@ export function Row({
         rightElement
       ) : showSwitch ? (
         <Switch
+          key={switchResyncKey}
           value={switchValue}
           onValueChange={onSwitchChange}
           disabled={switchDisabled}

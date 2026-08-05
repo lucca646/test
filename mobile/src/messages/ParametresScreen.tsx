@@ -38,6 +38,11 @@ export default function ParametresScreen() {
   const [error, setError] = useState<string | null>(null);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifBusy, setNotifBusy] = useState(false);
+  // Incrémenté à chaque interaction pour forcer le remount du `Switch` natif
+  // (cf. Row.switchResyncKey) — évite qu'il reste visuellement sur la
+  // position du dernier tap quand l'état ne change pas (ex. refus/attente
+  // réseau), un bug connu du composant `Switch` de React Native sur iOS.
+  const [notifNonce, setNotifNonce] = useState(0);
 
   const refreshNotifStatus = useCallback(async () => {
     try {
@@ -45,6 +50,8 @@ export default function ParametresScreen() {
       setNotifEnabled(status === "granted");
     } catch {
       // ignore
+    } finally {
+      setNotifNonce((n) => n + 1);
     }
   }, []);
 
@@ -81,12 +88,20 @@ export default function ParametresScreen() {
   );
 
   const onToggleNotif = async (next: boolean) => {
+    // Optimiste : reflète immédiatement le tap. iOS bascule le `Switch`
+    // visuellement dès le tap, indépendamment de notre état React — sans ça
+    // il reste désynchronisé pendant l'attente réseau/permission, ou quand
+    // l'action est refusée (cf. `switchResyncKey` ci-dessous pour le cas où
+    // l'état final ne change pas du tout, ex. désactivation).
+    setNotifEnabled(next);
+    setNotifNonce((n) => n + 1);
+
     if (!next) {
       Alert.alert(
         "Notifications",
         "Pour désactiver les notifications, va dans Réglages iOS → COR·ALT → Notifications.",
         [
-          { text: "Annuler", style: "cancel" },
+          { text: "OK", onPress: () => void refreshNotifStatus() },
           { text: "Réglages", onPress: () => Linking.openSettings() },
         ],
       );
@@ -183,6 +198,7 @@ export default function ParametresScreen() {
           switchValue={notifEnabled}
           onSwitchChange={onToggleNotif}
           switchDisabled={notifBusy}
+          switchResyncKey={notifNonce}
           last
         />
       </Group>
