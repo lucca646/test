@@ -8,9 +8,9 @@ import {
   type ViewStyle,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors, type ThemeColors } from "../theme";
-import { GlassSurface } from "./Glass";
 
 /** Icône façon iOS Settings : carré arrondi coloré + glyphe blanc. */
 export function RowIcon({
@@ -255,6 +255,13 @@ export function EmptyState({
   );
 }
 
+/**
+ * Vrai `UISegmentedControl` iOS natif (module natif
+ * `@react-native-segmented-control/segmented-control`), pas une imitation en
+ * JS : verre système + pill + haptique + rendu identiques au reste de l'OS
+ * (barre d'onglets, Réglages…). Nécessite un build natif (pas livrable en
+ * simple OTA JS) car il embarque du code Swift/Objective-C.
+ */
 export function Segmented({
   options,
   value,
@@ -265,42 +272,23 @@ export function Segmented({
   onChange: (id: string) => void;
 }) {
   const c = useColors();
+  const dark = c.statusBar === "light";
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <GlassSurface radius={999} style={styles.segmented}>
-      {options.map((o) => {
-        const on = o.id === value;
-        return (
-          <Pressable
-            key={o.id}
-            hitSlop={{ top: 6, bottom: 6 }}
-            onPress={() => {
-              Haptics.selectionAsync().catch(() => {});
-              onChange(o.id);
-            }}
-            style={[
-              styles.segItem,
-              on && {
-                backgroundColor: c.surfaceElevated,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor:
-                  c.statusBar === "dark" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.9)",
-                shadowColor: "#000",
-                shadowOpacity: c.statusBar === "dark" ? 0.4 : 0.12,
-                shadowRadius: 5,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.segText, { color: on ? c.accent : c.muted }]}
-            >
-              {o.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </GlassSurface>
+    <SegmentedControl
+      values={options.map((o) => o.label)}
+      selectedIndex={selectedIndex}
+      onChange={(event) => {
+        Haptics.selectionAsync().catch(() => {});
+        const opt = options[event.nativeEvent.selectedSegmentIndex];
+        if (opt) onChange(opt.id);
+      }}
+      appearance={dark ? "dark" : "light"}
+      tintColor={c.accent}
+      fontStyle={{ fontSize: 13, fontWeight: "600", color: c.muted }}
+      activeFontStyle={{ fontSize: 13, fontWeight: "600", color: "#fff" }}
+      style={styles.segmented}
+    />
   );
 }
 
@@ -467,21 +455,8 @@ const styles = StyleSheet.create({
   },
   emptyActionText: { fontSize: 16, fontWeight: "600" },
   segmented: {
-    flexDirection: "row",
-    padding: 3,
     marginHorizontal: 16,
-  },
-  segItem: {
-    flex: 1,
-    minHeight: 32,
-    paddingVertical: 8,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segText: {
-    fontSize: 13,
-    fontWeight: "600",
+    height: 34,
   },
   banner: {
     marginHorizontal: 16,
