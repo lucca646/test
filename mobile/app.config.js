@@ -4,15 +4,17 @@
  *   Dev Client / Live Activity (tunnel CI sans EXPO_TOKEN).
  * - EAS profile production|preview → retire expo-dev-client (app autonome
  *   TestFlight / install link, sans shell Dev Client).
- * - CARPLAY=0 → retire le plugin CarPlay (entitlement Apple restreint). Utile
- *   tant qu'Apple n'a pas accordé l'entitlement : le build signe et s'installe
- *   sur iPhone (sans CarPlay). Mettre CARPLAY=1 / défaut une fois approuvé.
+ * - CarPlay « templates » (icône dédiée sur l'écran d'accueil CarPlay) =
+ *   entitlement Apple RESTREINT (approbation requise). OFF par défaut pour que
+ *   le build signe et s'installe ; réactiver avec CARPLAY=1 une fois
+ *   l'entitlement accordé. La présence audio « Now Playing » dans la voiture
+ *   fonctionne SANS cet entitlement (voir docs/CARPLAY.md).
  */
 module.exports = ({ config }) => {
   const forExpoGo = process.env.EXPO_GO === "1";
   const profile = process.env.EAS_BUILD_PROFILE || "";
   const storeFacing = profile === "production" || profile === "preview";
-  const dropCarPlay = process.env.CARPLAY === "0";
+  const keepCarPlay = process.env.CARPLAY === "1";
 
   const stripPlugins = (cfg, names) => {
     const set = new Set(names);
@@ -25,11 +27,10 @@ module.exports = ({ config }) => {
   };
 
   let out = config;
-  if (dropCarPlay) out = stripPlugins(out, ["./plugins/withCarPlay"]);
+  if (!keepCarPlay) out = stripPlugins(out, ["./plugins/withCarPlay"]);
 
   if (!forExpoGo && !storeFacing) return out;
 
-  // CarPlay = module natif + entitlement : impossible en Expo Go (anonyme).
   const drop = forExpoGo
     ? ["expo-dev-client", "expo-live-activity", "./plugins/withCarPlay"]
     : ["expo-dev-client"];

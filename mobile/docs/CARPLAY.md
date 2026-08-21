@@ -1,9 +1,42 @@
-# Prototype CarPlay — Coraia Glass
+# CarPlay — Coraia Glass
 
-Test CarPlay branché sur l'app `mobile/` (dev-client Expo). CarPlay affiche une UI
-**par templates natifs Apple** (impossible d'y rendre des vues React Native
-custom / le look liquid glass) : le prototype décline plusieurs pages et
-fonctionnalités avec ces templates.
+Deux approches coexistent dans l'app `mobile/` :
+
+| Approche | Entitlement Apple ? | Ce que ça donne dans la voiture |
+|----------|--------------------|---------------------------------|
+| **A. Audio Now Playing** (par défaut) | ❌ Aucun | L'app apparaît sur l'écran **Now Playing** de CarPlay (pochette, titre, play/pause/suivant) dès qu'elle joue de l'audio |
+| **B. Templates CarPlay** (`CARPLAY=1`) | ✅ Restreint (approbation) | **Icône dédiée** sur l'accueil CarPlay + UI par templates (onglets, listes, grille…) |
+
+> **Pour ouvrir l'app dans ta voiture SANS Mac ni approbation Apple → approche A.**
+> C'est le chemin par défaut : voir « Build sans Mac » plus bas.
+
+---
+
+## Approche A — Audio « Now Playing » (sans entitlement)
+
+Toute app qui joue de l'audio en arrière-plan et publie ses métadonnées via
+`MPNowPlayingInfoCenter` apparaît sur l'écran Now Playing de CarPlay — la **même
+surface système** que l'écran verrouillé. Aucune demande à Apple.
+
+Câblé dans le repo :
+- `lib/carAudio.ts` — session audio (`setAudioModeAsync` playback/arrière-plan) +
+  pistes de démo (à remplacer par le vrai contenu Coraia).
+- `components/CarAudioPlayer.tsx` — lecteur (play/pause/suivant) qui appelle
+  `player.setActiveForLockScreen(true, metadata)` → alimente le Now Playing.
+- `app/arcade.tsx` — onglet « Radio Coraia » qui héberge le lecteur.
+- `app.json` — `UIBackgroundModes: ["audio"]` (lecture en arrière-plan iOS) +
+  plugin `expo-audio`.
+
+Tester dans la voiture : builder (voir plus bas), installer, ouvrir l'onglet
+**Radio Coraia**, lancer la lecture, brancher l'iPhone en CarPlay → l'app est sur
+le Now Playing. Fonctionne aussi sur l'écran verrouillé / Centre de contrôle.
+
+---
+
+## Approche B — Templates CarPlay (icône dédiée, entitlement requis)
+
+CarPlay affiche une UI **par templates natifs Apple** (pas de vues React Native
+custom) : le prototype décline plusieurs pages et fonctionnalités.
 
 ## Pages & fonctionnalités
 
@@ -29,18 +62,19 @@ Code : `lib/carplay/carPlayApp.ts` (templates + logique), `lib/carplay/index.ts`
     `CarSceneDelegate`) ;
   - `CarSceneDelegate` (Objective-C) relayant connect/disconnect vers
     `RNCarPlay`, ajouté à la target Xcode.
-- Plugin retiré automatiquement en **Expo Go** (`app.config.js`), et l'import
-  natif est chargé en require paresseux → l'app tourne partout sans CarPlay.
+- Templates **opt-in** : le plugin `withCarPlay` n'est appliqué qu'avec
+  `CARPLAY=1` (et jamais en Expo Go). L'import natif est en require paresseux →
+  l'app tourne partout sans CarPlay.
 
-## Builder & tester (macOS + Xcode requis)
+## Builder & tester les templates (macOS + Xcode requis)
 
-CarPlay ne tourne **pas** en Expo Go ni sur une VM Linux. Il faut un Mac :
+Les templates CarPlay ne tournent **pas** en Expo Go ni sur une VM Linux :
 
 ```bash
 cd mobile
-npx expo prebuild -p ios        # génère ios/ + applique withCarPlay
-npx pod-install ios             # autolink react-native-carplay
-npx expo run:ios                # build dev-client sur simulateur
+CARPLAY=1 npx expo prebuild -p ios   # génère ios/ + applique withCarPlay
+npx pod-install ios                  # autolink react-native-carplay
+npx expo run:ios                     # build dev-client sur simulateur
 ```
 
 Puis lancer le **simulateur CarPlay** : Xcode → *Additional Tools for Xcode*
@@ -62,47 +96,48 @@ approbation :
 Un agenda / app générique n'entre dans aucune catégorie standard : prévoir de
 justifier l'usage (ou changer de catégorie) avant toute mise en production.
 
-## Builder sans Mac (EAS cloud) — ce qu'il faut savoir
+## Build sans Mac (EAS cloud) — recommandé
 
-EAS Build compile iOS **dans le cloud, sans Mac**. Deux prérequis indépendants
-du Mac :
+EAS Build compile iOS **dans le cloud, sans Mac**. Seul prérequis : un token EAS.
 
-### 1. Token EAS (pour lancer le build)
 Créer un token sur https://expo.dev → Account → Access tokens, puis l'ajouter
-comme **secret `EXPO_TOKEN`** (panneau Secrets de l'agent), ou dans
+comme **secret `EXPO_TOKEN`** (panneau Secrets de l'agent) ou dans
 `mobile/.env.eas` (voir `.env.eas.example`). Ensuite :
 
 ```bash
 cd mobile
-# App installable MAINTENANT sur iPhone, SANS CarPlay (signe sans entitlement) :
-CARPLAY=0 npx eas-cli build -p ios --profile preview
-# → lien d'installation interne (pas besoin de Mac)
+# Build par défaut = approche A (Now Playing). Signe sans entitlement CarPlay,
+# s'installe sur iPhone, apparaît sur le Now Playing de la voiture :
+npx eas-cli build -p ios --profile preview
+# → lien d'installation interne (aucun Mac requis)
 ```
 
-### 2. Entitlement CarPlay Apple (pour l'ouvrir dans la voiture) — BLOQUANT
-`com.apple.developer.carplay-audio` est un entitlement **restreint**. EAS ne peut
-PAS l'auto-provisionner : tant qu'Apple ne l'a pas accordé au compte, un build
-qui l'inclut **échoue à la signature** (« provisioning profile doesn't include
-com.apple.developer.carplay-* »), et aucun vrai boîtier CarPlay n'affichera l'app.
+C'est le chemin pour **ouvrir l'app dans ta voiture dès maintenant** : installe,
+lance la lecture dans l'onglet Radio Coraia, branche CarPlay.
 
-Étapes (seul le titulaire du compte Apple peut les faire) :
+### (Optionnel) Templates CarPlay — nécessite l'entitlement Apple
+`com.apple.developer.carplay-audio` est un entitlement **restreint**. EAS ne peut
+PAS l'auto-provisionner : tant qu'Apple ne l'a pas accordé, un build `CARPLAY=1`
+**échoue à la signature** (« provisioning profile doesn't include
+com.apple.developer.carplay-* »). Étapes (titulaire du compte Apple uniquement) :
 1. Demander l'entitlement : https://developer.apple.com/contact/carplay/
    (choisir une catégorie : Audio, Navigation, Communication, EV, Parking…).
 2. Attendre l'approbation Apple (un playground/agenda générique risque un refus :
    prévoir de justifier la catégorie).
 3. Une fois accordé, activer la capability CarPlay sur l'App ID, puis builder
-   **avec** CarPlay (défaut) et soumettre à TestFlight :
+   **avec** les templates (`CARPLAY=1`) et soumettre à TestFlight :
 
 ```bash
 cd mobile
-npx eas-cli build -p ios --profile production --auto-submit   # ou ./scripts-eas-testflight.sh
+CARPLAY=1 npx eas-cli build -p ios --profile production --auto-submit
 ```
 
-Puis installer via TestFlight sur l'iPhone → l'app apparaît sur l'écran CarPlay
-de la voiture.
+Puis installer via TestFlight sur l'iPhone → l'icône de l'app apparaît sur
+l'écran d'accueil CarPlay.
 
-> Résumé : sans Mac ✅ (EAS cloud). Ouvrir dans la voiture = ⛔ tant que
-> l'entitlement CarPlay n'est pas approuvé par Apple.
+> Résumé : **Now Playing dans la voiture = ✅ sans Mac ni Apple** (build par
+> défaut). Icône dédiée + templates = ⛔ tant que l'entitlement CarPlay n'est pas
+> approuvé par Apple.
 
 ## Notes d'intégration
 
