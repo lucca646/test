@@ -3,6 +3,7 @@ import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useAppTheme } from "../lib/theme";
 import { applyOtaUpdateIfAny } from "../lib/ota";
+import { setupCarPlay } from "../lib/carplay";
 
 /**
  * Vraie barre d’onglets Apple : UITabBar / UITabBarController
@@ -18,6 +19,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     void applyOtaUpdateIfAny();
+    // Prototype CarPlay : no-op hors iOS dev-client / TestFlight (Expo Go safe).
+    setupCarPlay();
   }, []);
 
   return (

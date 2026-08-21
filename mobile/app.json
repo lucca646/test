@@ -17,7 +17,8 @@
         "NSCameraUsageDescription": "Zone de test caméra / flash dans l’onglet Apps.",
         "NSFaceIDUsageDescription": "Zone de test Face ID dans l’onglet Apps.",
         "NSMicrophoneUsageDescription": "Optionnel pour tests caméra vidéo.",
-        "NSSupportsLiveActivitiesFrequentUpdates": false
+        "NSSupportsLiveActivitiesFrequentUpdates": false,
+        "UIBackgroundModes": ["audio"]
       },
       "entitlements": {}
     },
@@ -63,7 +64,9 @@
           "sounds": [],
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-audio",
+      "./plugins/withCarPlay"
     ],
     "experiments": {
       "typedRoutes": true
