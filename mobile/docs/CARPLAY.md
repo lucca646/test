@@ -62,6 +62,48 @@ approbation :
 Un agenda / app générique n'entre dans aucune catégorie standard : prévoir de
 justifier l'usage (ou changer de catégorie) avant toute mise en production.
 
+## Builder sans Mac (EAS cloud) — ce qu'il faut savoir
+
+EAS Build compile iOS **dans le cloud, sans Mac**. Deux prérequis indépendants
+du Mac :
+
+### 1. Token EAS (pour lancer le build)
+Créer un token sur https://expo.dev → Account → Access tokens, puis l'ajouter
+comme **secret `EXPO_TOKEN`** (panneau Secrets de l'agent), ou dans
+`mobile/.env.eas` (voir `.env.eas.example`). Ensuite :
+
+```bash
+cd mobile
+# App installable MAINTENANT sur iPhone, SANS CarPlay (signe sans entitlement) :
+CARPLAY=0 npx eas-cli build -p ios --profile preview
+# → lien d'installation interne (pas besoin de Mac)
+```
+
+### 2. Entitlement CarPlay Apple (pour l'ouvrir dans la voiture) — BLOQUANT
+`com.apple.developer.carplay-audio` est un entitlement **restreint**. EAS ne peut
+PAS l'auto-provisionner : tant qu'Apple ne l'a pas accordé au compte, un build
+qui l'inclut **échoue à la signature** (« provisioning profile doesn't include
+com.apple.developer.carplay-* »), et aucun vrai boîtier CarPlay n'affichera l'app.
+
+Étapes (seul le titulaire du compte Apple peut les faire) :
+1. Demander l'entitlement : https://developer.apple.com/contact/carplay/
+   (choisir une catégorie : Audio, Navigation, Communication, EV, Parking…).
+2. Attendre l'approbation Apple (un playground/agenda générique risque un refus :
+   prévoir de justifier la catégorie).
+3. Une fois accordé, activer la capability CarPlay sur l'App ID, puis builder
+   **avec** CarPlay (défaut) et soumettre à TestFlight :
+
+```bash
+cd mobile
+npx eas-cli build -p ios --profile production --auto-submit   # ou ./scripts-eas-testflight.sh
+```
+
+Puis installer via TestFlight sur l'iPhone → l'app apparaît sur l'écran CarPlay
+de la voiture.
+
+> Résumé : sans Mac ✅ (EAS cloud). Ouvrir dans la voiture = ⛔ tant que
+> l'entitlement CarPlay n'est pas approuvé par Apple.
+
 ## Notes d'intégration
 
 - `CarSceneDelegate.m` importe `"RNCarPlay.h"` (sans `use_frameworks!`). Avec
