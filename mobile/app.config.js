@@ -13,9 +13,10 @@ module.exports = ({ config }) => {
 
   if (!forExpoGo && !storeFacing) return config;
 
+  // CarPlay = module natif + entitlement : impossible en Expo Go (anonyme).
   const drop = new Set(
     forExpoGo
-      ? ["expo-dev-client", "expo-live-activity"]
+      ? ["expo-dev-client", "expo-live-activity", "./plugins/withCarPlay"]
       : ["expo-dev-client"],
   );
 
