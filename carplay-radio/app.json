@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Radios",
+    "slug": "carplay-radio",
+    "owner": "luccar2956s-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "carplayradio",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "eu.coraia.radios",
+      "infoPlist": {
+        "CFBundleDisplayName": "Radios",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "package": "eu.coraia.radios",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0b0f",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "./plugins/withCarPlay"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "235f10bc-2a60-414d-8e19-ea44eca6e761"
+      }
+    }
+  }
+}
