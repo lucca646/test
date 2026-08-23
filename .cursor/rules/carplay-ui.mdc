@@ -1,5 +1,5 @@
 ---
-description: Intention produit CarPlay — UI templates native, pas un lecteur audio
+description: Intention produit CarPlay — UI templates native, catégorie Communication
 alwaysApply: true
 ---
 
@@ -12,4 +12,37 @@ pas un lecteur Now Playing / `expo-audio`.
 - Docs : `mobile/docs/CARPLAY.md`
 - ON par défaut ; `CARPLAY=0` seulement si signature bloquée sans entitlement
 - Ne pas réintroduire `CarAudioPlayer` / `lib/carAudio` comme chemin principal
-- Brancher ensuite les vraies données Messages/CRM sur l’onglet CarPlay Messages
+
+## Catégorie : Communication (pas Audio)
+
+Entitlement `com.apple.developer.carplay-communication`. L'app est un CRM SMS ;
+la catégorie Audio exigerait une app de lecture audio (Guidelines §1).
+Ne pas rebasculer sur `carplay-audio`.
+
+## Règles Apple à ne jamais casser
+
+- **Jamais le contenu d'un message à l'écran voiture** (Guidelines §6) : ni
+  `last_message`, ni aperçu, ni corps de notification. Métadonnées seulement
+  (nom, non-lus, heure).
+- **Rien qui ne serve pas la conduite** (§4) : pas d'écran de debug, de
+  réglages, de compteur ni de diagnostic dans les templates CarPlay.
+- **Ne jamais renvoyer vers l'iPhone** (§2), y compris dans les messages
+  d'erreur.
+- **Templates interdits en Communication** : `MapTemplate`,
+  `PointOfInterestTemplate`, `SearchTemplate` — exception au runtime.
+- Profondeur ≤ 5 templates ; listes plafonnées à 12 lignes.
+
+## Pièges techniques
+
+- New Architecture est active (Reanimated 4 l'impose) : le patch
+  `patches/react-native-carplay+2.3.0.patch` est **obligatoire**, sinon
+  `didConnect` n'arrive jamais au branchement à chaud.
+- `backButtonHidden: true` sur les `ListTemplate` racines, sinon la lib injecte
+  un bouton « Back » en dur, en anglais.
+- Ne pas vider le cache des `ContactTemplate` : doublerait les listeners.
+
+## Reste à faire
+
+Extension SiriKit native (`INSendMessageIntent`, `INSearchForMessagesIntent`,
+`INSetMessageAttributeIntent`) — exigée par Apple pour la catégorie
+Communication, impossible en JS.

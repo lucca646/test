@@ -1,14 +1,19 @@
 /**
- * Config plugin CarPlay (prototype).
+ * Config plugin CarPlay — catégorie « Communication ».
  *
  * Génère, au `expo prebuild`, tout le natif iOS nécessaire pour que
  * `react-native-carplay` reçoive la scène CarPlay :
- *   1. Entitlement `com.apple.developer.carplay-audio` (catégorie Audio — la
- *      plus riche en templates : tab bar + list + grid + information + now
- *      playing). ⚠️ Entitlement « restreint » : nécessite l'approbation Apple
- *      (formulaire CarPlay) pour un vrai boîtier / TestFlight.
- *   2. `UIApplicationSceneManifest` déclarant UNIQUEMENT la scène CarPlay
- *      (le window scene iPhone reste géré classiquement par l'AppDelegate RN).
+ *   1. Entitlement `com.apple.developer.carplay-communication`. COR·ALT est un
+ *      CRM SMS (messagerie texte courte) : c'est la seule catégorie que l'app
+ *      peut honnêtement revendiquer. La catégorie Audio exigerait que l'app
+ *      soit « designed primarily to provide audio playback services »
+ *      (CarPlay Developer Guide, Guidelines §1) — ce qui n'est pas le cas.
+ *      ⚠️ Entitlement « restreint » : nécessite l'approbation Apple
+ *      (developer.apple.com/carplay) pour un vrai boîtier / TestFlight.
+ *   2. `UIApplicationSceneManifest` déclarant UNIQUEMENT la scène CarPlay.
+ *      Le window scene iPhone reste géré classiquement par l'AppDelegate RN :
+ *      déclarer ici un `UIWindowSceneSessionRoleApplication` pointerait vers
+ *      une classe delegate inexistante et casserait le lancement sur iPhone.
  *   3. Un `CarSceneDelegate` (Objective-C) qui relaie connect/disconnect vers
  *      `RNCarPlay`, ajouté à la target Xcode.
  */
@@ -54,7 +59,10 @@ const IMPL = `#import "${DELEGATE_NAME}.h"
 
 function withCarPlayEntitlement(config) {
   return withEntitlementsPlist(config, (cfg) => {
-    cfg.modResults["com.apple.developer.carplay-audio"] = true;
+    // Une seule catégorie : demander plusieurs entitlements CarPlay sans
+    // qu'Apple les ait tous accordés fait échouer la signature.
+    delete cfg.modResults["com.apple.developer.carplay-audio"];
+    cfg.modResults["com.apple.developer.carplay-communication"] = true;
     return cfg;
   });
 }
