@@ -1,0 +1,15 @@
+---
+description: Intention produit CarPlay — UI templates native, pas un lecteur audio
+alwaysApply: true
+---
+
+# CarPlay COR·ALT
+
+Volonté utilisateur : **vraie interface CarPlay** (templates natifs Apple),
+pas un lecteur Now Playing / `expo-audio`.
+
+- Code : `mobile/lib/carplay/`, plugin `mobile/plugins/withCarPlay.js`
+- Docs : `mobile/docs/CARPLAY.md`
+- ON par défaut ; `CARPLAY=0` seulement si signature bloquée sans entitlement
+- Ne pas réintroduire `CarAudioPlayer` / `lib/carAudio` comme chemin principal
+- Brancher ensuite les vraies données Messages/CRM sur l’onglet CarPlay Messages

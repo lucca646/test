@@ -1,0 +1,48 @@
+---
+description: Réduire la consommation de tokens tout en conservant les informations importantes
+alwaysApply: true
+---
+
+# Règles de consommation minimale de tokens
+
+Objectif : réduire au maximum la consommation de tokens tout en conservant les informations importantes.
+
+## Gestion du contexte
+
+- Ne pas relire ou réexpliquer tout l'historique si ce n'est pas nécessaire.
+- Conserver seulement les décisions importantes, contraintes validées, fichiers modifiés et points bloquants.
+- Résumer les longues explorations au lieu de garder tous les détails.
+- Si une tâche devient longue, produire un résumé de continuité court avec :
+  - objectif actuel,
+  - décisions prises,
+  - fichiers importants,
+  - contraintes utilisateur,
+  - prochaines étapes.
+
+## Exploration du code
+
+- Lire uniquement les fichiers nécessaires à la tâche.
+- Éviter les recherches larges dans tout le repo sauf si indispensable.
+- Préférer les recherches ciblées par nom de fichier, composant ou fonction.
+- Ne pas ouvrir de gros fichiers ou logs en entier si seules quelques lignes sont utiles.
+- Si un fichier a déjà été compris, ne le relire que si le contenu a changé.
+
+## Réponses
+
+- Répondre de façon concise par défaut.
+- Ne pas répéter le plan complet à chaque message.
+- Ne pas inclure de longs extraits de code sauf si demandé.
+- Mentionner seulement les changements importants et les tests effectués.
+
+## Préservation des infos importantes
+
+- Mémoriser les préférences validées par l'utilisateur.
+- Ne pas supprimer les contraintes métier, UI ou design confirmées.
+- Si une information est importante pour la suite, la reformuler en résumé court plutôt que de garder tout le contexte brut.
+
+## Mode agent
+
+- Avant d'explorer largement, vérifier si une recherche ciblée suffit.
+- Avant de lire un gros fichier, chercher les symboles ou sections pertinents.
+- Éviter les boucles d'analyse répétitives.
+- Si la tâche change de sujet, recommander de démarrer une nouvelle conversation avec un résumé court.

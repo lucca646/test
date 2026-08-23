@@ -63,7 +63,8 @@
           "sounds": [],
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "./plugins/withCarPlay"
     ],
     "experiments": {
       "typedRoutes": false

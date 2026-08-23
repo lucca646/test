@@ -12,6 +12,7 @@ import { CurrentUserProvider } from "../src/messages/CurrentUserContext";
 import { AppearanceProvider, useAppearance } from "../src/messages/AppearanceContext";
 import PushNotificationsBridge from "../src/messages/PushNotificationsBridge";
 import { applyOtaUpdateIfAny } from "../lib/ota";
+import { setupCarPlay } from "../lib/carplay";
 import { useColors } from "../src/theme";
 import OfflineBanner from "../src/ui/OfflineBanner";
 
@@ -24,6 +25,8 @@ import OfflineBanner from "../src/ui/OfflineBanner";
 export default function RootLayout() {
   useEffect(() => {
     void applyOtaUpdateIfAny();
+    // Templates CarPlay : no-op hors iOS natif lié (Expo Go safe).
+    setupCarPlay();
   }, []);
 
   return (
