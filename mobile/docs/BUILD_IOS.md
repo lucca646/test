@@ -48,7 +48,7 @@ ssh luccarouxel@100.127.42.18
 # ou via Tailscale : mac-mini-de-lucca-2
 ```
 
-> **Veille** : le Mac mini se met parfois en veille → SSH timeout. Le réveiller (physiquement ou via Tailscale sur iPhone) avant un build.
+> **Veille** : désactivée via `./scripts/mac-mini-disable-sleep.sh` (`pmset sleep 0`, WoL activé). Réveil à distance : WoL depuis l’app Freebox si besoin.
 
 ---
 
