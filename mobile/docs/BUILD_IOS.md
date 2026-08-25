@@ -34,6 +34,28 @@ cd ~/Projects/liquid-glass-mobile/mobile
 npx expo run:ios
 ```
 
+### EAS Local (Mac mini = machine de build)
+
+Prérequis : `eas-cli`, `fastlane` (Homebrew), `mobile/.env.eas` avec `EXPO_TOKEN`.
+
+```bash
+cd ~/Projects/liquid-glass-mobile/mobile
+./scripts/mac-mini-eas-local.sh
+# ou profil explicite :
+./scripts/mac-mini-eas-local.sh development-simulator
+# device / preview :
+./scripts/mac-mini-eas-local.sh development
+```
+
+Équivalent manuel :
+
+```bash
+export EXPO_TOKEN=…   # depuis .env.eas
+eas build --local --platform ios --profile development-simulator --non-interactive
+```
+
+> EAS Local compile dans un dossier temporaire → 1er build long (pods). Les builds `xcodebuild` directs (`mac-mini-build-ios.sh`) réutilisent le cache DerivedData et restent plus rapides pour itérer.
+
 ### Setup from scratch (Mac mini)
 
 ```bash
