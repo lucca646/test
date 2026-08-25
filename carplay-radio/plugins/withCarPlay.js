@@ -52,20 +52,28 @@ const HEADER = `#import <UIKit/UIKit.h>
 
 // Note: sans use_frameworks!, l'en-tête du pod est en import quote form.
 // Avec use_frameworks!, remplacer par: #import <react_native_carplay/RNCarPlay.h>
+//
+// CPTemplateApplicationScene.h (SDK iOS 26.5) est explicite : la variante
+// `didConnectInterfaceController:toWindow:` est réservée aux apps de
+// NAVIGATION — « other apps should use the variant that does not provide a
+// window ». Radios est en catégorie Audio. Utiliser la mauvaise variante
+// plantait au runtime dans le framework CarPlay privé d'Apple, avant même
+// que notre code ne s'exécute :
+//   _deliverInterfaceControllerToDelegate → +[NSException raise:format:]
+// La fenêtre s'obtient malgré tout via `templateApplicationScene.carWindow`
+// (propriété readonly) : RNCarPlay a toujours besoin d'un CPWindow.
 const IMPL = `#import "${DELEGATE_NAME}.h"
 #import "RNCarPlay.h"
 
 @implementation ${DELEGATE_NAME}
 
 - (void)templateApplicationScene:(CPTemplateApplicationScene *)templateApplicationScene
-   didConnectInterfaceController:(CPInterfaceController *)interfaceController
-                        toWindow:(CPWindow *)window {
-  [RNCarPlay connectWithInterfaceController:interfaceController window:window];
+   didConnectInterfaceController:(CPInterfaceController *)interfaceController {
+  [RNCarPlay connectWithInterfaceController:interfaceController window:templateApplicationScene.carWindow];
 }
 
 - (void)templateApplicationScene:(CPTemplateApplicationScene *)templateApplicationScene
- didDisconnectInterfaceController:(CPInterfaceController *)interfaceController
-                       fromWindow:(CPWindow *)window {
+didDisconnectInterfaceController:(CPInterfaceController *)interfaceController {
   [RNCarPlay disconnect];
 }
 
