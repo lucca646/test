@@ -24,10 +24,18 @@ rm -rf node_modules/react-native-carplay
 npm install
 
 echo "▸ build (signature locale, cf. credentials.json)"
-npx eas-cli build --platform ios --profile preview-local --local --non-interactive
+LOG="$PROJECT/tools/last-build.log"
+# Enregistré sur disque, pas seulement affiché : permet de relire le résultat
+# exact à distance sans redemander un copier-coller du Terminal.
+if npx eas-cli build --platform ios --profile preview-local --local --non-interactive 2>&1 | tee "$LOG"; then
+  :
+else
+  echo "▸ échec — log complet dans $LOG" >&2
+  exit 1
+fi
 
 IPA="$(ls -t "$PROJECT"/build-*.ipa "$PROJECT"/*.ipa 2>/dev/null | head -1 || true)"
-[ -n "$IPA" ] || { echo "aucune IPA produite" >&2; exit 1; }
+[ -n "$IPA" ] || { echo "aucune IPA produite (voir $LOG)" >&2; exit 1; }
 
 echo "▸ publication"
 "$PROJECT/tools/serve-ipa.sh" "$IPA"

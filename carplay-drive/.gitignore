@@ -43,3 +43,4 @@ yarn-error.*
 # signature locale (profil preview-local) : certificat, profil, mot de passe
 /certs
 /credentials.json
+/tools/last-build.log
