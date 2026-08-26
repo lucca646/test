@@ -151,6 +151,9 @@ function buildSections() {
   return sections;
 }
 
+/** Identifiant de l'appareil dont le détail est empilé, `null` sinon. */
+let openDetail: string | null = null;
+
 const devicesList = new ListTemplate({
   id: "cp-devices",
   title: "Appareils",
@@ -170,8 +173,12 @@ const devicesList = new ListTemplate({
   },
   onItemSelect: async ({ index }) => {
     const d = rendered[index];
-    if (!d) return;
+    // Deux taps rapides peuvent produire deux évènements avant que
+    // l'animation de push ne soit finie ; empiler deux fois le même template
+    // est refusé par CarPlay.
+    if (!d || openDetail) return;
     log("appareil", d.id);
+    openDetail = d.id;
     CarPlay.pushTemplate(detailFor(d.id));
   },
 });
@@ -210,6 +217,11 @@ function detailFor(id: string): InformationTemplate {
     actions: detailActions(d),
     onActionButtonPressed: ({ id: actionId }) => {
       if (actionId === "toggle") toggleDevice(id);
+    },
+    // Le détail recouvre toute la barre d'onglets : il ne disparaît qu'au
+    // dépilement, c'est donc le moment exact où la liste redevient tapable.
+    onDidDisappear: () => {
+      if (openDetail === id) openDetail = null;
     },
   });
   details.set(id, template);
