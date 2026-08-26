@@ -23,17 +23,35 @@ import { BAR } from "./icons";
 /** Durée d'affichage d'un accusé de réception avant fermeture automatique. */
 const ACK_MS = 2200;
 
+/** Laps laissé à CarPlay pour refermer un overlay avant d'en présenter un autre. */
+const SWAP_MS = 320;
+
+type Overlay = AlertTemplate | ActionSheetTemplate | VoiceControlTemplate;
+
 /**
  * Jeton de l'overlay affiché. Évite qu'une fermeture différée n'emporte un
  * template présenté entre-temps par autre chose.
  */
 let presented: symbol | null = null;
 
-function present(template: { id: string }, token: symbol): void {
+/**
+ * CarPlay n'affiche qu'un overlay à la fois : présenter par-dessus un autre
+ * échoue en silence. Enchaîner deux scènes rapidement ferait donc disparaître
+ * le second accusé de réception — on referme d'abord, puis on présente.
+ */
+function present(template: Overlay, token: symbol): void {
+  const swap = presented !== null;
   presented = token;
-  // Le typage de `presentTemplate` n'accepte que l'union alerte / feuille /
-  // dictée ; tous les appelants d'ici respectent ça.
-  CarPlay.presentTemplate(template as never);
+  const show = () => {
+    if (presented !== token) return;
+    CarPlay.presentTemplate(template);
+  };
+  if (swap) {
+    CarPlay.dismissTemplate();
+    setTimeout(show, SWAP_MS);
+  } else {
+    show();
+  }
 }
 
 function dismissIfStill(token: symbol): void {
