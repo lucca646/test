@@ -42,5 +42,6 @@ CI=1 npx eas-cli build \
   --local \
   --platform "$PLATFORM" \
   --profile "$PROFILE" \
-  --non-interactive \
-  "$@"
+  --non-interactive
+
+# Note: pass extra eas flags after profile via: PROFILE=development ./scripts/... -- --clear-cache

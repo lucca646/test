@@ -43,9 +43,27 @@ cd ~/Projects/liquid-glass-mobile/mobile
 ./scripts/mac-mini-eas-local.sh
 # ou profil explicite :
 ./scripts/mac-mini-eas-local.sh development-simulator
-# device / preview :
+# device (Ad Hoc, signing local) :
+./scripts/mac-mini-sync-signing.sh   # une fois / si credentials changent
 ./scripts/mac-mini-eas-local.sh development
 ```
+
+### Signing Apple (device / Ad Hoc)
+
+Sur le Mac mini, après sync depuis EAS :
+
+```bash
+./scripts/mac-mini-sync-signing.sh
+security find-identity -v -p codesigning
+# → 1 valid identity : iPhone Distribution: LUCCA … (5JUVV8Y56D)
+```
+
+Fichiers locaux (gitignorés) :
+- `ios/certs/dist.p12` + `dist.password`
+- `ios/certs/ad_hoc-*.mobileprovision` / `app_store-*.mobileprovision`
+- `credentials.json` (multi-target `CoraiaGlass` + `LiveActivity`)
+
+Le profil `development` dans `eas.json` utilise `"credentialsSource": "local"`.
 
 Équivalent manuel :
 
