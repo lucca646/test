@@ -12,6 +12,10 @@
         "buildConfiguration": "Release"
       }
     },
+    "preview-local": {
+      "extends": "preview",
+      "credentialsSource": "local"
+    },
     "preview-simulator": {
       "distribution": "internal",
       "ios": {

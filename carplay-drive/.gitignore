@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# signature locale (profil preview-local) : certificat, profil, mot de passe
+/certs
+/credentials.json
