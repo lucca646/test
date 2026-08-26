@@ -60,6 +60,15 @@ export default function App() {
           </Text>
         </View>
 
+        {state.carPlayError ? (
+          <View style={styles.error}>
+            <Text style={styles.errorTitle}>Erreur CarPlay</Text>
+            <Text style={styles.errorBody} selectable>
+              {state.carPlayError}
+            </Text>
+          </View>
+        ) : null}
+
         <Text style={styles.section}>Scènes</Text>
         <View style={styles.grid}>
           {SCENES.map((scene) => {
@@ -226,6 +235,17 @@ const styles = StyleSheet.create({
   tileLabel: { color: "#d9d9de", fontSize: 11, textAlign: "center" },
   dimmed: { opacity: 0.35 },
   pressed: { opacity: 0.6 },
+  error: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "#2a1418",
+    borderWidth: 1,
+    borderColor: "#5c2028",
+  },
+  errorTitle: { color: "#ff6b6b", fontSize: 14, fontWeight: "700" },
+  errorBody: { color: "#ffb3b3", fontSize: 13, marginTop: 6, lineHeight: 18 },
   card: {
     marginHorizontal: 16,
     backgroundColor: "#17171c",

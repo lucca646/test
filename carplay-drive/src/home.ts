@@ -69,6 +69,13 @@ export interface HomeState {
   outsideTemp: number;
   cabinTemp: number;
   syncedAt: number;
+  /**
+   * Exception levée par CarPlay à la construction d'un template, remontée par
+   * le patch `react-native-carplay` au lieu de faire tomber l'app. Affichée
+   * telle quelle sur l'iPhone : sans ça, l'exception se perd dans un `abort()`
+   * dont le rapport de crash ne garde aucune trace exploitable.
+   */
+  carPlayError: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,6 +175,7 @@ let state: HomeState = {
   outsideTemp: 14,
   cabinTemp: 11,
   syncedAt: Date.now(),
+  carPlayError: null,
 };
 
 const listeners = new Set<() => void>();
@@ -204,6 +212,12 @@ function withReadings(devices: Device[]): Device[] {
 
 function push(text: string): Entry[] {
   return [{ at: Date.now(), text }, ...state.log].slice(0, LOG_SIZE);
+}
+
+/** Une seule ligne suffit : c'est la première exception qui compte. */
+export function reportCarPlayError(text: string): void {
+  if (state.carPlayError) return;
+  commit({ carPlayError: text });
 }
 
 export function device(id: string): Device | undefined {

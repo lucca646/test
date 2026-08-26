@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-carplay/ios/RNCarPlay.m b/node_modules/react-native-carplay/ios/RNCarPlay.m
-index 672a032..2dfc969 100644
+index 672a032..44ec7a6 100644
 --- a/node_modules/react-native-carplay/ios/RNCarPlay.m
 +++ b/node_modules/react-native-carplay/ios/RNCarPlay.m
 @@ -2,6 +2,29 @@
@@ -50,3 +50,51 @@ index 672a032..2dfc969 100644
          [cp sendEventWithName:@"didDisconnect" body:@{}];
      }
  }
+@@ -57,6 +80,8 @@ RCT_EXPORT_MODULE();
+     return @[
+         @"didConnect",
+         @"didDisconnect",
++        // Patch COR·ALT : remontée des exceptions de construction, cf. createTemplate
++        @"templateError",
+         // interface
+         @"barButtonPressed",
+         @"backButtonPressed",
+@@ -157,7 +182,38 @@ RCT_EXPORT_METHOD(checkForConnection) {
+     }
+ }
+ 
++#pragma mark - Patch COR·ALT : construction de template non fatale
++//
++// Les classes CPTemplate sont annotées `main-thread-only` dans le SDK iOS 26
++// (`#define CARPLAY_TEMPLATE_UI_ACTOR NS_SWIFT_UI_ACTOR
++// __attribute__((annotate("main-thread-only")))`), et `-methodQueue` ci-dessus
++// demande bien le main queue — mais sous bridgeless la couche d'interop
++// TurboModule l'ignore : le crash observé montre l'invocation sur
++// `com.meta.react.turbomodulemanager.queue`. Une NSException levée là remonte
++// jusqu'à `ObjCTurboModule::performVoidMethodInvocation`, qui la relance
++// (`objc_exception_rethrow`) hors de tout @catch : `abort()`, sans message
++// exploitable dans le rapport de crash.
++//
++// On isole donc la construction : l'exception est capturée et renvoyée à JS
++// sous forme d'évènement `templateError`. L'app reste debout et affiche la
++// raison exacte au lieu de disparaître.
+ RCT_EXPORT_METHOD(createTemplate:(NSString *)templateId config:(NSDictionary*)config) {
++    @try {
++        [self rncpCreateTemplate:templateId config:config];
++    } @catch (NSException *exception) {
++        NSLog(@"[RNCarPlay] createTemplate %@ a levé %@ : %@", templateId, exception.name, exception.reason);
++        if (RNCPCanEmit(self)) {
++            [self sendEventWithName:@"templateError" body:@{
++                @"templateId": templateId ?: @"?",
++                @"type": [RCTConvert NSString:config[@"type"]] ?: @"?",
++                @"name": exception.name ?: @"?",
++                @"reason": exception.reason ?: @"?",
++            }];
++        }
++    }
++}
++
++- (void)rncpCreateTemplate:(NSString *)templateId config:(NSDictionary*)config {
+     // Get the shared instance of the RNCPStore class
+     RNCPStore *store = [RNCPStore sharedManager];
+ 

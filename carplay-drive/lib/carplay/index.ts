@@ -8,6 +8,8 @@
  */
 import { NativeModules, Platform } from "react-native";
 
+import { reportCarPlayError } from "../../src/home";
+
 export function isCarPlaySupported(): boolean {
   return Platform.OS === "ios" && Boolean(NativeModules.RNCarPlay);
 }
@@ -23,5 +25,7 @@ export function setupCarPlay(): void {
     mod.registerCarPlay();
   } catch (err) {
     console.warn("[CarPlay] initialisation ignorée:", err);
+    // Un warn seul est invisible sur un build Release : on le montre à l'écran.
+    reportCarPlayError(`init JS · ${String(err)}`);
   }
 }

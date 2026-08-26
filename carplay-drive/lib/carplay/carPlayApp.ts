@@ -47,6 +47,7 @@ import {
   formatTime,
   getState,
   refresh,
+  reportCarPlayError,
   runScene,
   startAmbient,
   subscribe,
@@ -59,6 +60,19 @@ import { BAR, GRID, LIST } from "./icons";
 function log(...args: unknown[]): void {
   console.log("[CarPlay]", ...args);
 }
+
+// Abonnement AVANT toute construction de template : le patch natif renvoie ici
+// les exceptions levées par CarPlay au lieu de laisser l'app mourir dessus.
+// Les instructions d'un module s'exécutent dans l'ordre, l'écouteur est donc
+// en place quand les `new …Template(…)` ci-dessous partent.
+CarPlay.emitter.addListener(
+  "templateError",
+  (e: { type: string; templateId: string; name: string; reason: string }) => {
+    const text = `${e.type} (${e.templateId}) · ${e.name} · ${e.reason}`;
+    log("templateError", text);
+    reportCarPlayError(text);
+  },
+);
 
 /**
  * Plafond de lignes, remplacé par la valeur remontée par la voiture dès la
