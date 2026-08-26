@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-carplay/ios/RNCarPlay.m b/node_modules/react-native-carplay/ios/RNCarPlay.m
-index 672a032..44ec7a6 100644
+index 672a032..4703b5b 100644
 --- a/node_modules/react-native-carplay/ios/RNCarPlay.m
 +++ b/node_modules/react-native-carplay/ios/RNCarPlay.m
 @@ -2,6 +2,29 @@
@@ -98,3 +98,53 @@ index 672a032..44ec7a6 100644
      // Get the shared instance of the RNCPStore class
      RNCPStore *store = [RNCPStore sharedManager];
  
+@@ -890,30 +946,35 @@ RCT_EXPORT_METHOD(updateMapTemplateMapButtons:(NSString*) templateId mapButtons:
+     return result;
+ }
+ 
++// Patch COR·ALT : `-[CPBarButton initWithType:handler:]` est déprécié depuis
++// iOS 14 au profit de `-initWithImage:handler:` / `-initWithTitle:handler:`.
++// On passe aux initialiseurs courants. `initWithImage:` déclare son argument
++// non-nul : si l'image ne se résout pas, on retombe sur un bouton texte plutôt
++// que de lui passer nil.
+ - (NSArray<CPBarButton*>*) parseBarButtons:(NSArray*)barButtons templateId:(NSString *)templateId {
+     NSMutableArray *result = [NSMutableArray array];
+     for (NSDictionary *barButton in barButtons) {
+-        CPBarButtonType _type;
+         NSString *_id = [barButton objectForKey:@"id"];
+         NSString *type = [barButton objectForKey:@"type"];
++        NSString *_title = [RCTConvert NSString:[barButton objectForKey:@"title"]];
++        CPBarButtonHandler handler = ^(CPBarButton * _Nonnull pressed) {
++            [self sendEventWithName:@"barButtonPressed" body:@{@"id": _id, @"templateId":templateId}];
++        };
++
++        UIImage *_image = nil;
+         if (type && [type isEqualToString:@"image"]) {
+-            _type = CPBarButtonTypeImage;
++            _image = [RCTConvert UIImage:[barButton objectForKey:@"image"]];
++        }
++
++        CPBarButton *_barButton;
++        if (_image) {
++            _barButton = [[CPBarButton alloc] initWithImage:_image handler:handler];
+         } else {
+-            _type = CPBarButtonTypeText;
++            _barButton = [[CPBarButton alloc] initWithTitle:(_title ?: @"") handler:handler];
+         }
+-        CPBarButton *_barButton = [[CPBarButton alloc] initWithType:_type handler:^(CPBarButton * _Nonnull barButton) {
+-            [self sendEventWithName:@"barButtonPressed" body:@{@"id": _id, @"templateId":templateId}];
+-        }];
++
+         BOOL _disabled = [barButton objectForKey:@"disabled"];
+         [_barButton setEnabled:!_disabled];
+-
+-        if (_type == CPBarButtonTypeText) {
+-            NSString *_title = [barButton objectForKey:@"title"];
+-            [_barButton setTitle:_title];
+-        } else if (_type == CPBarButtonTypeImage) {
+-            UIImage *_image = [RCTConvert UIImage:[barButton objectForKey:@"image"]];
+-            [_barButton setImage:_image];
+-        }
+         [result addObject:_barButton];
+     }
+     return result;
