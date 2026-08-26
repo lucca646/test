@@ -1,0 +1,52 @@
+diff --git a/node_modules/react-native-carplay/ios/RNCarPlay.m b/node_modules/react-native-carplay/ios/RNCarPlay.m
+index 672a032..2dfc969 100644
+--- a/node_modules/react-native-carplay/ios/RNCarPlay.m
++++ b/node_modules/react-native-carplay/ios/RNCarPlay.m
+@@ -2,6 +2,29 @@
+ #import <React/RCTConvert.h>
+ #import <React/RCTRootView.h>
+ 
++#pragma mark - Patch COR·ALT : compatibilité New Architecture (bridgeless)
++//
++// Sous bridgeless (New Architecture, défaut depuis RN 0.76), la propriété
++// `RCTEventEmitter.bridge` est TOUJOURS nil : `sendEventWithName:` route les
++// évènements via `callableJSModules`. Gater l'émission sur `bridge` — ce que
++// fait l'upstream — avale donc `didConnect` / `didDisconnect` lorsque la
++// voiture est branchée alors que l'app tourne déjà, et l'écran CarPlay reste
++// désespérément vide. Le lancement à froid depuis CarPlay s'en sortait par
++// hasard via `checkForConnection`, qui n'a pas ce garde-fou.
++//
++// `callableJSModules` est bien synthétisé par RCTEventEmitter
++// (`@synthesize callableJSModules = _callableJSModules;`) mais absent de son
++// en-tête public : on le redéclare ici pour pouvoir tester sa présence sans
++// dépendre d'une version précise de React Native.
++@interface RCTEventEmitter (RNCPBridgeless)
++@property (nonatomic, weak, readonly) id callableJSModules;
++@end
++
++/** Vrai dès qu'un transport JS est disponible, ancienne ou nouvelle archi. */
++static BOOL RNCPCanEmit(RNCarPlay *cp) {
++    return cp.bridge != nil || cp.callableJSModules != nil;
++}
++
+ @implementation RNCarPlay
+ 
+ @synthesize interfaceController;
+@@ -25,7 +48,7 @@
+     [store setConnected:true];
+ 
+     RNCarPlay *cp = [RNCarPlay allocWithZone:nil];
+-    if (cp.bridge) {
++    if (RNCPCanEmit(cp)) {
+         [cp sendEventWithName:@"didConnect" body:[self getConnectedWindowInformation:window]];
+     }
+ }
+@@ -36,7 +59,7 @@
+     [store setConnected:false];
+     [[store.window subviews] makeObjectsPerformSelector:@selector(removeFromSuperview)];
+ 
+-    if (cp.bridge) {
++    if (RNCPCanEmit(cp)) {
+         [cp sendEventWithName:@"didDisconnect" body:@{}];
+     }
+ }

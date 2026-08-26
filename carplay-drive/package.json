@@ -1,0 +1,30 @@
+{
+  "name": "carplay-drive",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "icons": "python3 tools/make-icons.py",
+    "prebuild:ios": "expo prebuild --platform ios --clean",
+    "typecheck": "tsc --noEmit",
+    "build": "eas build --profile preview --platform ios",
+    "build:local": "eas build --profile preview --platform ios --local",
+    "build:sim": "eas build --profile preview-simulator --platform ios",
+    "postinstall": "patch-package",
+    "ios": "expo run:ios",
+    "android": "expo run:android"
+  },
+  "dependencies": {
+    "expo": "~54.0.36",
+    "expo-status-bar": "~3.0.9",
+    "patch-package": "^8.0.1",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-carplay": "2.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Coraia Drive",
+    "slug": "carplay-drive",
+    "owner": "luccar2956s-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "coraiadrive",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "eu.coraia.drive",
+      "infoPlist": {
+        "CFBundleDisplayName": "Drive",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "eu.coraia.drive"
+    },
+    "plugins": [
+      "./plugins/withCarPlay"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3aaca355-f49e-43f5-9a0c-45773233b8d3"
+      }
+    }
+  }
+}
