@@ -184,8 +184,10 @@ const voice = new VoiceControlTemplate({
 
 export function startVoice(then: () => void): void {
   const token = Symbol("voice");
+  // Pas d'`activateVoiceControlState` ici : « the Voice Control template will
+  // begin on the first state specified », et l'appeler avant que le template
+  // soit présenté n'a de toute façon aucun effet (CPVoiceControlTemplate.h).
   present(voice, token);
-  voice.activateVoiceControlState("listening");
   setTimeout(() => {
     if (presented !== token) return;
     voice.activateVoiceControlState("working");
