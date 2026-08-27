@@ -98,11 +98,30 @@ if [[ -n "$LOGIN_PASS" ]]; then
   security set-keychain-settings -t 21600 -l "$KC" || true
 fi
 
-# WWDR intermediates (idempotent)
+# Keychain de recherche propre (retire un éventuel keychain temp EAS stale)
+security list-keychains -d user -s "$KC"
+security default-keychain -s "$KC"
+
+# Chaîne Apple (System + login). Ne pas appliquer de trust custom sur le cert dist :
+# xcodebuild échoue avec « Invalid trust settings » si le .p12 a des réglages non-default.
+SYS="/Library/Keychains/System.keychain"
+curl -fsSL -o /tmp/AppleIncRootCertificate.cer https://www.apple.com/appleca/AppleIncRootCertificate.cer || true
+if [[ -n "$LOGIN_PASS" ]]; then
+  printf '%s\n' "$LOGIN_PASS" | sudo -S security add-certificates -k "$SYS" /tmp/AppleIncRootCertificate.cer 2>/dev/null || true
+fi
 for cer in AppleWWDRCAG3 AppleWWDRCAG2; do
   curl -fsSL -o "/tmp/${cer}.cer" "https://www.apple.com/certificateauthority/${cer}.cer" || true
+  if [[ -n "$LOGIN_PASS" ]]; then
+    printf '%s\n' "$LOGIN_PASS" | sudo -S security add-certificates -k "$SYS" "/tmp/${cer}.cer" 2>/dev/null || true
+  fi
   security import "/tmp/${cer}.cer" -k "$KC" 2>/dev/null || true
 done
+
+DIST_HASH="$(security find-certificate -c "iPhone Distribution" -Z "$KC" 2>/dev/null | awk '/SHA-1 hash/{print $3; exit}')"
+if [[ -n "$DIST_HASH" ]]; then
+  security trust-settings-remove -d "$DIST_HASH" 2>/dev/null || true
+  security delete-certificate -Z "$DIST_HASH" "$KC" 2>/dev/null || true
+fi
 
 security import "$CERTS_DIR/dist.p12" -k "$KC" -P "$P12_PASS" \
   -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild -T /usr/bin/xcodebuild 2>/dev/null \

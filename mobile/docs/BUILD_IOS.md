@@ -13,12 +13,22 @@
 | CocoaPods | Homebrew 1.17 |
 | Projet | `~/Projects/liquid-glass-mobile` |
 
-### État setup (2026-08-24)
+### État setup (vérifié sur machine 2026-08-27)
+
+| Élément | Statut |
+|---|---|
+| Outillage (Xcode, Homebrew, Node 20, CocoaPods, fastlane, eas-cli) | ✅ installé |
+| Branche `cursor/mac-mini-ios-build-setup-28fb` sur le Mac | ✅ à déployer (`git pull`) |
+| Scripts `mac-mini-*.sh` | ✅ dans le repo ; étaient absents/vides sur le Mac avant pull |
+| `eas.json` → `credentialsSource: local` | ✅ dans le repo ; manquait sur le Mac (restait sur `master`) |
+| `credentials.json` + `ios/certs/` | ✅ présents localement sur le Mac |
+| `security find-identity` (1 identité valide) | ✅ |
+| **Build device signé (preuve)** | ❌ **pas encore réussi** — voir ci-dessous |
 
 - Xcode installé depuis `~/Downloads/Xcode.app` → `/Applications/`
-- Homebrew + nvm + Node 20 + CocoaPods
+- Homebrew + nvm + Node 20 + CocoaPods + fastlane
 - Repo cloné, `expo prebuild --platform ios` + `pod install` **OK**
-- Premier `xcodebuild` simulateur lancé (peut prendre 15–30 min)
+- `xcodebuild` simulateur : **OK**
 
 ### Build simulateur (Mac mini)
 
@@ -50,12 +60,18 @@ cd ~/Projects/liquid-glass-mobile/mobile
 
 ### Signing Apple (device / Ad Hoc)
 
+> **Important** : « identité trouvée » ≠ « build device réussi ». Sur ce Mac, `find-identity` retourne 1 identité valide, mais `xcodebuild` device a échoué avec :
+> `Invalid trust settings. Restore system default trust settings for certificate "iPhone Distribution: …"`.
+> Cause : trust custom sur le certificat (ou keychain EAS temporaire stale). Le script `mac-mini-sync-signing.sh` remet les trust settings par défaut avant réimport.
+
 Sur le Mac mini, après sync depuis EAS :
 
 ```bash
-./scripts/mac-mini-sync-signing.sh
+MAC_MINI_SSH_PASSWORD='…' ./scripts/mac-mini-sync-signing.sh
 security find-identity -v -p codesigning
 # → 1 valid identity : iPhone Distribution: LUCCA … (5JUVV8Y56D)
+# Puis preuve réelle :
+./scripts/mac-mini-eas-local.sh development
 ```
 
 Fichiers locaux (gitignorés) :
