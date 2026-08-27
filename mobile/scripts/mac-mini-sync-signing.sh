@@ -99,22 +99,28 @@ if [[ -n "$LOGIN_PASS" ]]; then
 fi
 
 # Keychain de recherche propre (retire un éventuel keychain temp EAS stale)
-security list-keychains -d user -s "$KC"
+SYS="/Library/Keychains/System.keychain"
+security list-keychains -d user -s "$KC" "$SYS"
 security default-keychain -s "$KC"
 
-# Chaîne Apple (System + login). Ne pas appliquer de trust custom sur le cert dist :
-# xcodebuild échoue avec « Invalid trust settings » si le .p12 a des réglages non-default.
-SYS="/Library/Keychains/System.keychain"
+# Chaîne Apple (System + login).
+# INTERDIT : add-trusted-cert -r trustRoot/trustAsRoot sur WWDR —
+# ça produit « unable to build chain to self-signed root » + errSecInternalComponent.
 curl -fsSL -o /tmp/AppleIncRootCertificate.cer https://www.apple.com/appleca/AppleIncRootCertificate.cer || true
+curl -fsSL -o /tmp/AppleWWDRCAG3.cer https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer || true
+curl -fsSL -o /tmp/AppleWWDRCAG2.cer https://www.apple.com/certificateauthority/AppleWWDRCAG2.cer || true
+
 if [[ -n "$LOGIN_PASS" ]]; then
-  printf '%s\n' "$LOGIN_PASS" | sudo -S security add-certificates -k "$SYS" /tmp/AppleIncRootCertificate.cer 2>/dev/null || true
+  for cer in /tmp/AppleIncRootCertificate.cer /tmp/AppleWWDRCAG3.cer /tmp/AppleWWDRCAG2.cer; do
+    [[ -f "$cer" ]] || continue
+    # Retire un éventuel TrustAsRoot admin (cause #1 du codesign cassé)
+    printf '%s\n' "$LOGIN_PASS" | sudo -S security remove-trusted-cert -d "$cer" 2>/dev/null || true
+    printf '%s\n' "$LOGIN_PASS" | sudo -S security add-certificates -k "$SYS" "$cer" 2>/dev/null || true
+  done
 fi
-for cer in AppleWWDRCAG3 AppleWWDRCAG2; do
-  curl -fsSL -o "/tmp/${cer}.cer" "https://www.apple.com/certificateauthority/${cer}.cer" || true
-  if [[ -n "$LOGIN_PASS" ]]; then
-    printf '%s\n' "$LOGIN_PASS" | sudo -S security add-certificates -k "$SYS" "/tmp/${cer}.cer" 2>/dev/null || true
-  fi
-  security import "/tmp/${cer}.cer" -k "$KC" 2>/dev/null || true
+for cer in /tmp/AppleWWDRCAG3.cer /tmp/AppleWWDRCAG2.cer; do
+  [[ -f "$cer" ]] || continue
+  security add-certificates -k "$KC" "$cer" 2>/dev/null || true
 done
 
 DIST_HASH="$(security find-certificate -c "iPhone Distribution" -Z "$KC" 2>/dev/null | awk '/SHA-1 hash/{print $3; exit}')"
@@ -139,4 +145,19 @@ done
 
 echo "[signing] Valid identities:"
 security find-identity -v -p codesigning
+
+# Preuve codesign (sinon EAS Local device échouera)
+TMP_SIGN="$(mktemp -d)/echo-sign"
+cp /bin/echo "$TMP_SIGN"
+if codesign -f -s "iPhone Distribution" "$TMP_SIGN" 2>/tmp/codesign-smoke.err; then
+  echo "[signing] codesign smoke OK"
+else
+  echo "[signing] ❌ codesign smoke FAIL — voir /tmp/codesign-smoke.err"
+  cat /tmp/codesign-smoke.err 2>/dev/null || true
+  echo "[signing] Astuce: security dump-trust-settings -d  → WWDR ne doit PAS être TrustAsRoot"
+  rm -rf "$(dirname "$TMP_SIGN")"
+  exit 1
+fi
+rm -rf "$(dirname "$TMP_SIGN")"
+
 echo "[signing] Done. EAS Local device: ./scripts/mac-mini-eas-local.sh development"

@@ -23,7 +23,8 @@
 | `eas.json` → `credentialsSource: local` | ✅ dans le repo ; manquait sur le Mac (restait sur `master`) |
 | `credentials.json` + `ios/certs/` | ✅ présents localement sur le Mac |
 | `security find-identity` (1 identité valide) | ✅ |
-| **Build device signé (preuve)** | ❌ **pas encore réussi** — voir ci-dessous |
+| **codesign smoke** (`/bin/echo`) | ✅ OK (2026-08-27 — TrustAsRoot WWDR retiré) |
+| **Build device EAS Local end-to-end** | ⏳ à lancer (`./scripts/mac-mini-eas-local.sh development`) |
 
 - Xcode installé depuis `~/Downloads/Xcode.app` → `/Applications/`
 - Homebrew + nvm + Node 20 + CocoaPods + fastlane
@@ -60,9 +61,10 @@ cd ~/Projects/liquid-glass-mobile/mobile
 
 ### Signing Apple (device / Ad Hoc)
 
-> **Important** : « identité trouvée » ≠ « build device réussi ». Sur ce Mac, `find-identity` retourne 1 identité valide, mais `xcodebuild` device a échoué avec :
-> `Invalid trust settings. Restore system default trust settings for certificate "iPhone Distribution: …"`.
-> Cause : trust custom sur le certificat (ou keychain EAS temporaire stale). Le script `mac-mini-sync-signing.sh` remet les trust settings par défaut avant réimport.
+> **Cause racine codesign cassé (corrigée 2026-08-27)** : WWDR marqué `TrustAsRoot` dans les trust settings **admin** (`security dump-trust-settings -d`).  
+> Symptôme : `unable to build chain to self-signed root` + `errSecInternalComponent` (même sur `/bin/echo`).  
+> Fix : `sudo security remove-trusted-cert -d AppleWWDRCAG3.cer` — **jamais** `add-trusted-cert -r trustAsRoot` sur WWDR.  
+> Le script `mac-mini-sync-signing.sh` retire ce TrustAsRoot et vérifie codesign (smoke test).
 
 Sur le Mac mini, après sync depuis EAS :
 
